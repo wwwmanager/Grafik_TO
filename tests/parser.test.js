@@ -87,6 +87,15 @@ describe('parseWorkbook', () => {
     expect(ymd(result.exportDate)).toEqual([2026, 11, 23]);
   });
 
+  it('returns a null export date when the title has none', () => {
+    const buffer = makeBuffer([
+      ['Выгрузка'],
+      ['Владелец', 'Дата ТО'],
+      ['ООО «Заря»', '15.03.2024'],
+    ]);
+    expect(parseWorkbook(buffer).exportDate).toBeNull();
+  });
+
   it('reads flags from their columns', () => {
     const buffer = makeBuffer([
       ['Владелец', 'Дата ТО', 'Угон', 'Без ТО', 'Сдан ГРЗ', 'Вывезена за рубеж'],
