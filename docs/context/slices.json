@@ -103,7 +103,7 @@
     {
       "id": "GRAFIK-06-PLACEMENT",
       "title": "scheduler: locations, duration, day/time placement",
-      "status": "dispatched",
+      "status": "accepted",
       "approved": true,
       "dependsOn": [],
       "dispatchText": "SLICE GRAFIK-06-PLACEMENT (scheduler: locations, duration, day/time placement). Spec: G:\\_Grafik_TO\\docs\\spec\\plan.md section GRAFIK-06 + TZ.md + decisions.md (decisions win). Verify: npm --prefix G:\\_Grafik_TO run verify",
@@ -112,13 +112,13 @@
         "npm --prefix G:\\_Grafik_TO run verify"
       ],
       "owner": "orch1",
-      "commit": null,
-      "evidence": null,
+      "commit": "9f997f7",
+      "evidence": "G:\\_Grafik_TO\\docs\\context\\evidence\\GRAFIK-06-PLACEMENT.json",
       "rejections": 0,
-      "retro": null,
+      "retro": "batch run by orch1 directly (L3 cannot write G:)",
       "dispatchedBy": "orch1",
       "dispatchedAt": "2026-11-23T19:32:08+05:00",
-      "updatedAt": "2026-11-23T19:32:08+05:00"
+      "updatedAt": "2026-11-23T19:52:37+05:00"
     },
     {
       "id": "GRAFIK-07-EXPORT",
@@ -181,5 +181,5 @@
       "updatedAt": "2026-11-23T19:32:10+05:00"
     }
   ],
-  "updatedAt": "2026-11-23T19:52:29+05:00"
+  "updatedAt": "2026-11-23T19:52:37+05:00"
 }
