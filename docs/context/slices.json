@@ -299,7 +299,27 @@
       "dispatchedBy": "architect",
       "dispatchedAt": "2026-11-23T21:01:55+05:00",
       "updatedAt": "2026-11-23T21:05:37+05:00"
+    },
+    {
+      "id": "GRAFIK-16-ADDR-COLUMNS",
+      "title": "Parser: build address from split columns (region/district/settlement/street/house)",
+      "status": "accepted",
+      "approved": true,
+      "dependsOn": [],
+      "dispatchText": "SLICE=GRAFIK-16-ADDR-COLUMNS project=grafik_to root=G:\\_Grafik_TO verify=off (send DONE to architect)\nGoal: parser reads address from split columns in real export (region/район/населённый пункт/улица/дом in separate cols), not just single \"Адрес владельца\".\nReal export format (owner sample):\n  Col A: ЧЕЛЯБИНСКАЯ ОБЛ (region, marker ОБЛ/ОБЛАСТЬ/КРАЙ/АО/РЕСП)\n  Col B: КУСИНСКИЙ Р-Н (district, marker Р-Н/РАЙОН) or empty\n  Col C: КУСА Г / ЗЛАТОУСТ Г / МЕДВЕДЕВКА С / ТАЙНАК П / ЦЕНТРАЛЬНЫЙ п (settlement, marker Г/С/П/ПГТ/Д/Х/СТ-ЦА/АУЛ/РП)\n  Col D..: street, house, etc.\nParser must:\n1. After finding header row, scan ALL header cells for address-part markers:\n   - region: header contains ОБЛ, ОБЛАСТЬ, КРАЙ, АО, РЕСП, РЕСПУБЛИКА, ОКРУГ\n   - district: header contains Р-Н, РАЙОН\n   - settlement: header contains Г, С, П, ПГТ, Д, Х, СТ-ЦА, АУЛ, РП (as whole word or suffix)\n2. For each row, concatenate non-empty values from these columns in order: region, district, settlement, street, house → full address string.\n3. Fallback: if \"Адрес владельца\" column exists and non-empty, use it (current behaviour).\n4. Pass combined address to extractLocation() (already fixed in GRAFIK-15 for bare cities, attached markers, region markers).\nUpdate: src/modules/parser.js (header scan + address assembly), tests for split-column format.\nverify: npm run verify green. Commit, push origin main (Pages redeploy). Confirm Actions run + Pages 200.\nReport: STATUS(done) commit, files, test cases, Actions run id. No acks.",
+      "acceptance": null,
+      "verifyCommands": [
+        "npm --prefix G:\\_Grafik_TO run verify"
+      ],
+      "owner": "orch1",
+      "commit": "eb6b969",
+      "evidence": "G:\\_Grafik_TO\\docs\\context\\evidence\\GRAFIK-16-ADDR-COLUMNS.json",
+      "rejections": 0,
+      "retro": "split address columns parsed, settlement markers stripped",
+      "dispatchedBy": "architect",
+      "dispatchedAt": "2026-11-23T21:05:51+05:00",
+      "updatedAt": "2026-11-23T21:09:19+05:00"
     }
   ],
-  "updatedAt": "2026-11-23T21:05:37+05:00"
+  "updatedAt": "2026-11-23T21:09:19+05:00"
 }
