@@ -179,7 +179,47 @@
       "dispatchedBy": "orch1",
       "dispatchedAt": "2026-11-23T19:32:10+05:00",
       "updatedAt": "2026-11-23T19:52:59+05:00"
+    },
+    {
+      "id": "GRAFIK-10-FIXES",
+      "title": "Owner fixes D11-D14: phys threshold+bug, Bez TO=*, winter load",
+      "status": "accepted",
+      "approved": true,
+      "dependsOn": [],
+      "dispatchText": "SLICE=GRAFIK-10-FIXES project=grafik_to root=G:\\_Grafik_TO verify=off (send DONE+raw evidence to architect)\nGoal: owner acceptance fixes. Spec: docs/spec/decisions.md D11-D14 (authoritative, override TZ.md and earlier D1/D5).\n1) D11 configurable physical-person threshold (setting, default 3) + FIX bug: physical persons with 3 units appear in schedule on real export. Find root cause (physical detection on `Группа владельца` values, counting only post-filter units, owner key). Tests for 2/3/4 units, modes A and B; D5 note uses threshold.\n2) D12 `Без ТО`=\"*\" = overdue, must be scheduled (remove it from exclusion reasons); depth D1 still applies; other exclusions win.\n3) D13 \"*\" with empty/invalid `Дата ТО` = treated as >5 years old: included only if depth>=5, else excluded with reason.\n4) D14 winter months setting (default Dec/Jan/Feb) + winter load % (0-100, default 30) weighting least-loaded month choice for overdue and \"*\" units; fixed target dates untouched.\nUI settings + localStorage for new fields; update README settings table; update tests/fixtures (make-fixture) to cover \"*\" cases.\nDone = npm run verify green, commits on main, push to origin (Pages redeploy), confirm Actions run success + Pages HTTP 200.\nReport: STATUS(done) commit(s), files, test count, Actions run id, root cause of bug 1 (1 line). No acks.\n",
+      "acceptance": null,
+      "verifyCommands": [
+        "npm --prefix G:\\_Grafik_TO run verify"
+      ],
+      "owner": "orch1",
+      "commit": "1cb04d6",
+      "evidence": "G:\\_Grafik_TO\\docs\\context\\evidence\\GRAFIK-10-FIXES.json",
+      "rejections": 0,
+      "retro": "D11-D14; root cause: placeholder INN merged individuals into one owner",
+      "dispatchedBy": "architect",
+      "dispatchedAt": "2026-11-23T20:23:16+05:00",
+      "updatedAt": "2026-11-23T20:29:16+05:00"
+    },
+    {
+      "id": "GRAFIK-11-MANUAL",
+      "title": "User manual RU, plain language (docs/manual.md)",
+      "status": "dispatched",
+      "approved": true,
+      "dependsOn": [],
+      "dispatchText": "SLICE=GRAFIK-11-MANUAL project=grafik_to root=G:\\_Grafik_TO verify=off (send DONE+raw evidence to architect)\nGoal: user manual in Russian for a non-technical office user. New file docs/manual.md only (+ one link line in README). Do NOT touch src/, tests/, package files: orch1 is editing them in GRAFIK-10-FIXES in the same repo.\nSources: docs/spec/TZ.md, docs/spec/decisions.md (D1-D14, authoritative), actual UI labels in src/ (quote labels exactly as on screen), live app https://wwwmanager.github.io/Grafik_TO/.\nStyle: plain everyday Russian, short sentences, step-by-step numbered actions. No jargon (no \"парсер\", \"кэш\", \"API\", \"CORS\", \"localStorage\", \"чанк\", \"фильтр\" in tech sense); explain terms when unavoidable.\nContent: what the program does and does not do; what you need (browser, export file from the registry); step-by-step: open site, load file, check settings, build, review preview tabs, download Excel; every setting: what it means, default, when to change, example; how to read each of the 4 result sheets; why a unit was excluded (each reason in plain words, incl. \"Без ТО\" = \"*\" means overdue and IS scheduled); physical persons threshold; winter months load; calendar message (online vs built-in); privacy: file is processed only on the user's computer, nothing is sent; common problems and fixes; short FAQ.\nGRAFIK-10 adds settings (D11 threshold, D14 winter months/%). Draft now; before reporting, wait until a GRAFIK-10 commit appears in git log and re-check labels against src/.\nCommit locally on main, stage only docs/manual.md + README.md; no push (orch1 pushes in GRAFIK-10).\nReport: STATUS(done) commit, files, word count, sections list, any UI label you could not confirm. No acks.\n",
+      "acceptance": null,
+      "verifyCommands": [
+        "npm --prefix G:\\_Grafik_TO run verify"
+      ],
+      "owner": "orch1",
+      "commit": null,
+      "evidence": null,
+      "rejections": 0,
+      "retro": null,
+      "dispatchedBy": "architect",
+      "dispatchedAt": "2026-11-23T20:27:36+05:00",
+      "updatedAt": "2026-11-23T20:27:36+05:00"
     }
   ],
-  "updatedAt": "2026-11-23T19:52:59+05:00"
+  "updatedAt": "2026-11-23T20:29:16+05:00"
 }
