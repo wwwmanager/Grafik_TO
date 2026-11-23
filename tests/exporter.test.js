@@ -275,6 +275,19 @@ describe('exportScheduleToXlsx', () => {
     expect(sheet.getColumn(2).width).toBeGreaterThanOrEqual(24);
   });
 
+  it('vertically centres every cell on both main sheets (GRAFIK-24)', async () => {
+    const workbook = await loadWorkbook(await exportScheduleToXlsx(result, SETTINGS));
+    for (const sheetName of ['График ТО', 'Детализация']) {
+      const sheet = workbook.getWorksheet(sheetName);
+      sheet.eachRow((row) => {
+        row.eachCell((cell) => {
+          expect(cell.alignment?.vertical).toBe('middle');
+          expect(cell.alignment?.wrapText).toBe(true);
+        });
+      });
+    }
+  });
+
   it('appends the reception note when mode B excludes individuals', async () => {
     const modeB = buildSchedule(records, { ...SETTINGS, smallPhysicalMode: 'B' }, CALENDAR);
     expect(modeB.notes).toHaveLength(1);

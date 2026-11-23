@@ -119,7 +119,9 @@ function styleSheet(worksheet) {
   worksheet.eachRow((row) => {
     row.eachCell((cell) => {
       cell.border = BORDER;
-      if (!cell.alignment) cell.alignment = { vertical: 'top', wrapText: true };
+      // GRAFIK-24: every cell (header and data) is vertically centred; multi-line
+      // columns keep wrapping on top of that.
+      cell.alignment = { ...(cell.alignment || {}), vertical: 'middle', wrapText: true };
     });
   });
   const header = worksheet.getRow(1);
