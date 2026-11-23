@@ -463,7 +463,7 @@
     {
       "id": "GRAFIK-24-EXPORT-VALIGN",
       "title": "Excel export: vertical center alignment for all cells",
-      "status": "dispatched",
+      "status": "accepted",
       "approved": true,
       "dependsOn": [],
       "dispatchText": "SLICE=GRAFIK-24-EXPORT-VALIGN project=grafik_to root=G:\\_Grafik_TO verify=off (send DONE to architect)\nGoal: set vertical alignment to center for all cells in both Excel sheets (\"График ТО\" and \"Детализация\").\nExcelJS: cell.alignment = { vertical: 'middle', wrapText: true } (wrapText already on for multi-line cols).\nApply to header row and all data rows for both sheets in exporter.js.\nFiles: src/modules/exporter.js, tests/exporter.test.js (check alignment).\nverify: npm run verify green. Commit, push origin main (Pages redeploy). Confirm Actions run + Pages 200.\nReport: STATUS(done) commit, files, Actions run id. No acks.",
@@ -472,14 +472,14 @@
         "npm --prefix G:\\_Grafik_TO run verify"
       ],
       "owner": "orch1",
-      "commit": null,
-      "evidence": null,
+      "commit": "3289a90",
+      "evidence": "G:\\_Grafik_TO\\docs\\context\\evidence\\GRAFIK-24-EXPORT-VALIGN.json",
       "rejections": 0,
-      "retro": null,
+      "retro": "vertical center alignment for all cells on all sheets",
       "dispatchedBy": "architect",
       "dispatchedAt": "2026-11-23T22:04:21+05:00",
-      "updatedAt": "2026-11-23T22:04:21+05:00"
+      "updatedAt": "2026-11-23T22:06:09+05:00"
     }
   ],
-  "updatedAt": "2026-11-23T22:04:42+05:00"
+  "updatedAt": "2026-11-23T22:06:09+05:00"
 }
