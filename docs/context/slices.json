@@ -419,7 +419,47 @@
       "dispatchedBy": "architect",
       "dispatchedAt": "2026-11-23T21:41:37+05:00",
       "updatedAt": "2026-11-23T21:41:37+05:00"
+    },
+    {
+      "id": "GRAFIK-22-DETAILS-NUMBERING",
+      "title": "Matching visit numbers on both tabs (№ п/п)",
+      "status": "accepted",
+      "approved": true,
+      "dependsOn": [],
+      "dispatchText": "SLICE=GRAFIK-22-DETAILS-NUMBERING project=grafik_to root=G:\\_Grafik_TO verify=off (send DONE to architect)\nGoal: add matching visit numbers to both tabs so user can cross-reference.\n1. Tab \"График ТО\": add first column \"№ п/п\" = sequential visit number (1, 2, 3...).\n2. Tab \"Детализация\": add first column \"№ п/п\" = SAME visit number for all rows belonging to that visit. Example: visit #3 has 3 units -> three rows on Details, all with \"№ п/п\" = 3.\n3. Exporter (ExcelJS): both sheets get the column; numbering derived from visit order after scheduling (same order as preview tabs).\n4. Preview tabs (ui.js): mirror the same numbering.\n5. Column width reasonable; header \"№ п/п\" on both sheets.\nFiles: src/modules/exporter.js (two sheet generators), src/modules/format.js (preview rows), src/modules/ui.js (tab render), tests/exporter.test.js.\nverify: npm run verify green. Commit, push origin main (Pages redeploy). Confirm Actions run + Pages 200.\nReport: STATUS(done) commit, files, example row pair showing matching numbers, Actions run id. No acks.",
+      "acceptance": null,
+      "verifyCommands": [
+        "npm --prefix G:\\_Grafik_TO run verify"
+      ],
+      "owner": "orch1",
+      "commit": "59e9964",
+      "evidence": "G:\\_Grafik_TO\\docs\\context\\evidence\\GRAFIK-22-DETAILS-NUMBERING.json",
+      "rejections": 0,
+      "retro": "matching visit numbers on both tabs",
+      "dispatchedBy": "architect",
+      "dispatchedAt": "2026-11-23T22:00:01+05:00",
+      "updatedAt": "2026-11-23T22:02:51+05:00"
+    },
+    {
+      "id": "GRAFIK-23-EXPORT-COLUMN-WIDTH",
+      "title": "Fix Excel column widths on \"График ТО\" sheet",
+      "status": "dispatched",
+      "approved": true,
+      "dependsOn": [],
+      "dispatchText": "SLICE=GRAFIK-23-EXPORT-COLUMN-WIDTH project=grafik_to root=G:\\_Grafik_TO verify=off (send DONE to architect)\nGoal: fix column widths on sheet \"График ТО\" in Excel export so they fit the data.\nCurrent: widths set in exporter.js don't match actual content (some truncated, some too wide).\nFix: for each column on \"График ТО\", set width based on header + typical data length, or use worksheet.column.maxWidth / auto-width approach (ExcelJS: set column.width = max(header.length, maxDataLength) * 1.2, cap at reasonable max). Ensure \"№ п/п\" (new from GRAFIK-22), \"Наименование\", \"Гос. знаки / марки\", \"Время\", \"Локация\", \"Примечание\" all readable.\nFiles: src/modules/exporter.js (sheet 1 column setup), tests/exporter.test.js (check widths).\nverify: npm run verify green. Commit, push origin main (Pages redeploy). Confirm Actions run + Pages 200.\nReport: STATUS(done) commit, files, example widths, Actions run id. No acks.",
+      "acceptance": null,
+      "verifyCommands": [
+        "npm --prefix G:\\_Grafik_TO run verify"
+      ],
+      "owner": "orch1",
+      "commit": null,
+      "evidence": null,
+      "rejections": 0,
+      "retro": null,
+      "dispatchedBy": "architect",
+      "dispatchedAt": "2026-11-23T22:01:41+05:00",
+      "updatedAt": "2026-11-23T22:01:41+05:00"
     }
   ],
-  "updatedAt": "2026-11-23T21:44:10+05:00"
+  "updatedAt": "2026-11-23T22:02:51+05:00"
 }
