@@ -1,0 +1,25 @@
+{
+  "slices": [
+    {
+      "id": "GRAFIK-01-SCAFFOLD",
+      "title": "Vite vanilla JS scaffold + CSP + Pages workflow",
+      "status": "accepted",
+      "approved": true,
+      "dependsOn": [],
+      "dispatchText": "SLICE GRAFIK-01-SCAFFOLD\n\nProject grafik_to, root G:\\_Grafik_TO (git, branch main, NO remote yet, no push).\nSpec (authoritative, Russian): G:\\_Grafik_TO\\docs\\spec\\TZ.md. Read sections 2, 3 and 7 only for this slice.\nDelegate implementation to a cheap L3 worker; you review its diff and run the checks yourself.\n\nGoal: static Vite + vanilla JS (ES modules) scaffold for GitHub Pages, browser-only.\n1. REMOVE the wrong placeholder stack: CMakeLists.txt, src/main.cpp, resources/resources.qrc, empty include/.\n2. package.json (private, type=module), deps: xlsx (SheetJS, install from the official CDN tarball\n   https://cdn.sheetjs.com/ as SheetJS docs recommend; check current docs via Context7), exceljs.\n   devDeps: vite, vitest, eslint (flat config eslint.config.js), prettier.\n   scripts: dev, build, preview, test (vitest run), lint, verify = lint && test && build.\n3. vite.config.js: base './' (works under any GitHub Pages repo name), build to dist/.\n4. index.html (lang=ru): header, settings panel placeholder, drop zone placeholder, 4 tab placeholders\n   (График ТО, Детализация, Исключенные записи, Сводка по месяцам), status line.\n   Privacy guard: <meta http-equiv=\"Content-Security-Policy\"> with default-src 'self';\n   connect-src 'self' https://isdayoff.ru; no external scripts/fonts/analytics.\n5. src/styles/tokens.css (colors, spacing, radius, font stack, focus ring) + src/styles/main.css (compact layout).\n6. src/main.js entry; src/modules/{parser,calendarService,scheduler,exporter,ui}.js stubs with one named\n   export each; public/calendar/ (empty .gitkeep, fallback JSON comes in a later slice).\n7. tests/smoke.test.js: imports every module stub; one test asserting index.html contains the CSP meta.\n8. .github/workflows/deploy.yml: on push to main -> npm ci, npm run verify, actions/upload-pages-artifact (dist),\n   actions/deploy-pages. Use current official Pages actions (check docs).\n9. .gitignore (node_modules, dist, coverage), README.md (RU: purpose, privacy note, dev/build/test, deploy).\n10. Rewrite docs/context/INDEX.md for the web stack (keep the resume marker line).\n\nVerify (verify=off; L0 re-runs this exact command):\n  npm ci --prefix G:\\_Grafik_TO && npm --prefix G:\\_Grafik_TO run verify\nReport to architect :22601: STATUS done|failed, commit, changed files, verify result. EN <=10 lines. No push.\n",
+      "acceptance": null,
+      "verifyCommands": [
+        "npm ci --prefix G:\\_Grafik_TO && npm --prefix G:\\_Grafik_TO run verify"
+      ],
+      "owner": "orch1",
+      "commit": "87d9620",
+      "evidence": "G:\\_Grafik_TO\\docs\\context\\evidence\\GRAFIK-01-SCAFFOLD.json",
+      "rejections": 0,
+      "retro": "Vite scaffold, CSP, Pages workflow; L3 mis-rooted output, relocated by orch1.",
+      "dispatchedBy": "architect",
+      "dispatchedAt": "2026-11-23T19:17:00+05:00",
+      "updatedAt": "2026-11-23T19:30:21+05:00"
+    }
+  ],
+  "updatedAt": "2026-11-23T19:30:21+05:00"
+}
