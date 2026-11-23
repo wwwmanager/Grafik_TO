@@ -479,7 +479,27 @@
       "dispatchedBy": "architect",
       "dispatchedAt": "2026-11-23T22:04:21+05:00",
       "updatedAt": "2026-11-23T22:06:09+05:00"
+    },
+    {
+      "id": "GRAFIK-25-UI-POLISH",
+      "title": "UI polish: disabled btn contrast, no double scroll, sticky generate, 2-col grid, address in details",
+      "status": "accepted",
+      "approved": true,
+      "dependsOn": [],
+      "dispatchText": "SLICE=GRAFIK-25-UI-POLISH project=grafik_to root=G:\\_Grafik_TO verify=off (send DONE to architect)\nGoal: fix five visual nits from review.\n1. Disabled buttons contrast: :disabled { background:#e2e8f0; color:#64748b; } for \"Сформировать график\" and \"Скачать Excel (.xlsx)\".\n2. Remove double scrollbar: root layout height:100vh; overflow:hidden; only left panel (overflow-y:auto) and preview table area scroll.\n3. \"Сформировать график\" sticky at bottom of left panel: position:sticky; bottom:0; white bg + top border.\n4. Compact numeric fields in 2-column grid: \"Глубина давности ТО\", \"Окно группировки\", \"Порог физлиц\" -> grid-template-columns: 1fr 1fr. Move \"Адрес инспекции\" into <details> \"Дополнительные настройки\".\n5. Uniform input widths for all numeric fields (80px).\nFiles: src/styles/main.css, index.html (structure for sticky button, grid), src/modules/ui.js (if needed).\nverify: npm run verify green. Commit, push origin main (Pages redeploy). Confirm Actions run + Pages 200.\nReport: STATUS(done) commit, files, Actions run id. No acks.",
+      "acceptance": null,
+      "verifyCommands": [
+        "npm --prefix G:\\_Grafik_TO run verify"
+      ],
+      "owner": "orch1",
+      "commit": "54b615f",
+      "evidence": "G:\\_Grafik_TO\\docs\\context\\evidence\\GRAFIK-25-UI-POLISH.json",
+      "rejections": 0,
+      "retro": "disabled btn contrast, single scroll, sticky generate, 2-col grid, address in details",
+      "dispatchedBy": "architect",
+      "dispatchedAt": "2026-11-23T22:09:47+05:00",
+      "updatedAt": "2026-11-23T22:12:03+05:00"
     }
   ],
-  "updatedAt": "2026-11-23T22:06:09+05:00"
+  "updatedAt": "2026-11-23T22:12:03+05:00"
 }
