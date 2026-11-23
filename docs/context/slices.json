@@ -63,7 +63,7 @@
     {
       "id": "GRAFIK-04-FILTER",
       "title": "scheduler: filtering, depth, target dates, A4, overdue",
-      "status": "dispatched",
+      "status": "accepted",
       "approved": true,
       "dependsOn": [],
       "dispatchText": "SLICE GRAFIK-04-FILTER (scheduler: filtering, depth, target dates, A4, overdue). Spec: G:\\_Grafik_TO\\docs\\spec\\plan.md section GRAFIK-04 + TZ.md + decisions.md (decisions win). Verify: npm --prefix G:\\_Grafik_TO run verify",
@@ -72,13 +72,13 @@
         "npm --prefix G:\\_Grafik_TO run verify"
       ],
       "owner": "orch1",
-      "commit": null,
-      "evidence": null,
+      "commit": "d0cc9a6",
+      "evidence": "G:\\_Grafik_TO\\docs\\context\\evidence\\GRAFIK-04-FILTER.json",
       "rejections": 0,
-      "retro": null,
+      "retro": "batch run by orch1 directly (L3 cannot write G:)",
       "dispatchedBy": "orch1",
       "dispatchedAt": "2026-11-23T19:32:06+05:00",
-      "updatedAt": "2026-11-23T19:32:06+05:00"
+      "updatedAt": "2026-11-23T19:52:22+05:00"
     },
     {
       "id": "GRAFIK-05-OWNERS",
@@ -181,5 +181,5 @@
       "updatedAt": "2026-11-23T19:32:10+05:00"
     }
   ],
-  "updatedAt": "2026-11-23T19:52:15+05:00"
+  "updatedAt": "2026-11-23T19:52:22+05:00"
 }
