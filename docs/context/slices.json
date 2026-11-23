@@ -203,7 +203,7 @@
     {
       "id": "GRAFIK-11-MANUAL",
       "title": "User manual RU, plain language (docs/manual.md)",
-      "status": "dispatched",
+      "status": "accepted",
       "approved": true,
       "dependsOn": [],
       "dispatchText": "SLICE=GRAFIK-11-MANUAL project=grafik_to root=G:\\_Grafik_TO verify=off (send DONE+raw evidence to architect)\nGoal: user manual in Russian for a non-technical office user. New file docs/manual.md only (+ one link line in README). Do NOT touch src/, tests/, package files: orch1 is editing them in GRAFIK-10-FIXES in the same repo.\nSources: docs/spec/TZ.md, docs/spec/decisions.md (D1-D14, authoritative), actual UI labels in src/ (quote labels exactly as on screen), live app https://wwwmanager.github.io/Grafik_TO/.\nStyle: plain everyday Russian, short sentences, step-by-step numbered actions. No jargon (no \"парсер\", \"кэш\", \"API\", \"CORS\", \"localStorage\", \"чанк\", \"фильтр\" in tech sense); explain terms when unavoidable.\nContent: what the program does and does not do; what you need (browser, export file from the registry); step-by-step: open site, load file, check settings, build, review preview tabs, download Excel; every setting: what it means, default, when to change, example; how to read each of the 4 result sheets; why a unit was excluded (each reason in plain words, incl. \"Без ТО\" = \"*\" means overdue and IS scheduled); physical persons threshold; winter months load; calendar message (online vs built-in); privacy: file is processed only on the user's computer, nothing is sent; common problems and fixes; short FAQ.\nGRAFIK-10 adds settings (D11 threshold, D14 winter months/%). Draft now; before reporting, wait until a GRAFIK-10 commit appears in git log and re-check labels against src/.\nCommit locally on main, stage only docs/manual.md + README.md; no push (orch1 pushes in GRAFIK-10).\nReport: STATUS(done) commit, files, word count, sections list, any UI label you could not confirm. No acks.\n",
@@ -212,14 +212,14 @@
         "npm --prefix G:\\_Grafik_TO run verify"
       ],
       "owner": "orch1",
-      "commit": null,
-      "evidence": null,
+      "commit": "f921b89",
+      "evidence": "G:\\_Grafik_TO\\docs\\context\\evidence\\GRAFIK-11-MANUAL.json",
       "rejections": 0,
-      "retro": null,
+      "retro": "plain-language RU manual, labels checked against src",
       "dispatchedBy": "architect",
       "dispatchedAt": "2026-11-23T20:27:36+05:00",
-      "updatedAt": "2026-11-23T20:27:36+05:00"
+      "updatedAt": "2026-11-23T20:41:54+05:00"
     }
   ],
-  "updatedAt": "2026-11-23T20:29:16+05:00"
+  "updatedAt": "2026-11-23T20:41:54+05:00"
 }
