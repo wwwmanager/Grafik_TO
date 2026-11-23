@@ -590,12 +590,14 @@ export function extractLocation(address) {
   };
 }
 
-// TZ §6 Step 6 / D3: visit duration = ceil(units / perHour) hours, rounded to 30
-// minutes, minimum 30.
+// D3: inspection time from «Машин в час» — units/perHour hours rounded up to the
+// next 30 minutes, minimum 30 (GRAFIK-26: previously it rounded up to whole hours,
+// so even one unit took a full hour).
 export function visitDurationMinutes(units, perHour) {
   const speed = Number(perHour) > 0 ? Number(perHour) : 12;
-  const hours = Math.max(1, Math.ceil((Number(units) || 1) / speed));
-  return Math.max(30, Math.round((hours * 60) / 30) * 30);
+  const count = Math.max(1, Number(units) || 1);
+  const minutes = Math.ceil((count / speed) * 60);
+  return Math.max(30, Math.ceil(minutes / 30) * 30);
 }
 
 function parseTimeToMinutes(value, fallback) {
@@ -753,6 +755,8 @@ function makeVisit(placed, builder, overdue) {
     locationKey: builder.location.key,
     locationLabel: builder.location.label,
     units: builder.cluster.units,
+    inspectionMin: builder.inspectionMin,
+    travelMin: builder.travelMin,
     durationMin: builder.duration,
     records: builder.cluster.records,
     sources: [...new Set(builder.cluster.items.map((item) => item.source))],
@@ -763,19 +767,41 @@ function makeVisit(placed, builder, overdue) {
       return {
         plate: record.plate || '',
         brand: record.brand || '',
-        dates: recordItems.map((item) => ({ date: item.date, source: item.source })),
+        dates: recordItems.map((item) => ({
+          date: item.date,
+          source: item.source,
+          overdue: Boolean(item.overdue),
+        })),
       };
     }),
     isA4: builder.cluster.items.some((item) => item.isA4),
   };
 }
 
+// GRAFIK-26: a grouped visit may span several settlements. Travel is charged once
+// per transition between DIFFERENT settlements and is part of the visit block.
+function buildVisitTiming(cluster, settings) {
+  const settlements = new Set();
+  for (const record of cluster.records) {
+    const location = extractLocation(record.address);
+    settlements.add(location.settlement || location.key);
+  }
+  const perTravel = Number(settings.travelMinutes);
+  const travelStep = Number.isFinite(perTravel) ? Math.max(0, perTravel) : 60;
+  const travelMin = Math.max(0, settlements.size - 1) * travelStep;
+  const inspectionMin = visitDurationMinutes(cluster.units, settings.perHour);
+  return { inspectionMin, travelMin, duration: inspectionMin + travelMin };
+}
+
 function makeBuilder(cluster, settings) {
   const dominant = pickDominant(cluster.records);
+  const timing = buildVisitTiming(cluster, settings);
   return {
     cluster,
     dominant,
-    duration: visitDurationMinutes(cluster.units, settings.perHour),
+    duration: timing.duration,
+    inspectionMin: timing.inspectionMin,
+    travelMin: timing.travelMin,
     location: extractLocation(dominant.address),
   };
 }

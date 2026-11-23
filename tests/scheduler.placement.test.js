@@ -123,10 +123,11 @@ describe('extractLocation', () => {
 });
 
 describe('visitDurationMinutes', () => {
-  it('rounds up to whole hours and 30-minute steps', () => {
+  it('rounds up to 30-minute steps with a 30-minute floor (GRAFIK-26)', () => {
     expect(visitDurationMinutes(12, 12)).toBe(60);
-    expect(visitDurationMinutes(13, 12)).toBe(120);
-    expect(visitDurationMinutes(1, 12)).toBe(60);
+    expect(visitDurationMinutes(13, 12)).toBe(90);
+    expect(visitDurationMinutes(1, 12)).toBe(30);
+    expect(visitDurationMinutes(2, 12)).toBe(30);
   });
 });
 
@@ -143,8 +144,8 @@ describe('buildSchedule placement', () => {
     expect(result.visits).toHaveLength(2);
     expect(result.visits[0].date.getDate()).toBe(10);
     expect(result.visits[0].startMin).toBe(9 * 60);
-    expect(result.visits[0].endMin).toBe(10 * 60);
-    expect(result.visits[1].startMin).toBe(10 * 60);
+    expect(result.visits[0].endMin).toBe(9 * 60 + 30);
+    expect(result.visits[1].startMin).toBe(9 * 60 + 30);
   });
 
   it('adds travel time between visits from different settlements (D4)', () => {
@@ -161,7 +162,45 @@ describe('buildSchedule placement', () => {
       CALENDAR,
     );
     expect(result.visits[1].locationKey).toBe('одинцовский|одинцово');
-    expect(result.visits[1].startMin).toBe(10 * 60 + 60);
+    expect(result.visits[1].startMin).toBe(9 * 60 + 30 + 60);
+  });
+
+  it('charges travel once per settlement transition inside a grouped visit (GRAFIK-26)', () => {
+    const different = buildSchedule(
+      [
+        record({ owner: 'ООО «Малый»', inn: '7700000301', address: 'г. Москва, ул. Ленина, 1' }),
+        record({
+          owner: 'ООО «Малый»',
+          inn: '7700000301',
+          plate: 'А002ММ77',
+          address: 'Московская обл., Одинцовский р-н, г. Одинцово, ул. Мира, 5',
+        }),
+      ],
+      { ...SETTINGS, travelMinutes: 30 },
+      CALENDAR,
+    );
+    expect(different.visits).toHaveLength(1);
+    expect(different.visits[0].units).toBe(2);
+    expect(different.visits[0].inspectionMin).toBe(30);
+    expect(different.visits[0].travelMin).toBe(30);
+    expect(different.visits[0].durationMin).toBe(60);
+
+    const same = buildSchedule(
+      [
+        record({ owner: 'ООО «Малый2»', inn: '7700000302', address: 'г. Москва, ул. Ленина, 1' }),
+        record({
+          owner: 'ООО «Малый2»',
+          inn: '7700000302',
+          plate: 'А003ММ77',
+          address: 'г. Москва, ул. Мира, 2',
+        }),
+      ],
+      { ...SETTINGS, travelMinutes: 30 },
+      CALENDAR,
+    );
+    expect(same.visits).toHaveLength(1);
+    expect(same.visits[0].travelMin).toBe(0);
+    expect(same.visits[0].durationMin).toBe(30);
   });
 
   it('skips accepting weekdays and shifts to an earlier day', () => {

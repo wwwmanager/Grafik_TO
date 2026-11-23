@@ -183,7 +183,14 @@ export function schedulePreviewRows(result) {
   ]);
 }
 
-export function detailPreviewRows(result) {
+export function detailPreviewRows(result, settings = {}) {
+  const dateContext = {
+    targetYear: result.year ?? settings.targetYear,
+    currentYear:
+      settings.exportDate instanceof Date && !Number.isNaN(settings.exportDate.getTime())
+        ? settings.exportDate.getFullYear()
+        : new Date().getFullYear(),
+  };
   return (result.visits || []).map((visit, index) => [
     index + 1,
     formatDate(visit.date),
@@ -192,13 +199,14 @@ export function detailPreviewRows(result) {
     visit.inn,
     visit.locationLabel,
     visit.units,
-    visit.durationMin,
+    visit.inspectionMin ?? visit.durationMin,
+    visit.travelMin ?? 0,
     formatVehicleList(visit.records),
-    formatUnitTargets(visit.unitsDetail),
+    formatUnitTargets(visit.unitsDetail, dateContext),
   ]);
 }
 
-function renderResults(root, result) {
+function renderResults(root, result, settings = {}) {
   const schedule = root.querySelector('[data-panel="schedule"]');
   const details = root.querySelector('[data-panel="details"]');
   const excluded = root.querySelector('[data-panel="excluded"]');
@@ -228,11 +236,12 @@ function renderResults(root, result) {
               'ИНН',
               'Локация',
               'Техники',
-              'Длительность, мин',
+              'Осмотр, мин',
+              'Переезд, мин',
               'Знаки / марки',
-              'Единицы и исходные даты',
+              'Единицы и целевая дата ТО',
             ],
-            detailPreviewRows(result),
+            detailPreviewRows(result, settings),
           ),
     );
   }
@@ -378,7 +387,7 @@ async function analyze(state, els, root) {
   const result = buildSchedule(state.records, settings, calendar);
   state.result = result;
   state.settings = settings;
-  renderResults(root, result);
+  renderResults(root, result, settings);
   renderMessages(root, summarizeMessages(result));
   els.downloadButton.disabled = result.visits.length === 0;
   setStatus(

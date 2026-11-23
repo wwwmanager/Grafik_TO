@@ -68,10 +68,10 @@ describe('preview rows', () => {
 
   it('details preview lists each unit with its original target date', () => {
     const rows = detailPreviewRows({ visits: [visit] });
-    expect(rows[0][9]).toContain('А001ММ77');
-    expect(rows[0][9]).toContain('10.06.2026');
-    expect(rows[0][9]).toContain('1.');
-    expect(rows[0][8]).toBe('1. А001ММ77 — МТЗ');
+    expect(rows[0][10]).toContain('А001ММ77');
+    expect(rows[0][10]).toContain('10.06.2026');
+    expect(rows[0][10]).toContain('1.');
+    expect(rows[0][9]).toBe('1. А001ММ77 — МТЗ');
   });
 });
 

@@ -21,9 +21,25 @@ export function formatTimeRange(startMin, endMin) {
   return `с ${label(startMin)} до ${label(endMin)}`;
 }
 
-// GRAFIK-17: one numbered line per unit, e.g.
-// "1. A123AA (Lada) — целевая дата 15.03.2027". Fits a single Excel cell (wrap on).
-export function formatUnitTargets(unitsDetail) {
+// GRAFIK-26: contextual label for a planned TO date, e.g. "Просрочена (09.02.2023)",
+// "Текущий год (08.05.2025)", "Целевой год (17.02.2027)".
+export function targetDateStatus(date, options = {}) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
+  const label = formatDate(date);
+  const year = date.getFullYear();
+  const currentYear = Number(options.currentYear) || new Date().getFullYear();
+  const targetYear = Number(options.targetYear) || currentYear + 1;
+  let status = 'Промежуточный год';
+  if (year < currentYear) status = 'Прошлый год';
+  else if (year === currentYear) status = 'Текущий год';
+  else if (year === targetYear) status = 'Целевой год';
+  else if (year > targetYear) status = 'После целевого года';
+  return `${status} (${label})`;
+}
+
+// GRAFIK-17/26: one numbered line per unit, e.g.
+// "1. A123AA (Lada) — Целевой год (15.03.2027)". Fits a single Excel cell (wrap on).
+export function formatUnitTargets(unitsDetail, options = {}) {
   return (unitsDetail || [])
     .map((unit, index) => {
       const plate = String(unit?.plate ?? '').trim();
@@ -31,11 +47,16 @@ export function formatUnitTargets(unitsDetail) {
       const head =
         plate && brand ? `${plate} (${brand})` : plate || (brand ? `(${brand})` : 'ед.');
       const dates = (unit?.dates || [])
-        .map((entry) => formatDate(entry?.date))
+        .map((entry) => {
+          const label = formatDate(entry?.date);
+          if (!label) return '';
+          if (entry?.overdue) return `Просрочена (${label})`;
+          return targetDateStatus(entry?.date, options) || label;
+        })
         .filter(Boolean);
       let dateLabel = '';
-      if (dates.length === 1) dateLabel = ` — целевая дата ${dates[0]}`;
-      else if (dates.length > 1) dateLabel = ` — целевые даты ${dates.join(', ')}`;
+      if (dates.length === 1) dateLabel = ` — ${dates[0]}`;
+      else if (dates.length > 1) dateLabel = ` — ${dates.join('; ')}`;
       return `${index + 1}. ${head}${dateLabel}`;
     })
     .join('\n');

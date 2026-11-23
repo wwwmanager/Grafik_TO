@@ -189,7 +189,7 @@ function buildScheduleSheet(workbook, result) {
   });
 }
 
-function buildDetailsSheet(workbook, result) {
+function buildDetailsSheet(workbook, result, settings = {}) {
   const sheet = workbook.addWorksheet('Детализация');
   sheet.columns = [
     { header: '№ п/п', width: 8 },
@@ -200,13 +200,21 @@ function buildDetailsSheet(workbook, result) {
     { header: 'Адрес', width: 30 },
     { header: 'Локация (ключ)', width: 22 },
     { header: 'Кол-во техники', width: 12 },
-    { header: 'Длительность, мин', width: 12 },
+    { header: 'Длительность осмотра, мин', width: 16 },
+    { header: 'Переезд, мин', width: 12 },
     { header: 'Гос. знаки / марки', width: 36 },
     { header: 'Источник даты', width: 26 },
     { header: 'Просроченная', width: 12 },
     { header: 'Перегруз', width: 10 },
-    { header: 'Единицы и исходные целевые даты', width: 48 },
+    { header: 'Единицы и целевая дата ТО', width: 48 },
   ];
+  const dateContext = {
+    targetYear: result.year ?? settings.targetYear,
+    currentYear:
+      settings.exportDate instanceof Date && !Number.isNaN(settings.exportDate.getTime())
+        ? settings.exportDate.getFullYear()
+        : new Date().getFullYear(),
+  };
   result.visits.forEach((visit, index) => {
     const row = sheet.addRow([
       index + 1,
@@ -217,15 +225,16 @@ function buildDetailsSheet(workbook, result) {
       visit.address,
       visit.locationKey,
       visit.units,
-      visit.durationMin,
+      visit.inspectionMin ?? visit.durationMin,
+      visit.travelMin ?? 0,
       formatVehicleList(visit.records),
       (visit.sources || []).join('; '),
       visit.overdue ? 'да' : '',
       visit.overload ? 'да' : '',
-      formatUnitTargets(visit.unitsDetail),
+      formatUnitTargets(visit.unitsDetail, dateContext),
     ]);
-    row.getCell(10).alignment = { vertical: 'top', wrapText: true };
-    row.getCell(14).alignment = { vertical: 'top', wrapText: true };
+    row.getCell(11).alignment = { vertical: 'top', wrapText: true };
+    row.getCell(15).alignment = { vertical: 'top', wrapText: true };
   });
   finalize(sheet);
 }
@@ -289,7 +298,7 @@ export async function exportScheduleToXlsx(result, settings = {}) {
   workbook.created = new Date();
 
   buildScheduleSheet(workbook, result);
-  buildDetailsSheet(workbook, result);
+  buildDetailsSheet(workbook, result, settings);
   buildExcludedSheet(workbook, result);
   buildSummarySheet(workbook, result, settings);
 

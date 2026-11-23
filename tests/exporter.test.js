@@ -100,7 +100,7 @@ describe('exportScheduleToXlsx', () => {
     const row = sheet.getRow(2);
     expect(row.getCell(1).value).toBe(1);
     expect(row.getCell(7).value).toBe('—|москва');
-    expect(String(row.getCell(10).value)).toContain('А001ММ77');
+    expect(String(row.getCell(11).value)).toContain('А001ММ77');
   });
 
   it('lists excluded records with reasons', async () => {
@@ -143,7 +143,7 @@ describe('exportScheduleToXlsx', () => {
     expect(String(scheduleName)).not.toContain('просроченная');
 
     const details = workbook.getWorksheet('Детализация');
-    expect(details.getRow(2).getCell(3).value).toBe('с 9-00 до 10-00');
+    expect(details.getRow(2).getCell(3).value).toBe('с 9-00 до 9-30');
   });
 
   it('merges a small owner into one row and lists unit target dates (GRAFIK-14)', async () => {
@@ -171,7 +171,7 @@ describe('exportScheduleToXlsx', () => {
 
     const details = workbook.getWorksheet('Детализация');
     expect(details.getRow(2).getCell(1).value).toBe(1);
-    const unitCell = String(details.getRow(2).getCell(14).value);
+    const unitCell = String(details.getRow(2).getCell(15).value);
     expect(unitCell).toContain('А201ММ77');
     expect(unitCell).toContain('10.02.2026');
     expect(unitCell).toContain('А202ММ77');
@@ -199,15 +199,17 @@ describe('exportScheduleToXlsx', () => {
     const workbook = await loadWorkbook(await exportScheduleToXlsx(grouped, SETTINGS));
     const details = workbook.getWorksheet('Детализация');
 
-    const vehiclesCell = details.getRow(2).getCell(10);
+    const vehiclesCell = details.getRow(2).getCell(11);
     expect(vehiclesCell.value).toBe('1. А201ММ77 — Lada\n2. А202ММ77 — Kamaz');
     expect(vehiclesCell.alignment?.wrapText).toBe(true);
 
-    const unitsCell = details.getRow(2).getCell(14);
+    const unitsCell = details.getRow(2).getCell(15);
     const unitsText = String(unitsCell.value);
-    expect(unitsText).toContain('1. А201ММ77 (Lada) — целевая дата 10.02.2026');
+    expect(unitsText).toContain('1. А201ММ77 (Lada)');
+    expect(unitsText).toContain('10.02.2026');
     expect(unitsText).toContain('\n');
-    expect(unitsText).toContain('А202ММ77 (Kamaz) — целевая дата 10.10.2026');
+    expect(unitsText).toContain('А202ММ77 (Kamaz)');
+    expect(unitsText).toContain('10.10.2026');
     expect(unitsCell.alignment?.wrapText).toBe(true);
   });
 
@@ -273,6 +275,31 @@ describe('exportScheduleToXlsx', () => {
     const sheet = workbook.getWorksheet('График ТО');
     expect(sheet.getColumn(2).width).toBeLessThanOrEqual(40);
     expect(sheet.getColumn(2).width).toBeGreaterThanOrEqual(24);
+  });
+
+  it('splits inspection/travel minutes and labels target dates (GRAFIK-26)', async () => {
+    const group = [
+      record({ owner: 'ООО «Два адреса»', inn: '7700000401', nextTo: new Date(2026, 5, 10) }),
+      record({
+        owner: 'ООО «Два адреса»',
+        inn: '7700000401',
+        plate: 'А002ММ77',
+        address: 'Московская обл., Одинцовский р-н, г. Одинцово, ул. Мира, 5',
+        nextTo: new Date(2026, 5, 10),
+      }),
+    ];
+    const groupSettings = { ...SETTINGS, travelMinutes: 30 };
+    const groupedResult = buildSchedule(group, groupSettings, CALENDAR);
+    const workbook = await loadWorkbook(await exportScheduleToXlsx(groupedResult, groupSettings));
+    const details = workbook.getWorksheet('Детализация');
+    const header = details.getRow(1);
+    expect(header.getCell(9).value).toBe('Длительность осмотра, мин');
+    expect(header.getCell(10).value).toBe('Переезд, мин');
+    expect(header.getCell(15).value).toBe('Единицы и целевая дата ТО');
+    const row = details.getRow(2);
+    expect(row.getCell(9).value).toBe(30);
+    expect(row.getCell(10).value).toBe(30);
+    expect(String(row.getCell(15).value)).toContain('Текущий год (10.06.2026)');
   });
 
   it('vertically centres every cell on both main sheets (GRAFIK-24)', async () => {
