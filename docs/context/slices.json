@@ -19,7 +19,167 @@
       "dispatchedBy": "architect",
       "dispatchedAt": "2026-11-23T19:17:00+05:00",
       "updatedAt": "2026-11-23T19:30:21+05:00"
+    },
+    {
+      "id": "GRAFIK-02-PARSER",
+      "title": "parser.js + fictitious fixture xlsx",
+      "status": "accepted",
+      "approved": true,
+      "dependsOn": [],
+      "dispatchText": "SLICE GRAFIK-02-PARSER (parser.js + fictitious fixture xlsx). Spec: G:\\_Grafik_TO\\docs\\spec\\plan.md section GRAFIK-02 + TZ.md + decisions.md (decisions win). Verify: npm --prefix G:\\_Grafik_TO run verify",
+      "acceptance": null,
+      "verifyCommands": [
+        "npm --prefix G:\\_Grafik_TO run verify"
+      ],
+      "owner": "orch1",
+      "commit": "59f7d3b",
+      "evidence": "G:\\_Grafik_TO\\docs\\context\\evidence\\GRAFIK-02-PARSER.json",
+      "rejections": 0,
+      "retro": "batch run by orch1 directly (L3 cannot write G:)",
+      "dispatchedBy": "orch1",
+      "dispatchedAt": "2026-11-23T19:32:05+05:00",
+      "updatedAt": "2026-11-23T19:52:07+05:00"
+    },
+    {
+      "id": "GRAFIK-03-CALENDAR",
+      "title": "calendarService.js + bundled 2025-2027 calendar",
+      "status": "dispatched",
+      "approved": true,
+      "dependsOn": [],
+      "dispatchText": "SLICE GRAFIK-03-CALENDAR (calendarService.js + bundled 2025-2027 calendar). Spec: G:\\_Grafik_TO\\docs\\spec\\plan.md section GRAFIK-03 + TZ.md + decisions.md (decisions win). Verify: npm --prefix G:\\_Grafik_TO run verify",
+      "acceptance": null,
+      "verifyCommands": [
+        "npm --prefix G:\\_Grafik_TO run verify"
+      ],
+      "owner": "orch1",
+      "commit": null,
+      "evidence": null,
+      "rejections": 0,
+      "retro": null,
+      "dispatchedBy": "orch1",
+      "dispatchedAt": "2026-11-23T19:32:06+05:00",
+      "updatedAt": "2026-11-23T19:32:06+05:00"
+    },
+    {
+      "id": "GRAFIK-04-FILTER",
+      "title": "scheduler: filtering, depth, target dates, A4, overdue",
+      "status": "dispatched",
+      "approved": true,
+      "dependsOn": [],
+      "dispatchText": "SLICE GRAFIK-04-FILTER (scheduler: filtering, depth, target dates, A4, overdue). Spec: G:\\_Grafik_TO\\docs\\spec\\plan.md section GRAFIK-04 + TZ.md + decisions.md (decisions win). Verify: npm --prefix G:\\_Grafik_TO run verify",
+      "acceptance": null,
+      "verifyCommands": [
+        "npm --prefix G:\\_Grafik_TO run verify"
+      ],
+      "owner": "orch1",
+      "commit": null,
+      "evidence": null,
+      "rejections": 0,
+      "retro": null,
+      "dispatchedBy": "orch1",
+      "dispatchedAt": "2026-11-23T19:32:06+05:00",
+      "updatedAt": "2026-11-23T19:32:06+05:00"
+    },
+    {
+      "id": "GRAFIK-05-OWNERS",
+      "title": "scheduler: owner keys, individuals rule, window clusters",
+      "status": "dispatched",
+      "approved": true,
+      "dependsOn": [],
+      "dispatchText": "SLICE GRAFIK-05-OWNERS (scheduler: owner keys, individuals rule, window clusters). Spec: G:\\_Grafik_TO\\docs\\spec\\plan.md section GRAFIK-05 + TZ.md + decisions.md (decisions win). Verify: npm --prefix G:\\_Grafik_TO run verify",
+      "acceptance": null,
+      "verifyCommands": [
+        "npm --prefix G:\\_Grafik_TO run verify"
+      ],
+      "owner": "orch1",
+      "commit": null,
+      "evidence": null,
+      "rejections": 0,
+      "retro": null,
+      "dispatchedBy": "orch1",
+      "dispatchedAt": "2026-11-23T19:32:07+05:00",
+      "updatedAt": "2026-11-23T19:32:07+05:00"
+    },
+    {
+      "id": "GRAFIK-06-PLACEMENT",
+      "title": "scheduler: locations, duration, day/time placement",
+      "status": "dispatched",
+      "approved": true,
+      "dependsOn": [],
+      "dispatchText": "SLICE GRAFIK-06-PLACEMENT (scheduler: locations, duration, day/time placement). Spec: G:\\_Grafik_TO\\docs\\spec\\plan.md section GRAFIK-06 + TZ.md + decisions.md (decisions win). Verify: npm --prefix G:\\_Grafik_TO run verify",
+      "acceptance": null,
+      "verifyCommands": [
+        "npm --prefix G:\\_Grafik_TO run verify"
+      ],
+      "owner": "orch1",
+      "commit": null,
+      "evidence": null,
+      "rejections": 0,
+      "retro": null,
+      "dispatchedBy": "orch1",
+      "dispatchedAt": "2026-11-23T19:32:08+05:00",
+      "updatedAt": "2026-11-23T19:32:08+05:00"
+    },
+    {
+      "id": "GRAFIK-07-EXPORT",
+      "title": "exporter.js 4 sheets",
+      "status": "dispatched",
+      "approved": true,
+      "dependsOn": [],
+      "dispatchText": "SLICE GRAFIK-07-EXPORT (exporter.js 4 sheets). Spec: G:\\_Grafik_TO\\docs\\spec\\plan.md section GRAFIK-07 + TZ.md + decisions.md (decisions win). Verify: npm --prefix G:\\_Grafik_TO run verify",
+      "acceptance": null,
+      "verifyCommands": [
+        "npm --prefix G:\\_Grafik_TO run verify"
+      ],
+      "owner": "orch1",
+      "commit": null,
+      "evidence": null,
+      "rejections": 0,
+      "retro": null,
+      "dispatchedBy": "orch1",
+      "dispatchedAt": "2026-11-23T19:32:09+05:00",
+      "updatedAt": "2026-11-23T19:32:09+05:00"
+    },
+    {
+      "id": "GRAFIK-08-UI",
+      "title": "ui.js settings, drag-drop, previews, download",
+      "status": "dispatched",
+      "approved": true,
+      "dependsOn": [],
+      "dispatchText": "SLICE GRAFIK-08-UI (ui.js settings, drag-drop, previews, download). Spec: G:\\_Grafik_TO\\docs\\spec\\plan.md section GRAFIK-08 + TZ.md + decisions.md (decisions win). Verify: npm --prefix G:\\_Grafik_TO run verify",
+      "acceptance": null,
+      "verifyCommands": [
+        "npm --prefix G:\\_Grafik_TO run verify"
+      ],
+      "owner": "orch1",
+      "commit": null,
+      "evidence": null,
+      "rejections": 0,
+      "retro": null,
+      "dispatchedBy": "orch1",
+      "dispatchedAt": "2026-11-23T19:32:10+05:00",
+      "updatedAt": "2026-11-23T19:32:10+05:00"
+    },
+    {
+      "id": "GRAFIK-09-DEPLOY",
+      "title": "e2e pipeline test + GitHub repo + Pages + CORS check",
+      "status": "dispatched",
+      "approved": true,
+      "dependsOn": [],
+      "dispatchText": "SLICE GRAFIK-09-DEPLOY (e2e pipeline test + GitHub repo + Pages + CORS check). Spec: G:\\_Grafik_TO\\docs\\spec\\plan.md section GRAFIK-09 + TZ.md + decisions.md (decisions win). Verify: npm --prefix G:\\_Grafik_TO run verify",
+      "acceptance": null,
+      "verifyCommands": [
+        "npm --prefix G:\\_Grafik_TO run verify"
+      ],
+      "owner": "orch1",
+      "commit": null,
+      "evidence": null,
+      "rejections": 0,
+      "retro": null,
+      "dispatchedBy": "orch1",
+      "dispatchedAt": "2026-11-23T19:32:10+05:00",
+      "updatedAt": "2026-11-23T19:32:10+05:00"
     }
   ],
-  "updatedAt": "2026-11-23T19:30:21+05:00"
+  "updatedAt": "2026-11-23T19:52:07+05:00"
 }
