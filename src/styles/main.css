@@ -42,6 +42,8 @@ body {
   grid-template-columns: minmax(240px, 320px) 1fr;
   grid-template-areas:
     'settings drop'
+    'actions actions'
+    'messages messages'
     'tabs tabs';
   gap: var(--space-3);
   align-content: start;
@@ -152,12 +154,176 @@ body {
   border-top: 1px solid var(--color-border);
 }
 
+.settings-form {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.field {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.field > span,
+.field legend {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.field-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  border: 0;
+  padding: 0;
+}
+
+.field-inline legend {
+  flex-basis: 100%;
+}
+
+.field-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.settings-form input[type='number'],
+.settings-form input[type='text'],
+.settings-form input[type='time'],
+.settings-form input[type='date'] {
+  padding: var(--space-1) var(--space-2);
+  font: inherit;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.settings-form input:disabled {
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+}
+
+.settings-form input:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.actions {
+  grid-area: actions;
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.button {
+  padding: var(--space-2) var(--space-4);
+  font: inherit;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  cursor: pointer;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.button:hover:not(:disabled) {
+  border-color: var(--color-accent);
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  color: var(--color-text-muted);
+  opacity: 0.7;
+}
+
+.button-primary {
+  color: #ffffff;
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.button:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.messages {
+  grid-area: messages;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.message {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  border: 1px solid var(--color-border);
+  border-left-width: 4px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+}
+
+.message-warning {
+  border-left-color: #d97706;
+  background: #fffbeb;
+}
+
+.message-note {
+  border-left-color: var(--color-accent);
+  background: var(--color-accent-weak);
+}
+
+.message-info {
+  border-left-color: var(--color-border);
+}
+
+.message-error {
+  border-left-color: var(--color-danger);
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.drop-zone.is-dragover {
+  border-color: var(--color-accent);
+  background: var(--color-accent-weak);
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.data-table th,
+.data-table td {
+  padding: var(--space-1) var(--space-2);
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.data-table th {
+  font-weight: 600;
+  background: var(--color-bg);
+}
+
+.tab-panel {
+  overflow-x: auto;
+}
+
 @media (max-width: 720px) {
   .app-main {
     grid-template-columns: 1fr;
     grid-template-areas:
       'settings'
       'drop'
+      'actions'
+      'messages'
       'tabs';
   }
 }

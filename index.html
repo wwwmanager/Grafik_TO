@@ -18,13 +18,102 @@
     <main class="app-main">
       <section id="settings-panel" class="panel" aria-label="Параметры">
         <h2 class="panel-title">Параметры</h2>
-        <p class="placeholder">Панель настроек появится здесь.</p>
+        <form id="settings-form" class="settings-form">
+          <label class="field">
+            <span>Целевой год</span>
+            <input id="targetYear" type="number" min="2020" max="2100" />
+          </label>
+
+          <fieldset class="field field-inline">
+            <legend>Приёмные дни (исключаются из выездов)</legend>
+            <label><input type="checkbox" name="acceptingDay" value="1" /> Пн</label>
+            <label><input type="checkbox" name="acceptingDay" value="2" /> Вт</label>
+            <label><input type="checkbox" name="acceptingDay" value="3" /> Ср</label>
+            <label><input type="checkbox" name="acceptingDay" value="4" /> Чт</label>
+            <label><input type="checkbox" name="acceptingDay" value="5" /> Пт</label>
+          </fieldset>
+
+          <div class="field">
+            <label><input id="vacationEnabled" type="checkbox" /> Отпуск инспектора</label>
+            <div class="field-row">
+              <input id="vacationFrom" type="date" aria-label="Отпуск с" disabled />
+              <span>—</span>
+              <input id="vacationTo" type="date" aria-label="Отпуск по" disabled />
+            </div>
+          </div>
+
+          <div class="field-row">
+            <label class="field">
+              <span>Глубина давности ТО, лет</span>
+              <input id="toDepthYears" type="number" min="1" max="10" value="3" />
+            </label>
+            <label class="field">
+              <span>Окно группировки, дней</span>
+              <input id="groupWindowDays" type="number" min="1" max="120" value="30" />
+            </label>
+          </div>
+
+          <fieldset class="field">
+            <legend>Физлица с ≤ 3 ед. техники</legend>
+            <label><input type="radio" name="smallPhysical" value="A" checked /> А — исключить</label>
+            <label><input type="radio" name="smallPhysical" value="B" /> Б — приём в приёмные дни</label>
+          </fieldset>
+
+          <label class="field">
+            <span>Адрес инспекции</span>
+            <input id="inspectionAddress" type="text" placeholder="г. Москва, ул. ..." />
+          </label>
+
+          <div class="field-row">
+            <label class="field">
+              <span>Рабочий день с</span>
+              <input id="workStart" type="time" value="09:00" />
+            </label>
+            <label class="field">
+              <span>по</span>
+              <input id="workEnd" type="time" value="18:00" />
+            </label>
+          </div>
+
+          <div class="field">
+            <label><input id="lunchEnabled" type="checkbox" checked /> Учитывать обед</label>
+            <div class="field-row">
+              <input id="lunchStart" type="time" value="12:00" aria-label="Обед с" />
+              <span>—</span>
+              <input id="lunchEnd" type="time" value="13:00" aria-label="Обед по" />
+            </div>
+          </div>
+
+          <div class="field-row">
+            <label class="field">
+              <span>Машин в час (10–15)</span>
+              <input id="perHour" type="number" min="10" max="15" value="12" />
+            </label>
+            <label class="field">
+              <span>Переезд между локациями, мин</span>
+              <input id="travelMinutes" type="number" min="0" max="240" value="60" />
+            </label>
+          </div>
+        </form>
       </section>
 
       <section id="drop-zone" class="drop-zone" aria-label="Загрузка файла">
         <p>Перетащите файл <code>.xlsx</code> или <code>.xls</code> сюда</p>
-        <p class="placeholder">или выберите файл кнопкой (в следующем срезе)</p>
+        <input id="fileInput" type="file" accept=".xlsx,.xls" hidden />
+        <button type="button" id="chooseFileButton" class="button">Выбрать файл</button>
+        <p id="fileInfo" class="placeholder">Файл не выбран</p>
       </section>
+
+      <div class="actions">
+        <button type="button" id="analyzeButton" class="button button-primary" disabled>
+          Сформировать график
+        </button>
+        <button type="button" id="downloadButton" class="button" disabled>
+          Скачать Excel (.xlsx)
+        </button>
+      </div>
+
+      <div id="messages" class="messages" role="status" aria-live="polite"></div>
 
       <section class="tabs" aria-label="Результаты">
         <nav class="tab-list" role="tablist">
@@ -33,17 +122,17 @@
           <button type="button" role="tab" class="tab" data-tab="excluded">Исключенные записи</button>
           <button type="button" role="tab" class="tab" data-tab="summary">Сводка по месяцам</button>
         </nav>
-        <div class="tab-panel placeholder" data-panel="schedule" role="tabpanel">
-          Здесь появится график ТО.
+        <div class="tab-panel" data-panel="schedule" role="tabpanel">
+          <p class="placeholder">Здесь появится график ТО.</p>
         </div>
-        <div class="tab-panel placeholder" data-panel="details" role="tabpanel" hidden>
-          Здесь появится детализация.
+        <div class="tab-panel" data-panel="details" role="tabpanel" hidden>
+          <p class="placeholder">Здесь появится детализация.</p>
         </div>
-        <div class="tab-panel placeholder" data-panel="excluded" role="tabpanel" hidden>
-          Здесь появятся исключенные записи.
+        <div class="tab-panel" data-panel="excluded" role="tabpanel" hidden>
+          <p class="placeholder">Здесь появятся исключенные записи.</p>
         </div>
-        <div class="tab-panel placeholder" data-panel="summary" role="tabpanel" hidden>
-          Здесь появится сводка по месяцам.
+        <div class="tab-panel" data-panel="summary" role="tabpanel" hidden>
+          <p class="placeholder">Здесь появится сводка по месяцам.</p>
         </div>
       </section>
     </main>
