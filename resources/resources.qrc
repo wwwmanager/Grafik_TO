@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/">
+        <!-- Add icons, themes, fonts here -->
+        <!-- <file>icons/app.ico</file> -->
+        <!-- <file>styles/theme.qss</file> -->
+    </qresource>
+</RCC>

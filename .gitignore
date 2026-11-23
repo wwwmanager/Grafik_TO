@@ -1,0 +1,22 @@
+# Build
+build*/
+out/
+dist/
+*.user
+*.pro.user
+
+# IDE
+.vs/
+.idea/
+*.vcxproj*
+*.sln
+
+# Qt
+*.qm
+moc_*.cpp
+ui_*.h
+qrc_*.cpp
+
+# OS
+Thumbs.db
+Desktop.ini
