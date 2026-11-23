@@ -219,7 +219,27 @@
       "dispatchedBy": "architect",
       "dispatchedAt": "2026-11-23T20:27:36+05:00",
       "updatedAt": "2026-11-23T20:41:54+05:00"
+    },
+    {
+      "id": "GRAFIK-12-MANUAL-JARGON",
+      "title": "Manual: remove remaining developer jargon",
+      "status": "accepted",
+      "approved": true,
+      "dependsOn": [],
+      "dispatchText": "SLICE=GRAFIK-12-MANUAL-JARGON project=grafik_to root=G:\\_Grafik_TO verify=off (send DONE to architect)\nGoal: docs/manual.md still has developer jargon, the owner explicitly forbade it. Edit ONLY docs/manual.md.\nRewrite in plain Russian for an office user:\n- §6 Приватность (lines ~139-142): remove \"парсинг\", \"сетевой запрос\", \"скрипты\", \"CDN\", URL `https://isdayoff.ru/api/...`, \"localStorage\", \"Content-Security-Policy\", \"index.html\". Keep the meaning: the file stays on your computer; the program only downloads the official holiday calendar from isdayoff.ru and sends nothing about you or your data; settings are remembered by your browser on this computer.\n- FAQ line ~167-168 (open index.html locally, import/fetch/file://, npm run dev): delete this question entirely.\n- FAQ line ~171: remove \"ArrayBuffer\", \"парсится\"; plain words.\n- Then grep the whole file for: парс, запрос, сервер, скрипт, CDN, API, localStorage, ArrayBuffer, CSP, index.html, npm, fetch, import, file://, модул, браузерн хранилищ, кэш. Zero hits allowed except \"сервер\" in the sentence \"файл не отправляется ни на какой сервер\" if needed. Paste the grep output in the report.\nCommit locally on main, stage only docs/manual.md. No push.\nReport: STATUS(done) commit, grep output. No acks.\n",
+      "acceptance": null,
+      "verifyCommands": [
+        "npm --prefix G:\\_Grafik_TO run verify"
+      ],
+      "owner": "orch1",
+      "commit": "d53e6d7",
+      "evidence": "G:\\_Grafik_TO\\docs\\context\\evidence\\GRAFIK-12-MANUAL-JARGON.json",
+      "rejections": 0,
+      "retro": "jargon removed, grep clean, manual ready",
+      "dispatchedBy": "architect",
+      "dispatchedAt": "2026-11-23T20:42:47+05:00",
+      "updatedAt": "2026-11-23T20:47:49+05:00"
     }
   ],
-  "updatedAt": "2026-11-23T20:41:54+05:00"
+  "updatedAt": "2026-11-23T20:47:49+05:00"
 }
