@@ -104,6 +104,110 @@ function toText(value) {
   return String(value).trim();
 }
 
+// GRAFIK-16: the real export splits the address across columns whose headers carry
+// part markers (Обл/Район/Нас. пункт/Улица/Дом, or the short Г/С/П codes). These
+// sets classify a normalized header into one address part.
+const ADDRESS_REGION_TOKENS = new Set([
+  'обл',
+  'область',
+  'край',
+  'ао',
+  'аобл',
+  'респ',
+  'республика',
+  'округ',
+  'регион',
+]);
+const ADDRESS_DISTRICT_TOKENS = new Set(['р-н', 'район']);
+const ADDRESS_SETTLEMENT_TOKENS = new Set([
+  'г',
+  'с',
+  'п',
+  'пгт',
+  'д',
+  'х',
+  'ст-ца',
+  'аул',
+  'рп',
+  'город',
+  'село',
+  'поселок',
+  'посёлок',
+  'деревня',
+  'хутор',
+  'станица',
+  'населенный',
+  'населённый',
+  'нас',
+]);
+const ADDRESS_STREET_TOKENS = new Set([
+  'ул',
+  'улица',
+  'пр-т',
+  'проспект',
+  'пр',
+  'проезд',
+  'пер',
+  'переулок',
+  'ш',
+  'шоссе',
+  'наб',
+  'набережная',
+  'пл',
+  'площадь',
+  'бул',
+  'бульвар',
+  'туп',
+  'тупик',
+  'мкр',
+  'микрорайон',
+  'кв-л',
+  'квартал',
+  'дор',
+  'дорога',
+]);
+const ADDRESS_HOUSE_TOKENS = new Set([
+  'дом',
+  'корпус',
+  'строение',
+  'квартира',
+  'офис',
+  'помещение',
+  'корп',
+  'стр',
+  'оф',
+  'пом',
+]);
+const ADDRESS_ORDER = ['region', 'district', 'settlement', 'street', 'house'];
+
+function addressHeaderTokens(norm) {
+  return String(norm ?? '')
+    .split(/[^а-яёa-z0-9-]+/u)
+    .filter(Boolean);
+}
+
+function classifyAddressHeader(norm) {
+  const tokens = addressHeaderTokens(norm);
+  if (tokens.length === 0) return '';
+  const has = (set) => tokens.some((token) => set.has(token));
+  if (has(ADDRESS_DISTRICT_TOKENS)) return 'district';
+  if (has(ADDRESS_REGION_TOKENS)) return 'region';
+  if (has(ADDRESS_STREET_TOKENS)) return 'street';
+  if (has(ADDRESS_HOUSE_TOKENS)) return 'house';
+  if (has(ADDRESS_SETTLEMENT_TOKENS)) return 'settlement';
+  return '';
+}
+
+function findAddressColumns(map) {
+  const columns = { region: [], district: [], settlement: [], street: [], house: [] };
+  for (const [norm, column] of map) {
+    const kind = classifyAddressHeader(norm);
+    if (kind) columns[kind].push(column);
+  }
+  for (const kind of ADDRESS_ORDER) columns[kind].sort((a, b) => a - b);
+  return columns;
+}
+
 function findHeaderRow(rows) {
   const limit = Math.min(rows.length, HEADER_SCAN_LIMIT);
   const candidates = [];
@@ -129,7 +233,14 @@ function findHeaderRow(rows) {
     if (!map.has(norm)) map.set(norm, column);
     originals.push(String(chosen.cells[column] ?? '').trim());
   });
-  return { index: chosen.index, map, originals, hasOwner: chosen.hasOwner, hasTo: chosen.hasTo };
+  return {
+    index: chosen.index,
+    map,
+    originals,
+    hasOwner: chosen.hasOwner,
+    hasTo: chosen.hasTo,
+    addressColumns: findAddressColumns(map),
+  };
 }
 
 function isRowEmpty(cells) {
@@ -172,6 +283,20 @@ function buildRecord(cells, header) {
   Object.entries(FLAG_FIELDS).forEach(([norm, field]) => {
     record.flags[field] = hasFlag(pick(norm));
   });
+
+  // GRAFIK-16: keep the single «Адрес владельца» value when present; otherwise
+  // assemble the split address columns (region, district, settlement, street, house).
+  if (!record.address) {
+    const columns = header.addressColumns || {};
+    const parts = [];
+    for (const kind of ADDRESS_ORDER) {
+      for (const column of columns[kind] || []) {
+        const value = toText(cells[column]);
+        if (value) parts.push(value);
+      }
+    }
+    record.address = parts.join(', ');
+  }
 
   return record;
 }

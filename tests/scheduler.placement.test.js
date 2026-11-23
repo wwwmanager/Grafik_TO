@@ -96,6 +96,19 @@ describe('extractLocation', () => {
     expect(location.key).toBe('одинцовский|одинцово');
   });
 
+  it('recognizes suffix settlement markers from split-column values (GRAFIK-16)', () => {
+    const location = extractLocation('ЧЕЛЯБИНСКАЯ ОБЛ, КУСИНСКИЙ Р-Н, КУСА Г');
+    expect(location.district).toBe('кусинский');
+    expect(location.settlement).toBe('куса');
+    expect(location.key).toBe('кусинский|куса');
+    expect(extractLocation('ЧЕЛЯБИНСКАЯ ОБЛ, КУСИНСКИЙ Р-Н, МЕДВЕДЕВКА С').settlement).toBe(
+      'медведевка',
+    );
+    expect(extractLocation('ЧЕЛЯБИНСКАЯ ОБЛ, КУСИНСКИЙ Р-Н, ЦЕНТРАЛЬНЫЙ п').settlement).toBe(
+      'центральный',
+    );
+  });
+
   it('never returns the empty key for real addresses (GRAFIK-15)', () => {
     for (const address of [
       'г.Москва',

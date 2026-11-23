@@ -113,6 +113,47 @@ describe('parseWorkbook', () => {
     expect(() => parseWorkbook(makeBuffer([['просто', 'данные']]))).toThrow(/заголовков/);
   });
 
+  it('assembles the address from split columns (GRAFIK-16)', () => {
+    const buffer = makeBuffer([
+      ['Владелец', 'Дата ТО', 'Область', 'Район', 'Населенный пункт', 'Улица', 'Дом'],
+      [
+        'ООО «Урал»',
+        '15.03.2024',
+        'ЧЕЛЯБИНСКАЯ ОБЛ',
+        'КУСИНСКИЙ Р-Н',
+        'КУСА Г',
+        'ул. Ленина',
+        'д. 1',
+      ],
+    ]);
+    const record = parseWorkbook(buffer).records[0];
+    expect(record.address).toBe('ЧЕЛЯБИНСКАЯ ОБЛ, КУСИНСКИЙ Р-Н, КУСА Г, ул. Ленина, д. 1');
+  });
+
+  it('detects short address header codes (GRAFIK-16)', () => {
+    const buffer = makeBuffer([
+      ['Владелец', 'Дата ТО', 'Г', 'С', 'П', 'Ул', 'Дом'],
+      ['Иванов И.И.', '01.02.2024', '', 'МЕДВЕДЕВКА С', '', 'ул. Мира', 'д. 3'],
+    ]);
+    const record = parseWorkbook(buffer).records[0];
+    expect(record.address).toBe('МЕДВЕДЕВКА С, ул. Мира, д. 3');
+  });
+
+  it('prefers «Адрес владельца» over split columns when present (GRAFIK-16)', () => {
+    const buffer = makeBuffer([
+      ['Владелец', 'Дата ТО', 'Адрес владельца', 'Область', 'Район', 'Населенный пункт'],
+      [
+        'ООО «Заря»',
+        '15.03.2024',
+        'г. Москва, ул. Ленина, 1',
+        'МОСКОВСКАЯ ОБЛ',
+        'ХИМКИНСКИЙ Р-Н',
+        'ХИМКИ Г',
+      ],
+    ]);
+    expect(parseWorkbook(buffer).records[0].address).toBe('г. Москва, ул. Ленина, 1');
+  });
+
   it('parses the committed fictitious fixture', () => {
     const buffer = readFileSync(resolve(here, 'fixtures', 'sample.xlsx'));
     const { records } = parseWorkbook(buffer);

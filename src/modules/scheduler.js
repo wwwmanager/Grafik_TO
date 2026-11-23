@@ -405,6 +405,21 @@ function splitSettlementMarker(part) {
   return null;
 }
 
+// GRAFIK-16: real-export settlement values put the marker after the name, for
+// example "КУСА Г", "МЕДВЕДЕВКА С", "ЦЕНТРАЛЬНЫЙ п". Strip the trailing marker.
+function splitSettlementSuffix(part) {
+  const words = String(part ?? '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (words.length < 2) return '';
+  const marker = words[words.length - 1].toLowerCase().replace(/\./g, '');
+  if (!SETTLEMENT_MARKERS.includes(marker)) return '';
+  const name = words.slice(0, -1).join(' ').trim();
+  if (!name || /^\d/.test(name)) return '';
+  return name;
+}
+
 // GRAFIK-15: a bare "Москва" without a marker is a settlement when the part has no
 // region/district/street/house marker, no digits, and starts with a capital letter.
 function looksLikeBareSettlement(part) {
@@ -472,6 +487,11 @@ export function extractLocation(address) {
     const split = splitSettlementMarker(part);
     if (split) {
       settlement = normalizeName(split.name);
+      break;
+    }
+    const suffix = splitSettlementSuffix(part);
+    if (suffix) {
+      settlement = normalizeName(suffix);
       break;
     }
     if (looksLikeBareSettlement(part)) {
