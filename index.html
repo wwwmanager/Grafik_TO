@@ -43,20 +43,22 @@
               </button>
             </div>
 
-            <label class="field">
-              <span>Глубина давности ТО, лет</span>
-              <input id="toDepthYears" type="number" min="1" max="10" value="3" />
-            </label>
+            <div class="field-grid">
+              <label class="field">
+                <span>Глубина давности ТО, лет</span>
+                <input id="toDepthYears" type="number" min="1" max="10" value="3" />
+              </label>
 
-            <label class="field">
-              <span>Окно группировки, дней</span>
-              <input id="groupWindowDays" type="number" min="1" max="120" value="30" />
-            </label>
+              <label class="field">
+                <span>Окно группировки, дней</span>
+                <input id="groupWindowDays" type="number" min="1" max="120" value="30" />
+              </label>
 
-            <label class="field">
-              <span>Порог физлиц, ед. техники</span>
-              <input id="physicalThreshold" type="number" min="0" max="100" value="3" />
-            </label>
+              <label class="field">
+                <span>Порог физлиц, ед. техники</span>
+                <input id="physicalThreshold" type="number" min="0" max="100" value="3" />
+              </label>
+            </div>
 
             <div class="field">
               <span>Зимние месяцы (для просроченных и «Без ТО»)</span>
@@ -75,11 +77,6 @@
                 <label class="month-cell"><input type="checkbox" name="winterMonth" value="11" checked /> Дек</label>
               </div>
             </div>
-
-            <label class="field">
-              <span>Адрес инспекции</span>
-              <input id="inspectionAddress" type="text" placeholder="г. Москва, ул. ..." />
-            </label>
           </section>
 
           <details class="settings-section settings-advanced">
@@ -132,6 +129,11 @@
             <label class="field">
               <span>Загрузка зимних месяцев, % (0–100)</span>
               <input id="winterLoadPercent" type="number" min="0" max="100" value="30" />
+            </label>
+
+            <label class="field">
+              <span>Адрес инспекции</span>
+              <input id="inspectionAddress" type="text" placeholder="г. Москва, ул. ..." />
             </label>
           </details>
 

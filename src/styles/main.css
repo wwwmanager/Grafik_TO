@@ -17,7 +17,8 @@ body {
 body {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   font-family: var(--font-sans);
   font-size: var(--text-md);
   color: var(--color-text);
@@ -44,19 +45,20 @@ body {
 .app-main {
   display: grid;
   grid-template-columns: 360px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   gap: var(--space-4);
-  align-items: start;
+  align-items: stretch;
   flex: 1;
   min-height: 0;
+  overflow: hidden;
   padding: var(--space-4) var(--space-5);
 }
 
-/* GRAFIK-20: left settings panel scrolls independently; the primary action is
-   pinned to its bottom so it stays visible without scrolling. */
+/* GRAFIK-20/25: the left settings panel is the only scrolling column on the
+   left; the primary action is pinned to its bottom. */
 .settings-panel {
-  position: sticky;
-  top: var(--space-4);
-  max-height: calc(100vh - 120px);
+  height: 100%;
+  min-height: 0;
   overflow-y: auto;
 }
 
@@ -70,6 +72,14 @@ body {
 .settings-section {
   display: grid;
   gap: var(--space-3);
+}
+
+/* GRAFIK-25: compact numeric settings in a two-column grid. */
+.field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  align-items: end;
 }
 
 .settings-advanced > summary {
@@ -89,8 +99,9 @@ body {
   position: sticky;
   bottom: 0;
   margin-top: auto;
-  padding-top: var(--space-3);
+  padding: var(--space-3) 0;
   background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
 }
 
 .settings-actions .button {
@@ -98,13 +109,14 @@ body {
 }
 
 /* Right area: upload zone collapses to one bar, tabs take the remaining space,
-   the download action sticks to the bottom of the viewport area. */
+   only the preview table scrolls; the download action sticks to the bottom. */
 .workspace {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
   min-width: 0;
-  min-height: calc(100vh - 120px);
+  min-height: 0;
+  overflow: hidden;
 }
 
 #drop-zone {
@@ -391,6 +403,15 @@ body {
   border-color: var(--color-accent);
 }
 
+/* GRAFIK-25: readable disabled state for primary and secondary buttons. */
+.button:disabled,
+.button-primary:disabled {
+  color: #64748b;
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+  opacity: 1;
+}
+
 .button:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
@@ -463,18 +484,25 @@ body {
 }
 
 @media (max-width: 720px) {
+  body {
+    height: auto;
+    overflow: visible;
+  }
+
   .app-main {
     grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    overflow: visible;
   }
 
   .settings-panel {
-    position: static;
-    max-height: none;
+    height: auto;
     overflow: visible;
   }
 
   .workspace {
     min-height: 0;
+    overflow: visible;
   }
 
   .download-bar {
