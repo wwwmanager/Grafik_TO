@@ -4,6 +4,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 html,
 body {
   margin: 0;
@@ -39,28 +43,106 @@ body {
 
 .app-main {
   display: grid;
-  grid-template-columns: minmax(240px, 320px) 1fr;
-  grid-template-areas:
-    'settings drop'
-    'actions actions'
-    'messages messages'
-    'tabs tabs';
-  gap: var(--space-3);
-  align-content: start;
+  grid-template-columns: 360px minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: start;
   flex: 1;
+  min-height: 0;
   padding: var(--space-4) var(--space-5);
 }
 
-#settings-panel {
-  grid-area: settings;
+/* GRAFIK-20: left settings panel scrolls independently; the primary action is
+   pinned to its bottom so it stays visible without scrolling. */
+.settings-panel {
+  position: sticky;
+  top: var(--space-4);
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+}
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-height: 100%;
+}
+
+.settings-section {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.settings-advanced > summary {
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.settings-advanced[open] > summary {
+  margin-bottom: var(--space-3);
+}
+
+.settings-advanced > :not(summary) {
+  margin-top: var(--space-3);
+}
+
+.settings-actions {
+  position: sticky;
+  bottom: 0;
+  margin-top: auto;
+  padding-top: var(--space-3);
+  background: var(--color-surface);
+}
+
+.settings-actions .button {
+  width: 100%;
+}
+
+/* Right area: upload zone collapses to one bar, tabs take the remaining space,
+   the download action sticks to the bottom of the viewport area. */
+.workspace {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  min-height: calc(100vh - 120px);
 }
 
 #drop-zone {
-  grid-area: drop;
+  flex: 0 0 auto;
 }
 
 .tabs {
-  grid-area: tabs;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.file-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.file-bar-info {
+  font-size: var(--text-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.download-bar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--space-2) 0;
+  background: var(--color-bg);
 }
 
 .panel {
@@ -76,10 +158,13 @@ body {
 }
 
 .drop-zone {
-  display: grid;
-  place-items: center;
-  gap: var(--space-1);
-  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  height: 120px;
+  padding: var(--space-3);
   text-align: center;
   background: var(--color-surface);
   border: 2px dashed var(--color-border);
@@ -137,8 +222,10 @@ body {
 }
 
 .tab-panel {
+  flex: 1;
   min-height: 160px;
   padding: var(--space-4);
+  overflow: auto;
 }
 
 .placeholder {
@@ -152,11 +239,6 @@ body {
   color: var(--color-text-muted);
   background: var(--color-surface);
   border-top: 1px solid var(--color-border);
-}
-
-.settings-form {
-  display: grid;
-  gap: var(--space-3);
 }
 
 .field {
@@ -263,6 +345,15 @@ body {
   border-radius: var(--radius-sm);
 }
 
+/* GRAFIK-20: uniform numeric width, full-width text inputs. */
+.settings-form input[type='number'] {
+  width: 80px;
+}
+
+.settings-form input[type='text'] {
+  width: 100%;
+}
+
 .settings-form input:disabled {
   background: var(--color-bg);
   color: var(--color-text-muted);
@@ -271,13 +362,6 @@ body {
 .settings-form input:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
-}
-
-.actions {
-  grid-area: actions;
-  display: flex;
-  gap: var(--space-2);
-  flex-wrap: wrap;
 }
 
 .button {
@@ -313,7 +397,6 @@ body {
 }
 
 .messages {
-  grid-area: messages;
   display: grid;
   gap: var(--space-2);
 }
@@ -376,17 +459,25 @@ body {
 }
 
 .tab-panel {
-  overflow-x: auto;
+  overflow: auto;
 }
 
 @media (max-width: 720px) {
   .app-main {
     grid-template-columns: 1fr;
-    grid-template-areas:
-      'settings'
-      'drop'
-      'actions'
-      'messages'
-      'tabs';
+  }
+
+  .settings-panel {
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .workspace {
+    min-height: 0;
+  }
+
+  .download-bar {
+    position: static;
   }
 }

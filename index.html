@@ -16,65 +16,48 @@
     </header>
 
     <main class="app-main">
-      <section id="settings-panel" class="panel" aria-label="Параметры">
-        <h2 class="panel-title">Параметры</h2>
+      <aside id="settings-panel" class="panel settings-panel" aria-label="Параметры">
         <form id="settings-form" class="settings-form">
-          <label class="field">
-            <span>Целевой год</span>
-            <input id="targetYear" type="number" min="2020" max="2100" />
-          </label>
+          <section class="settings-section">
+            <h2 class="panel-title">Основные параметры</h2>
 
-          <fieldset class="field field-inline">
-            <legend>Приёмные дни (исключаются из выездов)</legend>
-            <label><input type="checkbox" name="acceptingDay" value="1" /> Пн</label>
-            <label><input type="checkbox" name="acceptingDay" value="2" /> Вт</label>
-            <label><input type="checkbox" name="acceptingDay" value="3" /> Ср</label>
-            <label><input type="checkbox" name="acceptingDay" value="4" /> Чт</label>
-            <label><input type="checkbox" name="acceptingDay" value="5" /> Пт</label>
-          </fieldset>
+            <label class="field">
+              <span>Целевой год</span>
+              <input id="targetYear" type="number" min="2020" max="2100" />
+            </label>
 
-          <div class="field">
-            <span class="field-label">Отпуск инспектора</span>
-            <div id="vacationList" class="vacation-list"></div>
-            <button type="button" id="addVacationButton" class="button button-small">
-              + Добавить период отпуска
-            </button>
-          </div>
+            <fieldset class="field field-inline">
+              <legend>Приёмные дни (исключаются из выездов)</legend>
+              <label><input type="checkbox" name="acceptingDay" value="1" /> Пн</label>
+              <label><input type="checkbox" name="acceptingDay" value="2" /> Вт</label>
+              <label><input type="checkbox" name="acceptingDay" value="3" /> Ср</label>
+              <label><input type="checkbox" name="acceptingDay" value="4" /> Чт</label>
+              <label><input type="checkbox" name="acceptingDay" value="5" /> Пт</label>
+            </fieldset>
 
-          <div class="field-row">
+            <div class="field">
+              <span class="field-label">Отпуск инспектора</span>
+              <div id="vacationList" class="vacation-list"></div>
+              <button type="button" id="addVacationButton" class="button button-small">
+                + Добавить период отпуска
+              </button>
+            </div>
+
             <label class="field">
               <span>Глубина давности ТО, лет</span>
               <input id="toDepthYears" type="number" min="1" max="10" value="3" />
             </label>
+
             <label class="field">
               <span>Окно группировки, дней</span>
               <input id="groupWindowDays" type="number" min="1" max="120" value="30" />
             </label>
-          </div>
 
-          <label class="field">
-            <span>Порог физлиц, ед. техники</span>
-            <input id="physicalThreshold" type="number" min="0" max="100" value="3" />
-          </label>
-
-          <div class="field">
-            <label>
-              <input id="groupSmallOwners" type="checkbox" checked />
-              Группировать малых владельцев (≤ порога ед.) по последней дате ТО
+            <label class="field">
+              <span>Порог физлиц, ед. техники</span>
+              <input id="physicalThreshold" type="number" min="0" max="100" value="3" />
             </label>
-            <p class="placeholder">
-              Все единицы такого владельца попадут в один визит на самую позднюю целевую дату.
-            </p>
-          </div>
 
-          <fieldset class="field">
-            <legend>Физлица с числом единиц не более порога</legend>
-            <label><input type="radio" name="smallPhysical" value="A" checked /> А — исключить</label>
-            <label><input type="radio" name="smallPhysical" value="B" /> Б — приём в приёмные дни</label>
-          </fieldset>
-
-          <fieldset class="field">
-            <legend>Зимние месяцы и их загрузка</legend>
             <div class="field">
               <span>Зимние месяцы (для просроченных и «Без ТО»)</span>
               <div id="winterMonths" class="month-grid" role="group" aria-label="Зимние месяцы">
@@ -92,86 +75,116 @@
                 <label class="month-cell"><input type="checkbox" name="winterMonth" value="11" checked /> Дек</label>
               </div>
             </div>
+
+            <label class="field">
+              <span>Адрес инспекции</span>
+              <input id="inspectionAddress" type="text" placeholder="г. Москва, ул. ..." />
+            </label>
+          </section>
+
+          <details class="settings-section settings-advanced">
+            <summary>Дополнительные настройки</summary>
+
+            <div class="field-row">
+              <label class="field">
+                <span>Рабочий день с</span>
+                <input id="workStart" type="time" value="09:00" />
+              </label>
+              <label class="field">
+                <span>по</span>
+                <input id="workEnd" type="time" value="18:00" />
+              </label>
+            </div>
+
+            <div class="field">
+              <label><input id="lunchEnabled" type="checkbox" checked /> Учитывать обед</label>
+              <div class="field-row">
+                <input id="lunchStart" type="time" value="12:00" aria-label="Обед с" />
+                <span>—</span>
+                <input id="lunchEnd" type="time" value="13:00" aria-label="Обед по" />
+              </div>
+            </div>
+
+            <div class="field-row">
+              <label class="field">
+                <span>Машин в час</span>
+                <input id="perHour" type="number" min="1" max="100" value="12" />
+              </label>
+              <label class="field">
+                <span>Переезд между локациями, мин</span>
+                <input id="travelMinutes" type="number" min="0" max="240" value="60" />
+              </label>
+            </div>
+
+            <div class="field">
+              <label>
+                <input id="groupSmallOwners" type="checkbox" checked />
+                Группировать малых владельцев (≤ порога ед.) по последней дате ТО
+              </label>
+            </div>
+
+            <fieldset class="field">
+              <legend>Физлица с числом единиц не более порога</legend>
+              <label><input type="radio" name="smallPhysical" value="A" checked /> А — исключить</label>
+              <label><input type="radio" name="smallPhysical" value="B" /> Б — приём в приёмные дни</label>
+            </fieldset>
+
             <label class="field">
               <span>Загрузка зимних месяцев, % (0–100)</span>
               <input id="winterLoadPercent" type="number" min="0" max="100" value="30" />
             </label>
-          </fieldset>
+          </details>
 
-          <label class="field">
-            <span>Адрес инспекции</span>
-            <input id="inspectionAddress" type="text" placeholder="г. Москва, ул. ..." />
-          </label>
-
-          <div class="field-row">
-            <label class="field">
-              <span>Рабочий день с</span>
-              <input id="workStart" type="time" value="09:00" />
-            </label>
-            <label class="field">
-              <span>по</span>
-              <input id="workEnd" type="time" value="18:00" />
-            </label>
-          </div>
-
-          <div class="field">
-            <label><input id="lunchEnabled" type="checkbox" checked /> Учитывать обед</label>
-            <div class="field-row">
-              <input id="lunchStart" type="time" value="12:00" aria-label="Обед с" />
-              <span>—</span>
-              <input id="lunchEnd" type="time" value="13:00" aria-label="Обед по" />
-            </div>
-          </div>
-
-          <div class="field-row">
-            <label class="field">
-              <span>Машин в час</span>
-              <input id="perHour" type="number" min="1" max="100" value="12" />
-            </label>
-            <label class="field">
-              <span>Переезд между локациями, мин</span>
-              <input id="travelMinutes" type="number" min="0" max="240" value="60" />
-            </label>
+          <div class="settings-actions">
+            <button type="button" id="analyzeButton" class="button button-primary" disabled>
+              Сформировать график
+            </button>
           </div>
         </form>
-      </section>
+      </aside>
 
-      <section id="drop-zone" class="drop-zone" aria-label="Загрузка файла">
-        <p>Перетащите файл <code>.xlsx</code> или <code>.xls</code> сюда</p>
-        <input id="fileInput" type="file" accept=".xlsx,.xls" hidden />
-        <button type="button" id="chooseFileButton" class="button">Выбрать файл</button>
-        <p id="fileInfo" class="placeholder">Файл не выбран</p>
-      </section>
+      <section class="workspace" aria-label="Рабочая область">
+        <section id="drop-zone" class="drop-zone" aria-label="Загрузка файла">
+          <p>Перетащите файл <code>.xlsx</code> или <code>.xls</code> сюда</p>
+          <input id="fileInput" type="file" accept=".xlsx,.xls" hidden />
+          <button type="button" id="chooseFileButton" class="button">Выбрать файл</button>
+          <p id="fileInfo" class="placeholder">Файл не выбран</p>
+        </section>
 
-      <div class="actions">
-        <button type="button" id="analyzeButton" class="button button-primary" disabled>
-          Сформировать график
-        </button>
-        <button type="button" id="downloadButton" class="button" disabled>
-          Скачать Excel (.xlsx)
-        </button>
-      </div>
-
-      <div id="messages" class="messages" role="status" aria-live="polite"></div>
-
-      <section class="tabs" aria-label="Результаты">
-        <nav class="tab-list" role="tablist">
-          <button type="button" role="tab" class="tab is-active" data-tab="schedule">График ТО</button>
-          <button type="button" role="tab" class="tab" data-tab="details">Детализация</button>
-          <button type="button" role="tab" class="tab" data-tab="excluded">Исключенные записи</button>
-          <button type="button" role="tab" class="tab" data-tab="summary">Сводка по месяцам</button>
-        </nav>
-        <div class="tab-panel" data-panel="schedule" role="tabpanel">
-          <p class="placeholder">Здесь появится график ТО.</p>
+        <div id="file-bar" class="file-bar" hidden>
+          <span id="fileBarInfo" class="file-bar-info">Файл не выбран</span>
+          <button type="button" id="reloadFileButton" class="button button-small">
+            Загрузить другой файл
+          </button>
         </div>
-        <div class="tab-panel" data-panel="details" role="tabpanel" hidden>
-          <p class="placeholder">Здесь появится детализация.</p>
-        </div>
-        <div class="tab-panel" data-panel="excluded" role="tabpanel" hidden>
-          <p class="placeholder">Здесь появятся исключенные записи.</p>
-        </div>
-        <div class="tab-panel" data-panel="summary" role="tabpanel" hidden>
-          <p class="placeholder">Здесь появится сводка по месяцам.</p>
+
+        <div id="messages" class="messages" role="status" aria-live="polite"></div>
+
+        <section class="tabs" aria-label="Результаты">
+          <nav class="tab-list" role="tablist">
+            <button type="button" role="tab" class="tab is-active" data-tab="schedule">График ТО</button>
+            <button type="button" role="tab" class="tab" data-tab="details">Детализация</button>
+            <button type="button" role="tab" class="tab" data-tab="excluded">Исключенные записи</button>
+            <button type="button" role="tab" class="tab" data-tab="summary">Сводка по месяцам</button>
+          </nav>
+          <div class="tab-panel" data-panel="schedule" role="tabpanel">
+            <p class="placeholder">Здесь появится график ТО.</p>
+          </div>
+          <div class="tab-panel" data-panel="details" role="tabpanel" hidden>
+            <p class="placeholder">Здесь появится детализация.</p>
+          </div>
+          <div class="tab-panel" data-panel="excluded" role="tabpanel" hidden>
+            <p class="placeholder">Здесь появятся исключенные записи.</p>
+          </div>
+          <div class="tab-panel" data-panel="summary" role="tabpanel" hidden>
+            <p class="placeholder">Здесь появится сводка по месяцам.</p>
+          </div>
+        </section>
+
+        <div class="download-bar">
+          <button type="button" id="downloadButton" class="button button-primary" disabled>
+            Скачать Excel (.xlsx)
+          </button>
         </div>
       </section>
     </main>

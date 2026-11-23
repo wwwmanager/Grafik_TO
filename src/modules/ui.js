@@ -338,7 +338,11 @@ async function handleFile(file, state, els, root) {
     state.records = parsed.records;
     state.fileName = file.name;
     state.exportDate = parsed.exportDate || null;
-    els.fileInfo.textContent = `${file.name}: ${parsed.records.length} строк`;
+    const summary = `${file.name}: ${parsed.records.length} строк`;
+    els.fileInfo.textContent = summary;
+    if (els.fileBarInfo) els.fileBarInfo.textContent = summary;
+    if (els.dropZone) els.dropZone.hidden = true;
+    if (els.fileBar) els.fileBar.hidden = false;
     els.analyzeButton.disabled = parsed.records.length === 0;
     els.downloadButton.disabled = true;
     clearMessages(root);
@@ -348,6 +352,8 @@ async function handleFile(file, state, els, root) {
     );
   } catch (error) {
     state.records = [];
+    if (els.dropZone) els.dropZone.hidden = false;
+    if (els.fileBar) els.fileBar.hidden = true;
     els.analyzeButton.disabled = true;
     showError(root, error?.message || 'Не удалось прочитать файл.');
   }
@@ -441,6 +447,9 @@ export function initUi(root = document) {
     analyzeButton: root.getElementById('analyzeButton'),
     downloadButton: root.getElementById('downloadButton'),
     dropZone: root.getElementById('drop-zone'),
+    fileBar: root.getElementById('file-bar'),
+    fileBarInfo: root.getElementById('fileBarInfo'),
+    reloadFileButton: root.getElementById('reloadFileButton'),
     vacationList: root.getElementById('vacationList'),
     addVacationButton: root.getElementById('addVacationButton'),
     lunchEnabled: root.getElementById('lunchEnabled'),
@@ -479,6 +488,7 @@ export function initUi(root = document) {
   syncLunch();
 
   els.chooseFileButton?.addEventListener('click', () => els.fileInput?.click());
+  els.reloadFileButton?.addEventListener('click', () => els.fileInput?.click());
   els.fileInput?.addEventListener('change', () => {
     handleFile(els.fileInput.files?.[0], state, els, root);
   });
