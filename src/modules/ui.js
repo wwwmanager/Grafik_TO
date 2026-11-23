@@ -323,6 +323,7 @@ async function handleFile(file, state, els, root) {
     const parsed = parseWorkbook(new Uint8Array(buffer));
     state.records = parsed.records;
     state.fileName = file.name;
+    state.exportDate = parsed.exportDate || null;
     els.fileInfo.textContent = `${file.name}: ${parsed.records.length} строк`;
     els.analyzeButton.disabled = parsed.records.length === 0;
     els.downloadButton.disabled = true;
@@ -343,7 +344,7 @@ async function analyze(state, els, root) {
     showError(root, 'Сначала загрузите файл Excel.');
     return;
   }
-  const settings = readSettings(root, defaultSettings());
+  const settings = { ...readSettings(root, defaultSettings()), exportDate: state.exportDate };
   persistSettings(settings);
   setStatus(root, 'Загрузка производственного календаря…');
   let calendar = null;

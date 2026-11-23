@@ -173,6 +173,49 @@ describe('computeTargetDates', () => {
     expect(result.dates[1].date.getFullYear()).toBe(2026);
   });
 
+  it('rolls an on-time current-year next TO into the target year (GRAFIK-18)', () => {
+    const result = computeTargetDates(
+      record({ nextTo: new Date(2026, 10, 26) }),
+      { targetYear: 2027, toDepthYears: 3, exportDate: new Date(2026, 10, 23) },
+    );
+    expect(result.overdue).toBe(false);
+    expect(result.dates).toHaveLength(1);
+    expect(result.dates[0].overdue).toBe(false);
+    expect([
+      result.dates[0].date.getFullYear(),
+      result.dates[0].date.getMonth(),
+      result.dates[0].date.getDate(),
+    ]).toEqual([2027, 10, 26]);
+  });
+
+  it('rolls an on-time computed next TO (+1 year) instead of overdue (GRAFIK-18)', () => {
+    const result = computeTargetDates(
+      record({ lastTo: new Date(2025, 10, 26) }),
+      { targetYear: 2027, toDepthYears: 3, exportDate: new Date(2026, 10, 23) },
+    );
+    expect(result.overdue).toBe(false);
+    expect(result.dates).toHaveLength(1);
+    expect(result.dates[0].overdue).toBe(false);
+    expect([
+      result.dates[0].date.getFullYear(),
+      result.dates[0].date.getMonth(),
+      result.dates[0].date.getDate(),
+    ]).toEqual([2027, 10, 26]);
+  });
+
+  it('steps an on-time A4 date by 6 months inside the target year (GRAFIK-18)', () => {
+    const result = computeTargetDates(
+      record({ category: 'А4', nextTo: new Date(2026, 10, 26) }),
+      { targetYear: 2027, toDepthYears: 3, exportDate: new Date(2026, 10, 23) },
+    );
+    expect(result.overdue).toBe(false);
+    expect(result.dates).toHaveLength(2);
+    expect(result.dates.map((item) => [item.date.getFullYear(), item.date.getMonth(), item.date.getDate()])).toEqual([
+      [2027, 4, 26],
+      [2027, 10, 26],
+    ]);
+  });
+
   it('marks «Без ТО» as overdue even when the computed date is in the target year (D12)', () => {
     const result = computeTargetDates(
       record({ flags: { bezTo: true }, lastTo: new Date(2026, 0, 10) }),

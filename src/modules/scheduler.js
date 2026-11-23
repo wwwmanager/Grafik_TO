@@ -25,6 +25,54 @@ export function depthCutoff(settings = {}) {
   return new Date(targetYear - depth, 0, 1);
 }
 
+// GRAFIK-18: normalizes the export ("Выгрузка на ДД.ММ.ГГГГ") date to local
+// midnight. Accepts a Date or the ДД.ММ.ГГГГ / ГГГГ-ММ-ДД string form.
+function toDay(value) {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+  }
+  if (typeof value === 'string') {
+    let match = value.match(/^(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{4})$/);
+    if (match) {
+      const date = new Date(Number(match[3]), Number(match[2]) - 1, Number(match[1]));
+      return Number.isNaN(date.getTime()) ? null : date;
+    }
+    match = value.match(/^(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})$/);
+    if (match) {
+      const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+      return Number.isNaN(date.getTime()) ? null : date;
+    }
+  }
+  return null;
+}
+
+// A target date in the export (current) year that is not earlier than the export
+// date means the unit passes TO on time in that year. Such a date must not go to
+// the overdue pool: the next occurrence in the target year is planned instead.
+function isOnTimeInExportYear(date, exportDate, targetYear) {
+  if (!exportDate) return false;
+  if (targetYear <= exportDate.getFullYear()) return false;
+  if (date.getFullYear() !== exportDate.getFullYear()) return false;
+  return date.getTime() >= exportDate.getTime();
+}
+
+// Rolls an on-time anchor forward by its period until it lands in the target year,
+// keeping the month/day, and returns up to maxCount in-year dates.
+function projectToTargetYear(anchor, periodMonths, targetYear, maxCount) {
+  let cursor = anchor;
+  let guard = 0;
+  while (cursor.getFullYear() < targetYear && guard < 120) {
+    cursor = addMonths(cursor, periodMonths);
+    guard += 1;
+  }
+  const dates = [];
+  while (cursor.getFullYear() === targetYear && dates.length < maxCount) {
+    dates.push(cursor);
+    cursor = addMonths(cursor, periodMonths);
+  }
+  return dates;
+}
+
 // Returns the exclusion reason (Russian) for a record, or null when it stays active.
 // Steps follow TZ §6 Step 1 with decision D1 depth (relative to the target year).
 // D12: «Без ТО» = «*» means the inspection is overdue and the unit MUST be scheduled;
@@ -82,6 +130,7 @@ export function computeTargetDates(record, settings = {}) {
   const a4 = isA4(record);
   const lastTo = record?.lastTo;
   const hasLastTo = lastTo instanceof Date && !Number.isNaN(lastTo.getTime());
+  const exportDate = toDay(settings.exportDate);
 
   // D12: «Без ТО» = «*» is always overdue and scheduled through the least-loaded
   // month (D14). With a valid «Дата ТО» the computed anchor only seeds the preferred
@@ -106,11 +155,24 @@ export function computeTargetDates(record, settings = {}) {
   }
 
   if (record?.nextTo instanceof Date && !Number.isNaN(record.nextTo.getTime())) {
+    const nextTo = toDay(record.nextTo);
+    // GRAFIK-18: «Дата след. ТО» in the current year but not before the export date
+    // is an on-time TO — plan its target-year occurrence, never the overdue pool.
+    if (isOnTimeInExportYear(nextTo, exportDate, targetYear)) {
+      const dates = projectToTargetYear(nextTo, a4 ? 6 : 12, targetYear, a4 ? 2 : 1).map(
+        (date) => ({
+          date,
+          source: a4 ? 'А4 (шаг 6 мес.)' : '«Дата след. ТО» (выгрузка)',
+          overdue: false,
+        }),
+      );
+      if (dates.length > 0) return { isA4: a4, dates, overdue: false };
+    }
     const dates = [
-      { date: record.nextTo, source: '«Дата след. ТО» (выгрузка)', overdue: false },
+      { date: nextTo, source: '«Дата след. ТО» (выгрузка)', overdue: false },
     ];
     if (a4) {
-      const second = addMonths(record.nextTo, 6);
+      const second = addMonths(nextTo, 6);
       if (second.getFullYear() === targetYear) {
         dates.push({ date: second, source: 'А4 (+6 мес.)', overdue: false });
       }
@@ -132,6 +194,16 @@ export function computeTargetDates(record, settings = {}) {
     const before = steps.filter((date) => date.getTime() < targetStart.getTime());
     if (before.length > 0) {
       const anchor = before[before.length - 1];
+      // GRAFIK-18: an on-time current-year occurrence pushes the plan into the
+      // target year instead of flagging the unit as overdue.
+      if (isOnTimeInExportYear(anchor, exportDate, targetYear)) {
+        const dates = projectToTargetYear(anchor, 6, targetYear, 2).map((date) => ({
+          date,
+          source: 'А4 (шаг 6 мес.)',
+          overdue: false,
+        }));
+        if (dates.length > 0) return { isA4: true, dates, overdue: false };
+      }
       const dates = [{ date: anchor, source: 'Просроченная А4', overdue: true }];
       const next = addMonths(anchor, 6);
       if (next.getFullYear() === targetYear) {
@@ -155,6 +227,16 @@ export function computeTargetDates(record, settings = {}) {
     };
   }
   if (planned.getTime() < targetStart.getTime()) {
+    // GRAFIK-18: a computed next TO in the current year, not earlier than the export
+    // date, is on time — plan the target-year occurrence rather than marking overdue.
+    if (isOnTimeInExportYear(planned, exportDate, targetYear)) {
+      const dates = projectToTargetYear(planned, 12, targetYear, 1).map((date) => ({
+        date,
+        source: 'Расчёт («Дата ТО» + 1 год)',
+        overdue: false,
+      }));
+      if (dates.length > 0) return { isA4: false, dates, overdue: false };
+    }
     return {
       isA4: false,
       dates: [{ date: planned, source: 'Просроченная («Дата ТО» + 1 год)', overdue: true }],

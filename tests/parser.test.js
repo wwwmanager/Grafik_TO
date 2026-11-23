@@ -84,6 +84,7 @@ describe('parseWorkbook', () => {
     expect(result.records[0].owner).toBe('ООО «Заря»');
     expect(ymd(result.records[0].lastTo)).toEqual([2024, 3, 15]);
     expect(result.records[0].inn).toBe('7701000001');
+    expect(ymd(result.exportDate)).toEqual([2026, 11, 23]);
   });
 
   it('reads flags from their columns', () => {

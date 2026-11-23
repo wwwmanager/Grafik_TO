@@ -247,6 +247,22 @@ function isRowEmpty(cells) {
   return (cells || []).every((cell) => String(cell ?? '').trim() === '');
 }
 
+// GRAFIK-18: the export title row carries «Выгрузка на ДД.ММ.ГГГГ». The date is used
+// by the scheduler to tell an on-time current-year TO from a genuinely overdue one.
+const EXPORT_DATE_PATTERN = /выгрузк[а-яё]*\s+на\s+(\d{1,2}[.\-/]\d{1,2}[.\-/]\d{4})/i;
+
+export function findExportDate(rows, headerIndex = Infinity) {
+  const limit = Math.min(rows.length, headerIndex);
+  for (let index = 0; index < limit; index += 1) {
+    for (const cell of rows[index] || []) {
+      if (cell instanceof Date) continue;
+      const match = String(cell ?? '').match(EXPORT_DATE_PATTERN);
+      if (match) return parseDate(match[1]);
+    }
+  }
+  return null;
+}
+
 function buildRecord(cells, header) {
   const raw = {};
   header.map.forEach((column, norm) => {
@@ -331,5 +347,5 @@ export function parseWorkbook(data) {
     records.push(buildRecord(cells, header));
   }
 
-  return { records, headers: header.originals, sheetName };
+  return { records, headers: header.originals, sheetName, exportDate: findExportDate(rows, header.index) };
 }
