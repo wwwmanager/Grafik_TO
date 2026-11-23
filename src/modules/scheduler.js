@@ -123,6 +123,120 @@ export function computeTargetDates(record, settings = {}) {
   return { isA4: false, dates: [], overdue: false };
 }
 
+const WEEKDAY_NAMES = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+
+export function normalizeName(name) {
+  return String(name ?? '')
+    .replace(/\u00a0/g, ' ')
+    .replace(/ё/g, 'е')
+    .replace(/Ё/g, 'Е')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+// Owner key: digits of ИНН, else the normalized owner name (TZ §6 Step 2).
+export function ownerKey(record) {
+  const digits = String(record?.inn ?? '').replace(/\D/g, '');
+  if (digits) return `inn:${digits}`;
+  return `name:${normalizeName(record?.owner)}`;
+}
+
+export function isPhysicalOwner(record) {
+  return /физ/i.test(String(record?.ownerGroup ?? ''));
+}
+
+function physicalNote(settings) {
+  const names = (settings.acceptingDays || [])
+    .map((day) => WEEKDAY_NAMES[day])
+    .filter(Boolean)
+    .join(', ');
+  const days = names || 'приёмные дни';
+  const address = String(settings.inspectionAddress ?? '').trim() || 'инспекции';
+  return `Физические лица, имеющие не более 3 ед. техники, проходят ТО в приёмные дни (${days}) по адресу инспекции: ${address}.`;
+}
+
+// D5 / TZ §5.6: individuals with <= 3 active units are handled by mode A (exclude)
+// or mode B (exclude from the table but add the reception note). Owners with more
+// than 3 units always stay in the schedule.
+export function applyPhysicalRule(records, settings = {}) {
+  const mode = settings.smallPhysicalMode === 'B' ? 'B' : 'A';
+  const groups = new Map();
+  for (const record of records || []) {
+    const key = ownerKey(record);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(record);
+  }
+
+  const excludedReasons = new Map();
+  let noteNeeded = false;
+  for (const group of groups.values()) {
+    if (!isPhysicalOwner(group[0]) || group.length > 3) continue;
+    if (mode === 'B') {
+      noteNeeded = true;
+      for (const record of group) {
+        excludedReasons.set(record, 'Физлицо с ≤3 ед. техники — приём в приёмные дни');
+      }
+    } else {
+      for (const record of group) {
+        excludedReasons.set(record, 'Физлицо с ≤3 ед. техники (вариант А)');
+      }
+    }
+  }
+
+  const kept = (records || []).filter((record) => !excludedReasons.has(record));
+  const excluded = (records || [])
+    .filter((record) => excludedReasons.has(record))
+    .map((record) => ({ record, reason: excludedReasons.get(record) }));
+  return { kept, excluded, notes: noteNeeded ? [physicalNote(settings)] : [] };
+}
+
+// Groups target items of one owner whose dates fall inside the grouping window.
+// Cluster date = the earliest date in the cluster (TZ §6 Step 4). A4 items six
+// months apart therefore land in separate clusters.
+export function clusterTargets(items, settings = {}) {
+  const windowMs = (Number(settings.groupWindowDays) || 30) * 86400000;
+  const byOwner = new Map();
+  for (const item of items || []) {
+    const key = item.ownerKey || ownerKey(item.record);
+    if (!byOwner.has(key)) byOwner.set(key, []);
+    byOwner.get(key).push({ ...item, ownerKey: key });
+  }
+
+  const clusters = [];
+  for (const list of byOwner.values()) {
+    const sorted = [...list].sort((a, b) => a.date - b.date);
+    let current = null;
+    for (const item of sorted) {
+      if (!current || item.date.getTime() - current.startTime > windowMs) {
+        current = {
+          ownerKey: item.ownerKey,
+          startTime: item.date.getTime(),
+          date: item.date,
+          items: [],
+          overdue: false,
+        };
+        clusters.push(current);
+      }
+      current.items.push(item);
+      current.overdue = current.overdue || Boolean(item.overdue);
+    }
+  }
+
+  clusters.sort((a, b) => a.date - b.date);
+  return clusters.map((cluster) => {
+    const records = [...new Set(cluster.items.map((item) => item.record))];
+    return {
+      ownerKey: cluster.ownerKey,
+      date: cluster.date,
+      overdue: cluster.overdue,
+      units: records.length,
+      records,
+      items: cluster.items,
+    };
+  });
+}
+
 // Placeholder kept for the scaffold smoke test; the full pipeline lands in GRAFIK-06.
 export function buildSchedule() {
   return [];
