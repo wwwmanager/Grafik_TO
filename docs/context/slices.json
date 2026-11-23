@@ -499,7 +499,27 @@
       "dispatchedBy": "architect",
       "dispatchedAt": "2026-11-23T22:09:47+05:00",
       "updatedAt": "2026-11-23T22:12:03+05:00"
+    },
+    {
+      "id": "GRAFIK-26-FIXES",
+      "title": "Fix: travel time calc + clear target date labels in Details",
+      "status": "accepted",
+      "approved": true,
+      "dependsOn": [],
+      "dispatchText": "SLICE=GRAFIK-26-FIXES project=grafik_to root=G:\\_Grafik_TO verify=off (send DONE to architect)\nGoal: two fixes from owner review.\n1. Travel time vs duration mismatch:\n   - Setting \"Переезд между локациями, мин\" = 30, but \"Детализация\" column \"Длительность, мин\" shows 60.\n   - Investigate: \"Длительность, мин\" = visitDurationMinutes(units, perHour) rounded to 30 min + travel time between locations (only between DIFFERENT settlements per D4).\n   - If single location -> no travel added. If multiple locations in visit -> travel added between them.\n   - Fix: ensure travel time added correctly (once per transition between different settlements), and column label clarified or split into \"Длительность осмотра\" + \"Переезд\".\n   - Add unit test: 2 units, 12 perHour -> 30 min base; 2 locations diff settlements, travel=30 -> total 60; same settlement -> total 30.\n2. Target date column clarity in \"Детализация\":\n   - Current shows raw dates \"09.02.2023\", \"08.05.2025\", \"17.02.2027\" without context.\n   - Propose and implement clearer labels:\n     a) Add prefix: \"Целевая дата ТО: 09.02.2023\" or \"Плановая дата: 09.02.2023\"\n     b) Add status badge: \"Просрочена (09.02.2023)\" / \"Текущий год (08.05.2025)\" / \"Целевой год (17.02.2027)\"\n     c) Or split into two columns: \"Целевая дата\" + \"Статус даты\"\n   - Implement chosen variant in exporter.js (Details sheet) and format.js (preview tab).\n   - Column header: \"Целевая дата ТО\" (or similar).\nFiles: src/modules/{scheduler,exporter,format,ui}.js, tests/{scheduler,exporter}.test.js.\nverify: npm run verify green. Commit, push origin main (Pages redeploy). Confirm Actions run + Pages 200.\nReport: STATUS(done) commit, files, explanation of travel calc fix, date column example, Actions run id. No acks.",
+      "acceptance": null,
+      "verifyCommands": [
+        "npm --prefix G:\\_Grafik_TO run verify"
+      ],
+      "owner": "orch1",
+      "commit": "2a2603a",
+      "evidence": "G:\\_Grafik_TO\\docs\\context\\evidence\\GRAFIK-26-FIXES.json",
+      "rejections": 0,
+      "retro": "travel duration fix + status-badged target dates",
+      "dispatchedBy": "architect",
+      "dispatchedAt": "2026-11-23T22:17:49+05:00",
+      "updatedAt": "2026-11-23T22:21:48+05:00"
     }
   ],
-  "updatedAt": "2026-11-23T22:12:03+05:00"
+  "updatedAt": "2026-11-23T22:21:48+05:00"
 }
