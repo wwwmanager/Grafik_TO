@@ -519,7 +519,27 @@
       "dispatchedBy": "architect",
       "dispatchedAt": "2026-11-23T22:17:49+05:00",
       "updatedAt": "2026-11-23T22:21:48+05:00"
+    },
+    {
+      "id": "GRAFIK-27-DATE-STATUS-BUG",
+      "title": "Fix: wrong \"Просрочена\" for future dates (01.01.2027)",
+      "status": "accepted",
+      "approved": true,
+      "dependsOn": [],
+      "dispatchText": "SLICE=GRAFIK-27-DATE-STATUS-BUG project=grafik_to root=G:\\_Grafik_TO verify=off (send DONE to architect)\nGoal: fix wrong \"Просрочена\" status for future dates (e.g., 01.01.2027 showing as overdue when today is 2026).\nRoot cause likely in src/modules/format.js formatUnitTargets:\n- currentYear derived from exportDate (title row \"Выгрузка на ДД.ММ.ГГГГ\") or today.\n- targetYear from settings.targetYear.\n- Logic: if unitTargetDate.year < currentYear -> \"Просрочена\"; else if unitTargetDate.year === currentYear -> \"Текущий год\"; else -> \"Целевой год\".\nBUG: if exportDate parsing fails or returns wrong year, currentYear becomes wrong. Or comparison uses targetYear instead of currentYear.\nFix: ensure exportDate parsed correctly; currentYear = exportDate.getFullYear() (or today if missing); compare unitTargetDate year to currentYear, not targetYear.\nAdd unit test: exportDate 23.11.2026, unit target 01.01.2027 -> \"Целевой год\"; unit target 01.01.2025 -> \"Просрочена\"; unit target 15.06.2026 -> \"Текущий год\".\nFiles: src/modules/{format,parser,ui}.js, tests/{format,parser}.test.js.\nverify: npm run verify green. Commit, push origin main (Pages redeploy). Confirm Actions run + Pages 200.\nReport: STATUS(done) commit, files, explanation of bug, test cases, Actions run id. No acks.",
+      "acceptance": null,
+      "verifyCommands": [
+        "npm --prefix G:\\_Grafik_TO run verify"
+      ],
+      "owner": "orch1",
+      "commit": "f758c50",
+      "evidence": "G:\\_Grafik_TO\\docs\\context\\evidence\\GRAFIK-27-DATE-STATUS-BUG.json",
+      "rejections": 0,
+      "retro": "status derived from year vs currentYear, overdue flag no longer overrides",
+      "dispatchedBy": "architect",
+      "dispatchedAt": "2026-11-23T22:39:39+05:00",
+      "updatedAt": "2026-11-23T22:41:41+05:00"
     }
   ],
-  "updatedAt": "2026-11-23T22:21:48+05:00"
+  "updatedAt": "2026-11-23T22:41:41+05:00"
 }
