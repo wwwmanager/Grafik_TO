@@ -339,7 +339,67 @@
       "dispatchedBy": "architect",
       "dispatchedAt": "2026-11-23T21:15:15+05:00",
       "updatedAt": "2026-11-23T21:18:05+05:00"
+    },
+    {
+      "id": "GRAFIK-18-DATE-LOGIC",
+      "title": "Critical: fix date logic for current-year future dates",
+      "status": "accepted",
+      "approved": true,
+      "dependsOn": [],
+      "dispatchText": "SLICE=GRAFIK-18-DATE-LOGIC project=grafik_to root=G:\\_Grafik_TO verify=off (send DONE to architect)\nGoal: CRITICAL business logic fix for date calculation.\nProblem: If export has \"Дата след. ТО\" (or computed next TO) in current year >= today (date of report generation / export date), algo incorrectly treats it as overdue and puts in overdue pool.\nFix: For any target date in current year that is >= export-date (or current date if no export date), treat as \"will pass TO on time in current year\". Schedule for target year: same month/day (for A4: step 6 months from that date). Do NOT put in overdue pool.\nImplementation: in src/modules/scheduler.js computeTargetDates / buildVisits logic. Need export date (from title row \"Выгрузка на ДД.ММ.ГГГГ\") passed down.\nAdd unit test: vitest case with export date 23.11.2026, unit with nextTo 26.11.2026 -> scheduled in 2027 on 26.11 (or A4 steps), NOT in overdue.\nverify: npm run verify green. Commit, push origin main (Pages redeploy). Confirm Actions run + Pages 200.\nReport: STATUS(done) commit, files, test case description, Actions run id. No acks.",
+      "acceptance": null,
+      "verifyCommands": [
+        "npm --prefix G:\\_Grafik_TO run verify"
+      ],
+      "owner": "orch1",
+      "commit": "16c817d",
+      "evidence": "G:\\_Grafik_TO\\docs\\context\\evidence\\GRAFIK-18-DATE-LOGIC.json",
+      "rejections": 0,
+      "retro": "future current-year dates treated as on-time, projected to target year",
+      "dispatchedBy": "architect",
+      "dispatchedAt": "2026-11-23T21:34:17+05:00",
+      "updatedAt": "2026-11-23T21:37:57+05:00"
+    },
+    {
+      "id": "GRAFIK-19-SETTINGS-ENHANCE",
+      "title": "Multiple vacations, machine/hour 1-100, winter checkboxes",
+      "status": "dispatched",
+      "approved": true,
+      "dependsOn": [],
+      "dispatchText": "SLICE=GRAFIK-19-SETTINGS-ENHANCE project=grafik_to root=G:\\_Grafik_TO verify=off (send DONE to architect)\nGoal: Settings enhancements — multiple vacations, machine/hour limit, winter months checkboxes.\n1. Multiple vacation periods:\n   - Replace single \"Отпуск инспектора\" (from/to) with dynamic list.\n   - UI: button \"+ Добавить период отпуска\" adds new from/to row; each row has delete ×.\n   - Store as array of {from, to} in localStorage/settings.\n   - Scheduler: exclude ALL dates falling in ANY vacation period.\n2. Machine/hour field:\n   - Rename label to \"Машин в час\" (remove \"(10–15)\").\n   - Input: type=number, min=1, max=100, default 12.\n   - Remove hard validation 10-15.\n3. Winter months:\n   - Replace <select multiple> with 4x3 grid of checkboxes (Янв, Фев, Мар, Апр, Май, Июн, Июл, Авг, Сен, Окт, Ноя, Дек).\n   - Click toggles; no Ctrl/Shift needed.\n   - Store as array of month numbers (0-11) in settings.\n   - Scheduler uses this array for winter weighting (D14).\nFiles: src/modules/ui.js (settings panel), src/modules/scheduler.js (vacation exclusion, winter months array), index.html (checkbox grid CSS), src/styles/main.css.\nverify: npm run verify green. Commit, push origin main (Pages redeploy). Confirm Actions run + Pages 200.\nReport: STATUS(done) commit, files, Actions run id. No acks.",
+      "acceptance": null,
+      "verifyCommands": [
+        "npm --prefix G:\\_Grafik_TO run verify"
+      ],
+      "owner": "orch1",
+      "commit": null,
+      "evidence": null,
+      "rejections": 0,
+      "retro": null,
+      "dispatchedBy": "architect",
+      "dispatchedAt": "2026-11-23T21:34:29+05:00",
+      "updatedAt": "2026-11-23T21:34:29+05:00"
+    },
+    {
+      "id": "GRAFIK-20-UI-OVERHAUL",
+      "title": "UI overhaul: collapsing upload, accordion panel, two-column grid",
+      "status": "dispatched",
+      "approved": true,
+      "dependsOn": [],
+      "dispatchText": "SLICE=GRAFIK-20-UI-OVERHAUL project=grafik_to root=G:\\_Grafik_TO verify=off (send DONE to architect)\nGoal: Major UI/UX overhaul per review — two-column layout with collapsing upload zone and accordion panel.\nLayout: CSS Grid two columns — left panel (fixed width ~360px, max-h-screen, overflow-y:auto), right area (flex-1).\n1. File upload zone (right area top):\n   - Compact fixed height (~120px), NOT stretched to panel height.\n   - Drag-drop zone + \"Выбрать файл\" button + file name line.\n   - AFTER file loaded: collapse to single compact bar at top of right area: \"УП_Выгрузка на 23.11.2026... — копия.xlsx: 963 строк  [Загрузить другой файл]\".\n   - All remaining right-area space → preview tabs (График ТО, Детализация, Исключенные, Сводка) + sticky bottom \"Скачать Excel\" button.\n2. Left panel — settings with accordion:\n   - Main section (always visible): \"Основные параметры\" — Целевой год, Приёмные дни, Отпуск инспектора (dynamic list from GRAFIK-19), Глубина давности ТО, Окно группировки, Порог физлиц, Зимние месяцы (checkbox grid from GRAFIK-19), Адрес инспекции.\n   - Accordion <details><summary>Дополнительные настройки</summary>: Рабочий день с/по, Учитывать обед, Машин в час (1-100 from GRAFIK-19), Переезд между локациями, мин, Группировать малых владельцев (checkbox), Загрузка зимних месяцев %.\n   - Uniform input widths: all numeric inputs same width (e.g., 80px), text inputs full width.\n   - \"Сформировать график\" button: sticky at bottom of main section, ALWAYS visible without scroll.\n   - Left panel has independent scroll (overflow-y:auto), right area fixed/sticky preview.\n3. Remove any auto-generation on file load — ONLY on \"Сформировать график\" click.\nFiles: index.html (structure), src/styles/main.css (grid, accordion, collapse, checkbox grid), src/modules/ui.js (state, render, event handlers), src/modules/format.js (preview tab data).\nverify: npm run verify green. Commit, push origin main (Pages redeploy). Confirm Actions run + Pages 200.\nReport: STATUS(done) commit, files, Actions run id. No acks.",
+      "acceptance": null,
+      "verifyCommands": [
+        "npm --prefix G:\\_Grafik_TO run verify"
+      ],
+      "owner": "orch1",
+      "commit": null,
+      "evidence": null,
+      "rejections": 0,
+      "retro": null,
+      "dispatchedBy": "architect",
+      "dispatchedAt": "2026-11-23T21:34:43+05:00",
+      "updatedAt": "2026-11-23T21:34:43+05:00"
     }
   ],
-  "updatedAt": "2026-11-23T21:18:05+05:00"
+  "updatedAt": "2026-11-23T21:37:58+05:00"
 }
