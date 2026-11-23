@@ -53,7 +53,7 @@ describe('exclusionReason', () => {
 
   it('applies the depth boundary at exactly January 1', () => {
     expect(exclusionReason(record({ lastTo: new Date(2022, 11, 31) }), SETTINGS)).toBe(
-      'Дата ТО старше глубины',
+      'Дата ТО больше выбранной давности ТО',
     );
     expect(exclusionReason(record({ lastTo: new Date(2023, 0, 1) }), SETTINGS)).toBeNull();
   });
@@ -91,7 +91,7 @@ describe('exclusionReason', () => {
 
   it('«*» with a valid date still honours the depth (D12)', () => {
     const stale = record({ flags: { bezTo: true }, lastTo: new Date(2022, 5, 1) });
-    expect(exclusionReason(stale, SETTINGS)).toBe('Дата ТО старше глубины');
+    expect(exclusionReason(stale, SETTINGS)).toBe('Дата ТО больше выбранной давности ТО');
   });
 });
 

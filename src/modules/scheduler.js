@@ -47,14 +47,14 @@ export function exclusionReason(record, settings = {}) {
       return depth >= 5 ? null : '«Без ТО» без даты ТО, глубина менее 5 лет';
     }
     if (record.lastTo.getTime() < depthCutoff(settings).getTime()) {
-      return 'Дата ТО старше глубины';
+      return 'Дата ТО больше выбранной давности ТО';
     }
     return null;
   }
 
   if (!hasLastTo) return 'Отсутствует или некорректна «Дата ТО»';
   if (record.lastTo.getTime() < depthCutoff(settings).getTime()) {
-    return 'Дата ТО старше глубины';
+    return 'Дата ТО больше выбранной давности ТО';
   }
   return null;
 }

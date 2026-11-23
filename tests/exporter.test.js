@@ -176,6 +176,50 @@ describe('exportScheduleToXlsx', () => {
     expect(unitCell).toContain('10.10.2026');
   });
 
+  it('renders vehicles and unit dates as numbered lines with wrap (GRAFIK-17)', async () => {
+    const units = [
+      record({
+        owner: 'ООО «Малый»',
+        inn: '7700000011',
+        plate: 'А201ММ77',
+        brand: 'Lada',
+        nextTo: new Date(2026, 1, 10),
+      }),
+      record({
+        owner: 'ООО «Малый»',
+        inn: '7700000011',
+        plate: 'А202ММ77',
+        brand: 'Kamaz',
+        nextTo: new Date(2026, 9, 10),
+      }),
+    ];
+    const grouped = buildSchedule(units, SETTINGS, CALENDAR);
+    const workbook = await loadWorkbook(await exportScheduleToXlsx(grouped, SETTINGS));
+    const details = workbook.getWorksheet('Детализация');
+
+    const vehiclesCell = details.getRow(2).getCell(9);
+    expect(vehiclesCell.value).toBe('1. А201ММ77 — Lada\n2. А202ММ77 — Kamaz');
+    expect(vehiclesCell.alignment?.wrapText).toBe(true);
+
+    const unitsCell = details.getRow(2).getCell(13);
+    const unitsText = String(unitsCell.value);
+    expect(unitsText).toContain('1. А201ММ77 (Lada) — целевая дата 10.02.2026');
+    expect(unitsText).toContain('\n');
+    expect(unitsText).toContain('А202ММ77 (Kamaz) — целевая дата 10.10.2026');
+    expect(unitsCell.alignment?.wrapText).toBe(true);
+  });
+
+  it('uses the renamed stale-date exclusion reason (GRAFIK-17)', () => {
+    const stale = record({
+      owner: 'ООО «Старое»',
+      inn: '43',
+      lastTo: new Date(2020, 0, 1),
+      nextTo: null,
+    });
+    const staleResult = buildSchedule([stale], SETTINGS, CALENDAR);
+    expect(staleResult.excluded[0].reason).toBe('Дата ТО больше выбранной давности ТО');
+  });
+
   it('appends the reception note when mode B excludes individuals', async () => {
     const modeB = buildSchedule(records, { ...SETTINGS, smallPhysicalMode: 'B' }, CALENDAR);
     expect(modeB.notes).toHaveLength(1);

@@ -8,6 +8,7 @@ import {
   formatTimeLabel,
   formatTimeRange,
   formatUnitTargets,
+  formatVehicleList,
 } from './format.js';
 
 export { formatDate, formatTimeLabel, formatTimeRange } from './format.js';
@@ -177,10 +178,7 @@ function buildDetailsSheet(workbook, result) {
     { header: 'Единицы и исходные целевые даты', width: 48 },
   ];
   result.visits.forEach((visit) => {
-    const vehicles = visit.records
-      .map((record) => [record.plate, record.brand].filter(Boolean).join(' '))
-      .join('; ');
-    sheet.addRow([
+    const row = sheet.addRow([
       formatDate(visit.date),
       formatTimeRange(visit.startMin, visit.endMin),
       visit.owner,
@@ -189,12 +187,14 @@ function buildDetailsSheet(workbook, result) {
       visit.locationKey,
       visit.units,
       visit.durationMin,
-      vehicles,
+      formatVehicleList(visit.records),
       (visit.sources || []).join('; '),
       visit.overdue ? 'да' : '',
       visit.overload ? 'да' : '',
       formatUnitTargets(visit.unitsDetail),
     ]);
+    row.getCell(9).alignment = { vertical: 'top', wrapText: true };
+    row.getCell(13).alignment = { vertical: 'top', wrapText: true };
   });
   finalize(sheet);
 }

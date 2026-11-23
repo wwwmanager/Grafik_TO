@@ -59,6 +59,8 @@ describe('preview rows', () => {
     const rows = detailPreviewRows({ visits: [visit] });
     expect(rows[0][8]).toContain('А001ММ77');
     expect(rows[0][8]).toContain('10.06.2026');
+    expect(rows[0][8]).toContain('1.');
+    expect(rows[0][7]).toBe('1. А001ММ77 — МТЗ');
   });
 });
 

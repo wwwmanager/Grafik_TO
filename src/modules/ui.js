@@ -6,6 +6,7 @@ import {
   formatTimeLabel,
   formatTimeRange,
   formatUnitTargets,
+  formatVehicleList,
 } from './format.js';
 import { buildSchedule } from './scheduler.js';
 
@@ -182,9 +183,7 @@ export function detailPreviewRows(result) {
     visit.locationLabel,
     visit.units,
     visit.durationMin,
-    visit.records
-      .map((record) => [record.plate, record.brand].filter(Boolean).join(' '))
-      .join('; '),
+    formatVehicleList(visit.records),
     formatUnitTargets(visit.unitsDetail),
   ]);
 }

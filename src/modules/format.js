@@ -21,17 +21,36 @@ export function formatTimeRange(startMin, endMin) {
   return `с ${label(startMin)} до ${label(endMin)}`;
 }
 
-// GRAFIK-14: "PLATE BRAND — DD.MM.YYYY[, DD.MM.YYYY]; …" for one visit's units.
+// GRAFIK-17: one numbered line per unit, e.g.
+// "1. A123AA (Lada) — целевая дата 15.03.2027". Fits a single Excel cell (wrap on).
 export function formatUnitTargets(unitsDetail) {
   return (unitsDetail || [])
-    .map((unit) => {
-      const label = [unit?.plate, unit?.brand].filter(Boolean).join(' ') || 'ед.';
+    .map((unit, index) => {
+      const plate = String(unit?.plate ?? '').trim();
+      const brand = String(unit?.brand ?? '').trim();
+      const head =
+        plate && brand ? `${plate} (${brand})` : plate || (brand ? `(${brand})` : 'ед.');
       const dates = (unit?.dates || [])
         .map((entry) => formatDate(entry?.date))
         .filter(Boolean);
-      return dates.length > 0 ? `${label} — ${dates.join(', ')}` : label;
+      let dateLabel = '';
+      if (dates.length === 1) dateLabel = ` — целевая дата ${dates[0]}`;
+      else if (dates.length > 1) dateLabel = ` — целевые даты ${dates.join(', ')}`;
+      return `${index + 1}. ${head}${dateLabel}`;
     })
-    .join('; ');
+    .join('\n');
+}
+
+// GRAFIK-17: one numbered line per unit, e.g. "1. A123AA — Lada".
+export function formatVehicleList(records) {
+  return (records || [])
+    .map((record, index) => {
+      const plate = String(record?.plate ?? '').trim();
+      const brand = String(record?.brand ?? '').trim();
+      const label = plate && brand ? `${plate} — ${brand}` : plate || brand || 'ед.';
+      return `${index + 1}. ${label}`;
+    })
+    .join('\n');
 }
 
 export function formatMaybeDate(value) {
