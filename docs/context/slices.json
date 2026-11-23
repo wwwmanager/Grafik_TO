@@ -239,7 +239,27 @@
       "dispatchedBy": "architect",
       "dispatchedAt": "2026-11-23T20:42:47+05:00",
       "updatedAt": "2026-11-23T20:47:49+05:00"
+    },
+    {
+      "id": "GRAFIK-13-UI-POLISH",
+      "title": "UI polish: clean name column, time format \"с X до Y\"",
+      "status": "accepted",
+      "approved": true,
+      "dependsOn": [],
+      "dispatchText": "SLICE=GRAFIK-13-UI-POLISH project=grafik_to root=G:\\_Grafik_TO verify=off (send DONE to architect)\nGoal: two small UI fixes per owner feedback.\n1. Tab \"График ТО\": column \"Наименование\" (or equivalent) must show ONLY the name. Remove any suffix like \"(просроченная)\", \"(Без ТО)\", etc. All extra info belongs on tab \"Детализация\".\n2. Tab \"Детализация\": column \"Время проведения\" (or equivalent) format \"с 9-00 до 10-00\" (Cyrillic \"до\"), not \"9-00 по 10-00\". Apply to all rows.\nFiles: src/modules/exporter.js (sheet 1 & 2 generation), src/modules/ui.js (preview tabs if they mirror exporter), tests for both tabs.\nverify: npm run verify green. Commit, push origin main (Pages redeploy). Confirm Actions run + Pages 200.\nReport: STATUS(done) commit, files, Actions run id, time format example from output. No acks.",
+      "acceptance": null,
+      "verifyCommands": [
+        "npm --prefix G:\\_Grafik_TO run verify"
+      ],
+      "owner": "orch1",
+      "commit": "2997595",
+      "evidence": "G:\\_Grafik_TO\\docs\\context\\evidence\\GRAFIK-13-UI-POLISH.json",
+      "rejections": 0,
+      "retro": "clean name column, time \"с X до Y\", refactor preview rows",
+      "dispatchedBy": "architect",
+      "dispatchedAt": "2026-11-23T20:48:15+05:00",
+      "updatedAt": "2026-11-23T20:50:43+05:00"
     }
   ],
-  "updatedAt": "2026-11-23T20:47:49+05:00"
+  "updatedAt": "2026-11-23T20:50:43+05:00"
 }
