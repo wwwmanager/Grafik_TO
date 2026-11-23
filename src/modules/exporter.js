@@ -129,23 +129,35 @@ function styleSheet(worksheet) {
   });
 }
 
-function autoWidth(worksheet) {
+// GRAFIK-23: derive a width from the header's longest word and the data, so a long
+// wrapping header no longer forces an over-wide column and short data no longer
+// truncates. Per-column minimums/caps keep every sheet readable.
+function autoWidth(worksheet, options = {}) {
+  const mins = options.mins || {};
+  const caps = options.caps || {};
   worksheet.columns.forEach((column, index) => {
-    let max = String(column.header ?? '').length;
+    const words = String(column.header ?? '')
+      .split(/\s+/)
+      .filter(Boolean);
+    let target = Math.max(
+      mins[index] ?? 10,
+      ...words.map((word) => word.length + 2),
+    );
     worksheet.eachRow((row, rowNumber) => {
       if (rowNumber === 1) return;
       const value = row.getCell(index + 1).value;
-      const text = value == null ? '' : String(value);
-      const longest = Math.max(...text.split('\n').map((line) => line.length));
-      if (longest > max) max = longest;
+      if (value == null) return;
+      for (const line of String(value).split('\n')) {
+        target = Math.max(target, Math.ceil(line.length * 1.15) + 1);
+      }
     });
-    column.width = Math.min(Math.max(10, max + 2), 48);
+    column.width = Math.min(target, caps[index] ?? 48);
   });
 }
 
-function finalize(worksheet) {
+function finalize(worksheet, options = {}) {
   styleSheet(worksheet);
-  autoWidth(worksheet);
+  autoWidth(worksheet, options);
   if (worksheet.rowCount > 0) {
     worksheet.views = [{ state: 'frozen', ySplit: 1 }];
   }
@@ -169,7 +181,10 @@ function buildScheduleSheet(workbook, result) {
     noteRow.getCell(1).alignment = { wrapText: true, vertical: 'top' };
     noteRow.getCell(1).font = { italic: true };
   }
-  finalize(sheet);
+  finalize(sheet, {
+    mins: { 0: 7, 1: 24, 2: 14, 3: 14 },
+    caps: { 0: 8, 1: 40, 2: 16, 3: 18 },
+  });
 }
 
 function buildDetailsSheet(workbook, result) {

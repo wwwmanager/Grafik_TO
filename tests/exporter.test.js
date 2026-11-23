@@ -211,8 +211,7 @@ describe('exportScheduleToXlsx', () => {
     expect(unitsCell.alignment?.wrapText).toBe(true);
   });
 
-  it('numbers details rows with the matching schedule visit number (GRAFIK-22)', async () => {
-    const multi = [
+  it('numbers details rows with the matching schedule visit number (GRAFIK-22)', async () => {    const multi = [
       record({ owner: 'ООО «Первый»', inn: '7700000101' }),
       record({
         owner: 'ООО «Второй»',
@@ -246,6 +245,34 @@ describe('exportScheduleToXlsx', () => {
     });
     const staleResult = buildSchedule([stale], SETTINGS, CALENDAR);
     expect(staleResult.excluded[0].reason).toBe('Дата ТО больше выбранной давности ТО');
+  });
+
+  it('fits schedule column widths to content with sensible caps (GRAFIK-23)', async () => {
+    const workbook = await loadWorkbook(await exportScheduleToXlsx(result, SETTINGS));
+    const sheet = workbook.getWorksheet('График ТО');
+    const widths = [1, 2, 3, 4].map((column) => sheet.getColumn(column).width);
+    expect(widths[0]).toBeLessThanOrEqual(8);
+    expect(widths[1]).toBeGreaterThanOrEqual(24);
+    expect(widths[1]).toBeLessThanOrEqual(40);
+    expect(widths[2]).toBeGreaterThanOrEqual(12);
+    expect(widths[3]).toBeGreaterThanOrEqual(12);
+    for (const width of widths) {
+      expect(Number.isFinite(width)).toBe(true);
+      expect(width).toBeLessThanOrEqual(48);
+    }
+  });
+
+  it('caps a very long owner name instead of over-widening the column (GRAFIK-23)', async () => {
+    const longOwner = 'ООО «Очень длинное наименование организации с филиалами и подразделениями»';
+    const longResult = buildSchedule(
+      [record({ owner: longOwner, inn: '7700000200' })],
+      SETTINGS,
+      CALENDAR,
+    );
+    const workbook = await loadWorkbook(await exportScheduleToXlsx(longResult, SETTINGS));
+    const sheet = workbook.getWorksheet('График ТО');
+    expect(sheet.getColumn(2).width).toBeLessThanOrEqual(40);
+    expect(sheet.getColumn(2).width).toBeGreaterThanOrEqual(24);
   });
 
   it('appends the reception note when mode B excludes individuals', async () => {
