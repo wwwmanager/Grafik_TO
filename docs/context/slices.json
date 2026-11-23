@@ -383,10 +383,30 @@
     {
       "id": "GRAFIK-20-UI-OVERHAUL",
       "title": "UI overhaul: collapsing upload, accordion panel, two-column grid",
-      "status": "dispatched",
+      "status": "accepted",
       "approved": true,
       "dependsOn": [],
       "dispatchText": "SLICE=GRAFIK-20-UI-OVERHAUL project=grafik_to root=G:\\_Grafik_TO verify=off (send DONE to architect)\nGoal: Major UI/UX overhaul per review — two-column layout with collapsing upload zone and accordion panel.\nLayout: CSS Grid two columns — left panel (fixed width ~360px, max-h-screen, overflow-y:auto), right area (flex-1).\n1. File upload zone (right area top):\n   - Compact fixed height (~120px), NOT stretched to panel height.\n   - Drag-drop zone + \"Выбрать файл\" button + file name line.\n   - AFTER file loaded: collapse to single compact bar at top of right area: \"УП_Выгрузка на 23.11.2026... — копия.xlsx: 963 строк  [Загрузить другой файл]\".\n   - All remaining right-area space → preview tabs (График ТО, Детализация, Исключенные, Сводка) + sticky bottom \"Скачать Excel\" button.\n2. Left panel — settings with accordion:\n   - Main section (always visible): \"Основные параметры\" — Целевой год, Приёмные дни, Отпуск инспектора (dynamic list from GRAFIK-19), Глубина давности ТО, Окно группировки, Порог физлиц, Зимние месяцы (checkbox grid from GRAFIK-19), Адрес инспекции.\n   - Accordion <details><summary>Дополнительные настройки</summary>: Рабочий день с/по, Учитывать обед, Машин в час (1-100 from GRAFIK-19), Переезд между локациями, мин, Группировать малых владельцев (checkbox), Загрузка зимних месяцев %.\n   - Uniform input widths: all numeric inputs same width (e.g., 80px), text inputs full width.\n   - \"Сформировать график\" button: sticky at bottom of main section, ALWAYS visible without scroll.\n   - Left panel has independent scroll (overflow-y:auto), right area fixed/sticky preview.\n3. Remove any auto-generation on file load — ONLY on \"Сформировать график\" click.\nFiles: index.html (structure), src/styles/main.css (grid, accordion, collapse, checkbox grid), src/modules/ui.js (state, render, event handlers), src/modules/format.js (preview tab data).\nverify: npm run verify green. Commit, push origin main (Pages redeploy). Confirm Actions run + Pages 200.\nReport: STATUS(done) commit, files, Actions run id. No acks.",
+      "acceptance": null,
+      "verifyCommands": [
+        "npm --prefix G:\\_Grafik_TO run verify"
+      ],
+      "owner": "orch1",
+      "commit": "bdd210e",
+      "evidence": "G:\\_Grafik_TO\\docs\\context\\evidence\\GRAFIK-20-UI-OVERHAUL.json",
+      "rejections": 0,
+      "retro": "two-column grid, collapsing upload, accordion panel, sticky generate button",
+      "dispatchedBy": "architect",
+      "dispatchedAt": "2026-11-23T21:34:43+05:00",
+      "updatedAt": "2026-11-23T21:44:10+05:00"
+    },
+    {
+      "id": "GRAFIK-21-MANUAL-UPDATE",
+      "title": "Update manual.md + generate manual.docx to current state",
+      "status": "dispatched",
+      "approved": true,
+      "dependsOn": [],
+      "dispatchText": "SLICE=GRAFIK-21-MANUAL-UPDATE project=grafik_to root=G:\\_Grafik_TO verify=off (send DONE to architect)\nGoal: update user manual (docs/manual.md) to match current application state, and generate docs/manual.docx.\nCurrent manual covers up to GRAFIK-12. Since then these features changed:\n- GRAFIK-13: \"График ТО\" tab shows only name (no \"(просроченная)\" suffix); Details time format \"с 9-00 до 10-00\".\n- GRAFIK-14: New setting \"Группировать малых владельцев (≤N ед.) по последней дате ТО\" (checkbox, default ON). N = \"Порог физлиц, ед. техники\". Details sheet shows \"Единицы и исходные целевые даты\" block.\n- GRAFIK-15: Geo extraction fixed — bare cities (\"Москва\"), attached markers (\"г.Москва\"), region markers (\"обл.\", \"край\", \"АО\", \"респ.\") now recognized.\n- GRAFIK-16: Parser reads address from split columns (region/район/насел.пункт/улица/дом) via header markers.\n- GRAFIK-17: Export readability: \"Гос. знаки / марки\" and \"Единицы и исходные целевые даты\" columns now numbered lines with wrap text. Exclusion reason renamed: \"Дата ТО старше глубины\" -> \"Дата ТО больше выбранной давности ТО\".\n- GRAFIK-18: CRITICAL date logic: future current-year next-TO dates treated as on-time, projected to target year (same month/day; A4 steps +6 months). Not overdue.\n- GRAFIK-19: Settings: multiple vacation periods (+ Add / × Delete); \"Машин в час\" 1-100 (default 12); winter months as 4x3 checkbox grid (Янв...Дек).\n- GRAFIK-20: UI overhaul: two-column layout. Left panel: accordion \"Дополнительные настройки\", uniform input widths, \"Сформировать график\" sticky visible. Right area: compact upload zone (~120px), collapses to single bar after file load, rest = preview tabs + sticky \"Скачать Excel\". No auto-generation.\nUpdate docs/manual.md: rewrite affected sections (settings table, step-by-step, sheets description, exclusion reasons table, FAQ). Keep plain Russian, no jargon, quote UI labels exactly.\nGenerate docs/manual.docx from the .md (use pandoc if available, or npm package docx/markdown-it). Commit both files.\nverify: npm run verify green. Commit, push origin main (Pages redeploy). Confirm Actions run + Pages 200.\nReport: STATUS(done) commit, files, docx generated, Actions run id. No acks.",
       "acceptance": null,
       "verifyCommands": [
         "npm --prefix G:\\_Grafik_TO run verify"
@@ -397,9 +417,9 @@
       "rejections": 0,
       "retro": null,
       "dispatchedBy": "architect",
-      "dispatchedAt": "2026-11-23T21:34:43+05:00",
-      "updatedAt": "2026-11-23T21:34:43+05:00"
+      "dispatchedAt": "2026-11-23T21:41:37+05:00",
+      "updatedAt": "2026-11-23T21:41:37+05:00"
     }
   ],
-  "updatedAt": "2026-11-23T21:41:23+05:00"
+  "updatedAt": "2026-11-23T21:44:10+05:00"
 }
