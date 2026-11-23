@@ -18,7 +18,7 @@ export function formatTimeRange(startMin, endMin) {
     const minute = minutes % 60;
     return `${hour}-${String(minute).padStart(2, '0')}`;
   };
-  return `с ${label(startMin)} по ${label(endMin)}`;
+  return `с ${label(startMin)} до ${label(endMin)}`;
 }
 
 export function formatMaybeDate(value) {

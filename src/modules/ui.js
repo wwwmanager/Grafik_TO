@@ -154,6 +154,32 @@ function showError(root, text) {
   setStatus(root, text);
 }
 
+// Rows for the preview tables. The schedule tab shows only the owner name — all
+// extra state (overdue, «Без ТО», …) belongs to the details tab.
+export function schedulePreviewRows(result) {
+  return (result.visits || []).map((visit, index) => [
+    index + 1,
+    visit.owner,
+    formatDate(visit.date),
+    formatTimeLabel(visit.startMin),
+  ]);
+}
+
+export function detailPreviewRows(result) {
+  return (result.visits || []).map((visit) => [
+    formatDate(visit.date),
+    formatTimeRange(visit.startMin, visit.endMin),
+    visit.owner,
+    visit.inn,
+    visit.locationLabel,
+    visit.units,
+    visit.durationMin,
+    visit.records
+      .map((record) => [record.plate, record.brand].filter(Boolean).join(' '))
+      .join('; '),
+  ]);
+}
+
 function renderResults(root, result) {
   const schedule = root.querySelector('[data-panel="schedule"]');
   const details = root.querySelector('[data-panel="details"]');
@@ -166,12 +192,7 @@ function renderResults(root, result) {
         ? placeholderPanel('Нет визитов для показа.')
         : makeTable(
             ['№', 'Владелец', 'Дата', 'Время'],
-            result.visits.map((visit, index) => [
-              index + 1,
-              visit.overdue ? `${visit.owner} (просроченная)` : visit.owner,
-              formatDate(visit.date),
-              formatTimeLabel(visit.startMin),
-            ]),
+            schedulePreviewRows(result),
           ),
     );
   }
@@ -191,18 +212,7 @@ function renderResults(root, result) {
               'Длительность, мин',
               'Знаки / марки',
             ],
-            result.visits.map((visit) => [
-              formatDate(visit.date),
-              formatTimeRange(visit.startMin, visit.endMin),
-              visit.owner,
-              visit.inn,
-              visit.locationLabel,
-              visit.units,
-              visit.durationMin,
-              visit.records
-                .map((record) => [record.plate, record.brand].filter(Boolean).join(' '))
-                .join('; '),
-            ]),
+            detailPreviewRows(result),
           ),
     );
   }

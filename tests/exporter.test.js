@@ -61,7 +61,7 @@ describe('formatting helpers', () => {
     expect(formatDate(new Date(2026, 5, 10))).toBe('10.06.2026');
     expect(formatTimeLabel(9 * 60)).toBe('с 9-00');
     expect(formatTimeLabel(9 * 60 + 30)).toBe('с 9-30');
-    expect(formatTimeRange(9 * 60, 10 * 60)).toBe('с 9-00 по 10-00');
+    expect(formatTimeRange(9 * 60, 10 * 60)).toBe('с 9-00 до 10-00');
   });
 });
 
@@ -122,6 +122,27 @@ describe('exportScheduleToXlsx', () => {
     expect(labels).toContain('Адрес инспекции');
     expect(labels).toContain('Порог физлиц, ед. техники');
     expect(labels).toContain('Загрузка зимних месяцев, %');
+  });
+
+  it('keeps the schedule name clean and formats details time with «до»', async () => {
+    const overdue = record({
+      owner: 'ООО «Старое»',
+      inn: '42',
+      lastTo: new Date(2023, 5, 1),
+      nextTo: null,
+    });
+    const overdueResult = buildSchedule([overdue], SETTINGS, CALENDAR);
+    const visit = overdueResult.visits.find((entry) => entry.overdue);
+    expect(visit).toBeTruthy();
+    const workbook = await loadWorkbook(await exportScheduleToXlsx(overdueResult, SETTINGS));
+
+    const schedule = workbook.getWorksheet('График ТО');
+    const scheduleName = schedule.getRow(2).getCell(2).value;
+    expect(scheduleName).toBe('ООО «Старое»');
+    expect(String(scheduleName)).not.toContain('просроченная');
+
+    const details = workbook.getWorksheet('Детализация');
+    expect(details.getRow(2).getCell(2).value).toBe('с 9-00 до 10-00');
   });
 
   it('appends the reception note when mode B excludes individuals', async () => {

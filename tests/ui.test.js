@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { defaultSettings, summarizeMessages } from '../src/modules/ui.js';
+import {
+  defaultSettings,
+  detailPreviewRows,
+  schedulePreviewRows,
+  summarizeMessages,
+} from '../src/modules/ui.js';
 
 describe('defaultSettings', () => {
   it('uses the next year and TZ defaults', () => {
@@ -18,6 +23,32 @@ describe('defaultSettings', () => {
     expect(settings.physicalThreshold).toBe(3);
     expect(settings.winterMonths).toEqual([11, 0, 1]);
     expect(settings.winterLoadPercent).toBe(30);
+  });
+});
+
+describe('preview rows', () => {
+  const visit = {
+    owner: 'ООО «Старое»',
+    overdue: true,
+    date: new Date(2026, 5, 10),
+    startMin: 9 * 60,
+    endMin: 10 * 60,
+    inn: '7701000001',
+    locationLabel: '— / москва',
+    units: 1,
+    durationMin: 60,
+    records: [{ plate: 'А001ММ77', brand: 'МТЗ' }],
+  };
+
+  it('schedule preview shows only the owner name (no overdue suffix)', () => {
+    const rows = schedulePreviewRows({ visits: [visit] });
+    expect(rows[0][1]).toBe('ООО «Старое»');
+    expect(String(rows[0][1])).not.toContain('просроченная');
+  });
+
+  it('details preview uses «с ЧЧ-ММ до ЧЧ-ММ»', () => {
+    const rows = detailPreviewRows({ visits: [visit] });
+    expect(rows[0][1]).toBe('с 9-00 до 10-00');
   });
 });
 

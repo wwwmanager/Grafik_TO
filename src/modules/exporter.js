@@ -158,7 +158,7 @@ function buildDetailsSheet(workbook, result) {
   const sheet = workbook.addWorksheet('Детализация');
   sheet.columns = [
     { header: 'Дата', width: 12 },
-    { header: 'Время (с–по)', width: 18 },
+    { header: 'Время (с–до)', width: 18 },
     { header: 'Владелец', width: 30 },
     { header: 'ИНН', width: 14 },
     { header: 'Адрес', width: 30 },
