@@ -44,7 +44,6 @@ describe('exclusionReason', () => {
       /Снято/,
     );
     expect(exclusionReason(record({ flags: { ugon: true } }), SETTINGS)).toBe('Угон');
-    expect(exclusionReason(record({ flags: { bezTo: true } }), SETTINGS)).toBe('Без ТО');
     expect(exclusionReason(record({ flags: { sdanGrz: true } }), SETTINGS)).toBe('Сдан ГРЗ');
     expect(exclusionReason(record({ flags: { vyvezena: true } }), SETTINGS)).toBe(
       'Вывезена за рубеж',
@@ -61,6 +60,38 @@ describe('exclusionReason', () => {
 
   it('keeps a valid record', () => {
     expect(exclusionReason(record(), SETTINGS)).toBeNull();
+  });
+
+  it('treats «Без ТО» = «*» as scheduled, not excluded (D12)', () => {
+    expect(exclusionReason(record({ flags: { bezTo: true } }), SETTINGS)).toBeNull();
+  });
+
+  it('keeps the stronger exclusions above «Без ТО» (D12)', () => {
+    expect(
+      exclusionReason(record({ flags: { bezTo: true, ugon: true } }), SETTINGS),
+    ).toBe('Угон');
+    expect(
+      exclusionReason(record({ flags: { bezTo: true, sdanGrz: true } }), SETTINGS),
+    ).toBe('Сдан ГРЗ');
+    expect(
+      exclusionReason(
+        record({ flags: { bezTo: true }, removalDate: new Date(2025, 0, 1) }),
+        SETTINGS,
+      ),
+    ).toMatch(/Снято/);
+  });
+
+  it('«*» without a date is excluded until depth reaches 5 (D13)', () => {
+    const noDate = record({ flags: { bezTo: true }, lastTo: null });
+    expect(exclusionReason(noDate, { ...SETTINGS, toDepthYears: 3 })).toMatch(/глубина менее 5/);
+    expect(exclusionReason(noDate, { ...SETTINGS, toDepthYears: 4 })).toMatch(/глубина менее 5/);
+    expect(exclusionReason(noDate, { ...SETTINGS, toDepthYears: 5 })).toBeNull();
+    expect(exclusionReason(noDate, { ...SETTINGS, toDepthYears: 6 })).toBeNull();
+  });
+
+  it('«*» with a valid date still honours the depth (D12)', () => {
+    const stale = record({ flags: { bezTo: true }, lastTo: new Date(2022, 5, 1) });
+    expect(exclusionReason(stale, SETTINGS)).toBe('Дата ТО старше глубины');
   });
 });
 
@@ -140,5 +171,27 @@ describe('computeTargetDates', () => {
     expect(anchor.overdue).toBe(true);
     expect(anchor.date.getTime()).toBe(addMonths(new Date(2024, 0, 1), 18).getTime());
     expect(result.dates[1].date.getFullYear()).toBe(2026);
+  });
+
+  it('marks «Без ТО» as overdue even when the computed date is in the target year (D12)', () => {
+    const result = computeTargetDates(
+      record({ flags: { bezTo: true }, lastTo: new Date(2026, 0, 10) }),
+      SETTINGS,
+    );
+    expect(result.overdue).toBe(true);
+    expect(result.dates).toHaveLength(1);
+    expect(result.dates[0].overdue).toBe(true);
+    expect(result.dates[0].source).toMatch(/Без ТО/);
+  });
+
+  it('schedules «*» without a date via a placeholder overdue date (D13)', () => {
+    const result = computeTargetDates(
+      record({ flags: { bezTo: true }, lastTo: null }),
+      SETTINGS,
+    );
+    expect(result.overdue).toBe(true);
+    expect(result.dates).toHaveLength(1);
+    expect(result.dates[0].date.getFullYear()).toBe(2026);
+    expect(result.dates[0].source).toMatch(/нет даты ТО/);
   });
 });

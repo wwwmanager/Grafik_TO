@@ -120,6 +120,8 @@ describe('exportScheduleToXlsx', () => {
     const labels = columnValues(sheet, 1).map((value) => String(value));
     expect(labels).toContain('Приёмные дни недели');
     expect(labels).toContain('Адрес инспекции');
+    expect(labels).toContain('Порог физлиц, ед. техники');
+    expect(labels).toContain('Загрузка зимних месяцев, %');
   });
 
   it('appends the reception note when mode B excludes individuals', async () => {

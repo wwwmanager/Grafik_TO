@@ -52,7 +52,9 @@ for (const owner of owners) {
     row['Группа владельца'] = owner.group;
     row['ИНН'] = owner.inn;
     row['Угон'] = index % 13 === 0 ? 'Да' : '';
-    row['Без ТО'] = index % 17 === 0 ? '1' : '';
+    // D12: «Без ТО» = «*» marks an overdue unit that must be scheduled. Index 17 also
+    // hits an empty «Дата ТО» (index % 6 === 5), covering the D13 no-date case.
+    row['Без ТО'] = index % 17 === 0 ? '*' : '';
     row['Сдан ГРЗ'] = index % 19 === 0 ? 'да' : '';
     row['Вывезена за рубеж'] = index % 29 === 0 ? 'Да' : '';
     row['Дата снятия'] = index % 10 === 0 ? '10.05.2025' : '';

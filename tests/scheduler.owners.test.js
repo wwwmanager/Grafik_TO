@@ -34,12 +34,21 @@ describe('ownerKey', () => {
   it('falls back to the normalized owner name', () => {
     expect(ownerKey(record({ inn: '', owner: ' Пётр  Иванов ' }))).toBe('name:петр иванов');
   });
+
+  it('does not treat a short placeholder ИНН as a real key (GRAFIK-10)', () => {
+    expect(ownerKey(record({ inn: '0', owner: 'Петров Пётр' }))).toBe('name:петров петр');
+    expect(ownerKey(record({ inn: '—', owner: 'Петров Пётр' }))).toBe('name:петров петр');
+    expect(ownerKey(record({ inn: '500100000123', owner: 'Петров Пётр' }))).toBe(
+      'inn:500100000123',
+    );
+  });
 });
 
 describe('isPhysicalOwner', () => {
   it('detects physical owners case-insensitively', () => {
     expect(isPhysicalOwner(record({ ownerGroup: 'Физические лица' }))).toBe(true);
     expect(isPhysicalOwner(record({ ownerGroup: 'физлицо' }))).toBe(true);
+    expect(isPhysicalOwner(record({ ownerGroup: 'ФЛ' }))).toBe(true);
     expect(isPhysicalOwner(record({ ownerGroup: 'Юридические лица' }))).toBe(false);
   });
 });
@@ -86,6 +95,70 @@ describe('applyPhysicalRule', () => {
     const result = applyPhysicalRule(smallPhysical, {});
     expect(result.excluded).toHaveLength(2);
     expect(result.excluded[0].reason).toMatch(/вариант А/);
+  });
+
+  function physical(units, overrides = {}) {
+    return Array.from({ length: units }, (_, index) =>
+      record({
+        owner: 'Петров Пётр',
+        ownerGroup: 'Физические лица',
+        inn: '',
+        plate: `А10${index}ММ77`,
+        ...overrides,
+      }),
+    );
+  }
+
+  it('excludes 2 and 3 units but keeps 4 at the default threshold of 3 (D11)', () => {
+    for (const units of [2, 3]) {
+      const result = applyPhysicalRule(physical(units), { smallPhysicalMode: 'A' });
+      expect(result.kept).toHaveLength(0);
+      expect(result.excluded).toHaveLength(units);
+    }
+    const four = applyPhysicalRule(physical(4), { smallPhysicalMode: 'A' });
+    expect(four.kept).toHaveLength(4);
+    expect(four.excluded).toHaveLength(0);
+  });
+
+  it('honours a configurable threshold (D11)', () => {
+    const two = applyPhysicalRule(physical(2), { physicalThreshold: 2 });
+    expect(two.excluded).toHaveLength(2);
+    const threeAtTwo = applyPhysicalRule(physical(3), { physicalThreshold: 2 });
+    expect(threeAtTwo.kept).toHaveLength(3);
+    const fourAtFive = applyPhysicalRule(physical(4), { physicalThreshold: 5 });
+    expect(fourAtFive.excluded).toHaveLength(4);
+  });
+
+  it('uses the threshold inside the mode B note (D5/D11)', () => {
+    const result = applyPhysicalRule(physical(2), {
+      smallPhysicalMode: 'B',
+      physicalThreshold: 2,
+      acceptingDays: [1],
+      inspectionAddress: 'г. Москва, ул. Инспекции, 1',
+    });
+    expect(result.notes).toHaveLength(1);
+    expect(result.notes[0]).toContain('не более 2 ед.');
+  });
+
+  it('detects an individual even when only some of its rows are marked (D11)', () => {
+    const mixed = [
+      record({ owner: 'Смешанный', ownerGroup: 'Юридические лица', inn: '' }),
+      record({ owner: 'Смешанный', ownerGroup: 'Физические лица', inn: '' }),
+      record({ owner: 'Смешанный', ownerGroup: 'Физические лица', inn: '' }),
+    ];
+    const result = applyPhysicalRule(mixed, { smallPhysicalMode: 'A' });
+    expect(result.kept).toHaveLength(0);
+    expect(result.excluded).toHaveLength(3);
+  });
+
+  it('does not merge distinct individuals that share a placeholder ИНН (GRAFIK-10)', () => {
+    const collision = [
+      ...physical(3, { owner: 'Иванов Иван', inn: '0' }),
+      ...physical(3, { owner: 'Сидоров Иван', inn: '0' }),
+    ];
+    const result = applyPhysicalRule(collision, { smallPhysicalMode: 'A' });
+    expect(result.kept).toHaveLength(0);
+    expect(result.excluded).toHaveLength(6);
   });
 });
 

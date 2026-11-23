@@ -15,6 +15,9 @@ describe('defaultSettings', () => {
     expect(settings.lunch).toEqual({ enabled: true, start: '12:00', end: '13:00' });
     expect(settings.smallPhysicalMode).toBe('A');
     expect(settings.acceptingDays).toEqual([]);
+    expect(settings.physicalThreshold).toBe(3);
+    expect(settings.winterMonths).toEqual([11, 0, 1]);
+    expect(settings.winterLoadPercent).toBe(30);
   });
 });
 

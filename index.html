@@ -53,10 +53,40 @@
             </label>
           </div>
 
+          <label class="field">
+            <span>Порог физлиц, ед. техники</span>
+            <input id="physicalThreshold" type="number" min="0" max="100" value="3" />
+          </label>
+
           <fieldset class="field">
-            <legend>Физлица с ≤ 3 ед. техники</legend>
+            <legend>Физлица с числом единиц не более порога</legend>
             <label><input type="radio" name="smallPhysical" value="A" checked /> А — исключить</label>
             <label><input type="radio" name="smallPhysical" value="B" /> Б — приём в приёмные дни</label>
+          </fieldset>
+
+          <fieldset class="field">
+            <legend>Зимние месяцы и их загрузка</legend>
+            <label class="field">
+              <span>Зимние месяцы (для просроченных и «Без ТО»)</span>
+              <select id="winterMonths" multiple size="6" aria-label="Зимние месяцы">
+                <option value="0" selected>Январь</option>
+                <option value="1" selected>Февраль</option>
+                <option value="2">Март</option>
+                <option value="3">Апрель</option>
+                <option value="4">Май</option>
+                <option value="5">Июнь</option>
+                <option value="6">Июль</option>
+                <option value="7">Август</option>
+                <option value="8">Сентябрь</option>
+                <option value="9">Октябрь</option>
+                <option value="10">Ноябрь</option>
+                <option value="11" selected>Декабрь</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Загрузка зимних месяцев, % (0–100)</span>
+              <input id="winterLoadPercent" type="number" min="0" max="100" value="30" />
+            </label>
           </fieldset>
 
           <label class="field">

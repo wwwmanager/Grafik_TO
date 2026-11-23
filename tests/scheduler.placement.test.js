@@ -151,4 +151,62 @@ describe('buildSchedule placement', () => {
     expect(result.summary.months[5].visits).toBe(1);
     expect(result.summary.months[5].machines).toBe(1);
   });
+
+  it('places a «Без ТО» unit as an overdue visit (D12)', () => {
+    const bez = record({
+      owner: 'ООО «БезТО»',
+      inn: '96',
+      nextTo: null,
+      flags: { bezTo: true },
+    });
+    const result = buildSchedule([bez], SETTINGS, CALENDAR);
+    const visit = result.visits.find((entry) => entry.owner === 'ООО «БезТО»');
+    expect(visit).toBeTruthy();
+    expect(visit.overdue).toBe(true);
+  });
+});
+
+describe('winter weighting (D14)', () => {
+  const OVERDUE = record({
+    owner: 'ООО «Старое»',
+    inn: '99',
+    lastTo: new Date(2023, 5, 1),
+    nextTo: null,
+  });
+
+  it('avoids winter months when the winter load is 0%', () => {
+    const regulars = Array.from({ length: 4 }, (_, index) =>
+      record({ owner: `ООО «Рег${index}»`, inn: `20${index}` }),
+    );
+    const result = buildSchedule(
+      [...regulars, OVERDUE],
+      { ...SETTINGS, winterMonths: [0, 1, 11], winterLoadPercent: 0 },
+      CALENDAR,
+    );
+    const visit = result.visits.find((entry) => entry.overdue);
+    expect(visit).toBeTruthy();
+    expect([0, 1, 11]).not.toContain(visit.date.getMonth());
+  });
+
+  it('uses winter months when the winter load is 100%', () => {
+    const result = buildSchedule(
+      [OVERDUE],
+      { ...SETTINGS, winterMonths: [0, 1, 11], winterLoadPercent: 100 },
+      CALENDAR,
+    );
+    const visit = result.visits.find((entry) => entry.overdue);
+    expect(visit).toBeTruthy();
+    expect([0, 1, 11]).toContain(visit.date.getMonth());
+  });
+
+  it('honours a custom winter month list', () => {
+    const result = buildSchedule(
+      [OVERDUE],
+      { ...SETTINGS, winterMonths: [6, 7], winterLoadPercent: 0 },
+      CALENDAR,
+    );
+    const visit = result.visits.find((entry) => entry.overdue);
+    expect(visit).toBeTruthy();
+    expect([6, 7]).not.toContain(visit.date.getMonth());
+  });
 });

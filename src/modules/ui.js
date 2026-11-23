@@ -27,13 +27,60 @@ export function defaultSettings(now = new Date()) {
     toDepthYears: 3,
     groupWindowDays: 30,
     smallPhysicalMode: 'A',
+    physicalThreshold: 3,
     inspectionAddress: '',
     workStart: '09:00',
     workEnd: '18:00',
     lunch: { enabled: true, start: '12:00', end: '13:00' },
     perHour: 12,
     travelMinutes: 60,
+    winterMonths: [11, 0, 1],
+    winterLoadPercent: 30,
   };
+}
+
+// D11/D14: persist the new fields across reloads (localStorage may be absent in tests).
+const STORAGE_KEY = 'grafik-to-settings-v1';
+
+export function loadPersistedSettings() {
+  try {
+    const storage = globalThis.localStorage;
+    if (!storage) return {};
+    const raw = storage.getItem(STORAGE_KEY);
+    if (!raw) return {};
+    const data = JSON.parse(raw) || {};
+    const result = {};
+    const threshold = Number(data.physicalThreshold);
+    if (Number.isFinite(threshold) && threshold >= 0) result.physicalThreshold = threshold;
+    const percent = Number(data.winterLoadPercent);
+    if (Number.isFinite(percent)) result.winterLoadPercent = Math.min(100, Math.max(0, percent));
+    if (Array.isArray(data.winterMonths)) {
+      const months = data.winterMonths
+        .map((month) => Number(month))
+        .filter((month) => Number.isInteger(month) && month >= 0 && month <= 11);
+      result.winterMonths = [...new Set(months)];
+    }
+    return result;
+  } catch {
+    return {};
+  }
+}
+
+function persistSettings(settings) {
+  try {
+    const storage = globalThis.localStorage;
+    if (!storage) return;
+    storage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        physicalThreshold: settings.physicalThreshold,
+        winterMonths: settings.winterMonths,
+        winterLoadPercent: settings.winterLoadPercent,
+      }),
+    );
+  } catch {
+    // Ignore quota/private-mode errors; persistence is a convenience only.
+  }
 }
 
 export function summarizeMessages(result) {
@@ -204,6 +251,13 @@ function readSettings(root, base) {
   );
   const physical = root.querySelector('input[name="smallPhysical"]:checked');
   const travel = value('travelMinutes');
+  const thresholdRaw = Number(value('physicalThreshold'));
+  const winterSelect = root.getElementById('winterMonths');
+  const winterMonths = winterSelect
+    ? [...winterSelect.selectedOptions].map((option) => Number(option.value))
+    : base.winterMonths;
+  const winterPercentRaw = value('winterLoadPercent');
+  const winterPercent = Number(winterPercentRaw);
   return {
     ...base,
     targetYear: Number(value('targetYear')) || base.targetYear,
@@ -216,6 +270,10 @@ function readSettings(root, base) {
     toDepthYears: Number(value('toDepthYears')) || base.toDepthYears,
     groupWindowDays: Number(value('groupWindowDays')) || base.groupWindowDays,
     smallPhysicalMode: physical ? physical.value : base.smallPhysicalMode,
+    physicalThreshold:
+      Number.isFinite(thresholdRaw) && thresholdRaw >= 0
+        ? Math.floor(thresholdRaw)
+        : base.physicalThreshold,
     inspectionAddress: value('inspectionAddress').trim(),
     workStart: value('workStart') || base.workStart,
     workEnd: value('workEnd') || base.workEnd,
@@ -226,6 +284,11 @@ function readSettings(root, base) {
     },
     perHour: Number(value('perHour')) || base.perHour,
     travelMinutes: travel === '' ? base.travelMinutes : Number(travel),
+    winterMonths,
+    winterLoadPercent:
+      winterPercentRaw === ''
+        ? base.winterLoadPercent
+        : Math.min(100, Math.max(0, Number.isFinite(winterPercent) ? winterPercent : base.winterLoadPercent)),
   };
 }
 
@@ -259,6 +322,7 @@ async function analyze(state, els, root) {
     return;
   }
   const settings = readSettings(root, defaultSettings());
+  persistSettings(settings);
   setStatus(root, 'Загрузка производственного календаря…');
   let calendar = null;
   try {
@@ -305,7 +369,12 @@ async function download(state, els, root) {
 }
 
 export function initUi(root = document) {
-  const state = { records: [], result: null, settings: defaultSettings(), fileName: '' };
+  const state = {
+    records: [],
+    result: null,
+    settings: { ...defaultSettings(), ...loadPersistedSettings() },
+    fileName: '',
+  };
   const els = {
     fileInfo: root.getElementById('fileInfo'),
     fileInput: root.getElementById('fileInput'),
@@ -323,6 +392,18 @@ export function initUi(root = document) {
 
   const targetYear = root.getElementById('targetYear');
   if (targetYear) targetYear.value = String(state.settings.targetYear);
+
+  const thresholdInput = root.getElementById('physicalThreshold');
+  if (thresholdInput) thresholdInput.value = String(state.settings.physicalThreshold);
+  const winterPercentInput = root.getElementById('winterLoadPercent');
+  if (winterPercentInput) winterPercentInput.value = String(state.settings.winterLoadPercent);
+  const winterSelect = root.getElementById('winterMonths');
+  if (winterSelect) {
+    const selected = new Set(state.settings.winterMonths.map(Number));
+    for (const option of winterSelect.options) {
+      option.selected = selected.has(Number(option.value));
+    }
+  }
 
   const syncVacation = () => {
     const enabled = Boolean(els.vacationEnabled?.checked);

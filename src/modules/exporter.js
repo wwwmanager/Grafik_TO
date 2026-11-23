@@ -28,6 +28,31 @@ const MONTHS = [
 
 const WEEKDAYS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 
+const MONTHS_SHORT = [
+  'Янв',
+  'Фев',
+  'Мар',
+  'Апр',
+  'Май',
+  'Июн',
+  'Июл',
+  'Авг',
+  'Сен',
+  'Окт',
+  'Ноя',
+  'Дек',
+];
+
+function winterLabel(settings) {
+  const months = Array.isArray(settings.winterMonths)
+    ? settings.winterMonths
+    : [11, 0, 1];
+  const names = months
+    .map((month) => MONTHS_SHORT[Number(month)])
+    .filter(Boolean);
+  return names.length > 0 ? names.join(', ') : 'нет';
+}
+
 const THIN = { style: 'thin', color: { argb: 'FFB8BEC7' } };
 const BORDER = { top: THIN, left: THIN, bottom: THIN, right: THIN };
 const HEADER_FILL = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEFF2F7' } };
@@ -43,10 +68,17 @@ function describeSettings(settings, year) {
     config.lunch?.enabled === false
       ? 'нет'
       : `${config.lunch?.start || '12:00'}–${config.lunch?.end || '13:00'}`;
+  const threshold =
+    Number.isFinite(Number(config.physicalThreshold)) && Number(config.physicalThreshold) >= 0
+      ? Math.floor(Number(config.physicalThreshold))
+      : 3;
   const physical =
     config.smallPhysicalMode === 'B'
       ? 'вариант Б (примечание, приём в приёмные дни)'
       : 'вариант А (исключить)';
+  const winterPercent = Number.isFinite(Number(config.winterLoadPercent))
+    ? Math.min(100, Math.max(0, Number(config.winterLoadPercent)))
+    : 30;
   return [
     ['Целевой год', year],
     ['Глубина давности ТО, лет', config.toDepthYears ?? 3],
@@ -57,8 +89,11 @@ function describeSettings(settings, year) {
     ['Обед', lunch],
     ['Машин в час на площадке', config.perHour ?? 12],
     ['Переезд между локациями, мин', config.travelMinutes ?? 60],
-    ['Физлица с ≤3 ед. техники', physical],
+    ['Порог физлиц, ед. техники', threshold],
+    [`Физлица с ≤${threshold} ед. техники`, physical],
     ['Адрес инспекции', config.inspectionAddress || '—'],
+    ['Зимние месяцы', winterLabel(config)],
+    ['Загрузка зимних месяцев, %', winterPercent],
   ];
 }
 

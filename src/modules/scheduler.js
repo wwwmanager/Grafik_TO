@@ -27,15 +27,32 @@ export function depthCutoff(settings = {}) {
 
 // Returns the exclusion reason (Russian) for a record, or null when it stays active.
 // Steps follow TZ §6 Step 1 with decision D1 depth (relative to the target year).
+// D12: «Без ТО» = «*» means the inspection is overdue and the unit MUST be scheduled;
+// therefore it is no longer an exclusion reason, and the other exclusions (removal,
+// угон, сдан ГРЗ, вывезена) still win over it.
+// D13: «*» with an empty/invalid «Дата ТО» is treated as older than 5 years — it is
+// scheduled only when the depth is >= 5, otherwise excluded with an explicit reason.
 export function exclusionReason(record, settings = {}) {
   if (record?.removalDate) return 'Снято с учёта (заполнена «Дата снятия»)';
   if (record?.flags?.ugon) return 'Угон';
-  if (record?.flags?.bezTo) return 'Без ТО';
   if (record?.flags?.sdanGrz) return 'Сдан ГРЗ';
   if (record?.flags?.vyvezena) return 'Вывезена за рубеж';
-  if (!(record?.lastTo instanceof Date) || Number.isNaN(record.lastTo.getTime())) {
-    return 'Отсутствует или некорректна «Дата ТО»';
+
+  const depth = Number(settings.toDepthYears) || 3;
+  const hasLastTo =
+    record?.lastTo instanceof Date && !Number.isNaN(record.lastTo.getTime());
+
+  if (record?.flags?.bezTo) {
+    if (!hasLastTo) {
+      return depth >= 5 ? null : '«Без ТО» без даты ТО, глубина менее 5 лет';
+    }
+    if (record.lastTo.getTime() < depthCutoff(settings).getTime()) {
+      return 'Дата ТО старше глубины';
+    }
+    return null;
   }
+
+  if (!hasLastTo) return 'Отсутствует или некорректна «Дата ТО»';
   if (record.lastTo.getTime() < depthCutoff(settings).getTime()) {
     return 'Дата ТО старше глубины';
   }
@@ -63,6 +80,30 @@ export function computeTargetDates(record, settings = {}) {
   const targetStart = new Date(targetYear, 0, 1);
   const targetEnd = new Date(targetYear, 11, 31);
   const a4 = isA4(record);
+  const lastTo = record?.lastTo;
+  const hasLastTo = lastTo instanceof Date && !Number.isNaN(lastTo.getTime());
+
+  // D12: «Без ТО» = «*» is always overdue and scheduled through the least-loaded
+  // month (D14). With a valid «Дата ТО» the computed anchor only seeds the preferred
+  // day; without it (D13) a January anchor is used purely for clustering.
+  if (record?.flags?.bezTo) {
+    const period = a4 ? 6 : 12;
+    const anchor = hasLastTo ? addMonths(lastTo, period) : new Date(targetYear, 0, 1);
+    const dates = [
+      {
+        date: anchor,
+        source: hasLastTo ? '«Без ТО» (просрочено)' : '«Без ТО» (нет даты ТО)',
+        overdue: true,
+      },
+    ];
+    if (a4 && hasLastTo) {
+      const next = addMonths(anchor, 6);
+      if (next.getFullYear() === targetYear) {
+        dates.push({ date: next, source: 'А4 (+6 мес.)', overdue: false });
+      }
+    }
+    return { isA4: a4, dates, overdue: true };
+  }
 
   if (record?.nextTo instanceof Date && !Number.isNaN(record.nextTo.getTime())) {
     const dates = [
@@ -77,8 +118,7 @@ export function computeTargetDates(record, settings = {}) {
     return { isA4: a4, dates, overdue: false };
   }
 
-  const lastTo = record?.lastTo;
-  if (!(lastTo instanceof Date) || Number.isNaN(lastTo.getTime())) {
+  if (!hasLastTo) {
     return { isA4: a4, dates: [], overdue: false };
   }
 
@@ -136,32 +176,47 @@ export function normalizeName(name) {
     .toLowerCase();
 }
 
-// Owner key: digits of ИНН, else the normalized owner name (TZ §6 Step 2).
+// Owner key: a real ИНН (10 or 12 digits), else the normalized owner name.
+// GRAFIK-10 root cause: the old key accepted ANY digits, so placeholder values such
+// as "0" collapsed many unrelated individuals into one group; the inflated count
+// bypassed the physical-person limit and 3-unit individuals stayed in the schedule.
 export function ownerKey(record) {
   const digits = String(record?.inn ?? '').replace(/\D/g, '');
-  if (digits) return `inn:${digits}`;
+  if (digits.length >= 10) return `inn:${digits}`;
   return `name:${normalizeName(record?.owner)}`;
 }
 
+// Recognizes an individual by «Группа владельца»: contains «физ» (физические лица,
+// физ. лицо, …) or the isolated token «ФЛ».
 export function isPhysicalOwner(record) {
-  return /физ/i.test(String(record?.ownerGroup ?? ''));
+  const text = normalizeName(record?.ownerGroup);
+  return /физ/.test(text) || /(^|[^а-яa-z])фл([^а-яa-z]|$)/.test(text);
+}
+
+// D11: configurable limit for individuals, default 3.
+export function physicalThreshold(settings = {}) {
+  const value = Number(settings.physicalThreshold);
+  if (!Number.isFinite(value) || value < 0) return 3;
+  return Math.floor(value);
 }
 
 function physicalNote(settings) {
+  const limit = physicalThreshold(settings);
   const names = (settings.acceptingDays || [])
     .map((day) => WEEKDAY_NAMES[day])
     .filter(Boolean)
     .join(', ');
   const days = names || 'приёмные дни';
   const address = String(settings.inspectionAddress ?? '').trim() || 'инспекции';
-  return `Физические лица, имеющие не более 3 ед. техники, проходят ТО в приёмные дни (${days}) по адресу инспекции: ${address}.`;
+  return `Физические лица, имеющие не более ${limit} ед. техники, проходят ТО в приёмные дни (${days}) по адресу инспекции: ${address}.`;
 }
 
-// D5 / TZ §5.6: individuals with <= 3 active units are handled by mode A (exclude)
-// or mode B (exclude from the table but add the reception note). Owners with more
-// than 3 units always stay in the schedule.
+// D11 / TZ §5.6: individuals with units <= threshold (counted only among the units
+// that passed the filters) are handled by mode A (exclude) or mode B (exclude from
+// the table but add the reception note). Owners above the threshold stay scheduled.
 export function applyPhysicalRule(records, settings = {}) {
   const mode = settings.smallPhysicalMode === 'B' ? 'B' : 'A';
+  const limit = physicalThreshold(settings);
   const groups = new Map();
   for (const record of records || []) {
     const key = ownerKey(record);
@@ -172,17 +227,17 @@ export function applyPhysicalRule(records, settings = {}) {
   const excludedReasons = new Map();
   let noteNeeded = false;
   for (const group of groups.values()) {
-    if (!isPhysicalOwner(group[0]) || group.length > 3) continue;
-    if (mode === 'B') {
-      noteNeeded = true;
-      for (const record of group) {
-        excludedReasons.set(record, 'Физлицо с ≤3 ед. техники — приём в приёмные дни');
-      }
-    } else {
-      for (const record of group) {
-        excludedReasons.set(record, 'Физлицо с ≤3 ед. техники (вариант А)');
-      }
-    }
+    // A single mismatched row must not hide the rule: the owner is physical when
+    // any of the owner's units says so.
+    if (!group.some(isPhysicalOwner)) continue;
+    const units = group.length;
+    if (units > limit) continue;
+    const reason =
+      mode === 'B'
+        ? `Физлицо с ≤${limit} ед. техники — приём в приёмные дни`
+        : `Физлицо с ≤${limit} ед. техники (вариант А)`;
+    if (mode === 'B') noteNeeded = true;
+    for (const record of group) excludedReasons.set(record, reason);
   }
 
   const kept = (records || []).filter((record) => !excludedReasons.has(record));
@@ -412,9 +467,26 @@ function placeRegular(builder, dayStates, settings, calendar, targetStart, targe
   return null;
 }
 
+// D14: least-loaded month selection weights the capacity of winter months by the
+// configured percentage (0 = avoid winter, 100 = treat as a regular month). Choosing
+// the minimum of visits / factor keeps the comparison capacity-aware.
+function winterScore(month, monthLoads, winterMonths, factor) {
+  if (!winterMonths.has(month)) return monthLoads[month].visits;
+  if (factor <= 0) return Number.POSITIVE_INFINITY;
+  return monthLoads[month].visits / factor;
+}
+
 function placeOverdue(builder, dayStates, settings, calendar, targetYear, monthLoads) {
+  const winterMonths = new Set(
+    (settings.winterMonths || [11, 0, 1]).map((month) => Number(month)),
+  );
+  const rawPercent = Number(settings.winterLoadPercent);
+  const percent = Number.isFinite(rawPercent) ? Math.min(100, Math.max(0, rawPercent)) : 30;
+  const factor = percent / 100;
   const order = [...Array(12).keys()].sort(
-    (a, b) => monthLoads[a].visits - monthLoads[b].visits || a - b,
+    (a, b) =>
+      winterScore(a, monthLoads, winterMonths, factor) -
+        winterScore(b, monthLoads, winterMonths, factor) || a - b,
   );
   const anchorDay = builder.cluster.date.getDate();
   for (const month of order) {
@@ -472,7 +544,7 @@ export function buildSchedule(records, settings = {}, calendar = null) {
   const effective = { ...settings, targetYear };
 
   const { active, excluded: filterExcluded } = filterRecords(records, effective);
-  const physical = applyPhysicalRule(active, settings);
+  const physical = applyPhysicalRule(active, effective);
   const excluded = [...filterExcluded, ...physical.excluded];
   const notes = physical.notes;
 
