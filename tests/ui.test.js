@@ -47,21 +47,31 @@ describe('preview rows', () => {
 
   it('schedule preview shows only the owner name (no overdue suffix)', () => {
     const rows = schedulePreviewRows({ visits: [visit] });
+    expect(rows[0][0]).toBe(1);
     expect(rows[0][1]).toBe('ООО «Старое»');
     expect(String(rows[0][1])).not.toContain('просроченная');
   });
 
   it('details preview uses «с ЧЧ-ММ до ЧЧ-ММ»', () => {
     const rows = detailPreviewRows({ visits: [visit] });
-    expect(rows[0][1]).toBe('с 9-00 до 10-00');
+    expect(rows[0][2]).toBe('с 9-00 до 10-00');
+  });
+
+  it('details preview carries the same visit number as the schedule tab (GRAFIK-22)', () => {
+    const schedule = schedulePreviewRows({ visits: [visit, { ...visit, owner: 'Второй' }] });
+    const details = detailPreviewRows({ visits: [visit, { ...visit, owner: 'Второй' }] });
+    expect(schedule.map((row) => row[0])).toEqual([1, 2]);
+    expect(details.map((row) => row[0])).toEqual([1, 2]);
+    expect(details[0][0]).toBe(schedule[0][0]);
+    expect(details[1][0]).toBe(schedule[1][0]);
   });
 
   it('details preview lists each unit with its original target date', () => {
     const rows = detailPreviewRows({ visits: [visit] });
-    expect(rows[0][8]).toContain('А001ММ77');
-    expect(rows[0][8]).toContain('10.06.2026');
-    expect(rows[0][8]).toContain('1.');
-    expect(rows[0][7]).toBe('1. А001ММ77 — МТЗ');
+    expect(rows[0][9]).toContain('А001ММ77');
+    expect(rows[0][9]).toContain('10.06.2026');
+    expect(rows[0][9]).toContain('1.');
+    expect(rows[0][8]).toBe('1. А001ММ77 — МТЗ');
   });
 });
 

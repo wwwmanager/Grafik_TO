@@ -98,8 +98,9 @@ describe('exportScheduleToXlsx', () => {
     const workbook = await loadWorkbook(await exportScheduleToXlsx(result, SETTINGS));
     const sheet = workbook.getWorksheet('Детализация');
     const row = sheet.getRow(2);
-    expect(row.getCell(6).value).toBe('—|москва');
-    expect(String(row.getCell(9).value)).toContain('А001ММ77');
+    expect(row.getCell(1).value).toBe(1);
+    expect(row.getCell(7).value).toBe('—|москва');
+    expect(String(row.getCell(10).value)).toContain('А001ММ77');
   });
 
   it('lists excluded records with reasons', async () => {
@@ -142,7 +143,7 @@ describe('exportScheduleToXlsx', () => {
     expect(String(scheduleName)).not.toContain('просроченная');
 
     const details = workbook.getWorksheet('Детализация');
-    expect(details.getRow(2).getCell(2).value).toBe('с 9-00 до 10-00');
+    expect(details.getRow(2).getCell(3).value).toBe('с 9-00 до 10-00');
   });
 
   it('merges a small owner into one row and lists unit target dates (GRAFIK-14)', async () => {
@@ -169,7 +170,8 @@ describe('exportScheduleToXlsx', () => {
     expect(schedule.getRow(2).getCell(2).value).toBe('ООО «Малый»');
 
     const details = workbook.getWorksheet('Детализация');
-    const unitCell = String(details.getRow(2).getCell(13).value);
+    expect(details.getRow(2).getCell(1).value).toBe(1);
+    const unitCell = String(details.getRow(2).getCell(14).value);
     expect(unitCell).toContain('А201ММ77');
     expect(unitCell).toContain('10.02.2026');
     expect(unitCell).toContain('А202ММ77');
@@ -197,16 +199,42 @@ describe('exportScheduleToXlsx', () => {
     const workbook = await loadWorkbook(await exportScheduleToXlsx(grouped, SETTINGS));
     const details = workbook.getWorksheet('Детализация');
 
-    const vehiclesCell = details.getRow(2).getCell(9);
+    const vehiclesCell = details.getRow(2).getCell(10);
     expect(vehiclesCell.value).toBe('1. А201ММ77 — Lada\n2. А202ММ77 — Kamaz');
     expect(vehiclesCell.alignment?.wrapText).toBe(true);
 
-    const unitsCell = details.getRow(2).getCell(13);
+    const unitsCell = details.getRow(2).getCell(14);
     const unitsText = String(unitsCell.value);
     expect(unitsText).toContain('1. А201ММ77 (Lada) — целевая дата 10.02.2026');
     expect(unitsText).toContain('\n');
     expect(unitsText).toContain('А202ММ77 (Kamaz) — целевая дата 10.10.2026');
     expect(unitsCell.alignment?.wrapText).toBe(true);
+  });
+
+  it('numbers details rows with the matching schedule visit number (GRAFIK-22)', async () => {
+    const multi = [
+      record({ owner: 'ООО «Первый»', inn: '7700000101' }),
+      record({
+        owner: 'ООО «Второй»',
+        inn: '7700000102',
+        plate: 'В002ВВ77',
+        address: 'Московская обл, г. Химки, ул. Мира, 2',
+        nextTo: new Date(2026, 7, 15),
+      }),
+    ];
+    const multiResult = buildSchedule(multi, SETTINGS, CALENDAR);
+    expect(multiResult.visits.length).toBeGreaterThanOrEqual(2);
+
+    const workbook = await loadWorkbook(await exportScheduleToXlsx(multiResult, SETTINGS));
+    const schedule = workbook.getWorksheet('График ТО');
+    const details = workbook.getWorksheet('Детализация');
+    expect(schedule.getRow(1).getCell(1).value).toBe('№ п/п');
+    expect(details.getRow(1).getCell(1).value).toBe('№ п/п');
+    for (let index = 0; index < multiResult.visits.length; index += 1) {
+      const rowNumber = index + 2;
+      expect(schedule.getRow(rowNumber).getCell(1).value).toBe(index + 1);
+      expect(details.getRow(rowNumber).getCell(1).value).toBe(index + 1);
+    }
   });
 
   it('uses the renamed stale-date exclusion reason (GRAFIK-17)', () => {

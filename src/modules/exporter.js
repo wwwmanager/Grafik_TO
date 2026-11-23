@@ -175,6 +175,7 @@ function buildScheduleSheet(workbook, result) {
 function buildDetailsSheet(workbook, result) {
   const sheet = workbook.addWorksheet('Детализация');
   sheet.columns = [
+    { header: '№ п/п', width: 8 },
     { header: 'Дата', width: 12 },
     { header: 'Время (с–до)', width: 18 },
     { header: 'Владелец', width: 30 },
@@ -189,8 +190,9 @@ function buildDetailsSheet(workbook, result) {
     { header: 'Перегруз', width: 10 },
     { header: 'Единицы и исходные целевые даты', width: 48 },
   ];
-  result.visits.forEach((visit) => {
+  result.visits.forEach((visit, index) => {
     const row = sheet.addRow([
+      index + 1,
       formatDate(visit.date),
       formatTimeRange(visit.startMin, visit.endMin),
       visit.owner,
@@ -205,8 +207,8 @@ function buildDetailsSheet(workbook, result) {
       visit.overload ? 'да' : '',
       formatUnitTargets(visit.unitsDetail),
     ]);
-    row.getCell(9).alignment = { vertical: 'top', wrapText: true };
-    row.getCell(13).alignment = { vertical: 'top', wrapText: true };
+    row.getCell(10).alignment = { vertical: 'top', wrapText: true };
+    row.getCell(14).alignment = { vertical: 'top', wrapText: true };
   });
   finalize(sheet);
 }

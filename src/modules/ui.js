@@ -184,7 +184,8 @@ export function schedulePreviewRows(result) {
 }
 
 export function detailPreviewRows(result) {
-  return (result.visits || []).map((visit) => [
+  return (result.visits || []).map((visit, index) => [
+    index + 1,
     formatDate(visit.date),
     formatTimeRange(visit.startMin, visit.endMin),
     visit.owner,
@@ -208,7 +209,7 @@ function renderResults(root, result) {
       result.visits.length === 0
         ? placeholderPanel('Нет визитов для показа.')
         : makeTable(
-            ['№', 'Владелец', 'Дата', 'Время'],
+            ['№ п/п', 'Владелец', 'Дата', 'Время'],
             schedulePreviewRows(result),
           ),
     );
@@ -220,6 +221,7 @@ function renderResults(root, result) {
         ? placeholderPanel('Нет визитов для показа.')
         : makeTable(
             [
+              '№ п/п',
               'Дата',
               'Время',
               'Владелец',
