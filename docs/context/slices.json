@@ -363,7 +363,7 @@
     {
       "id": "GRAFIK-19-SETTINGS-ENHANCE",
       "title": "Multiple vacations, machine/hour 1-100, winter checkboxes",
-      "status": "dispatched",
+      "status": "accepted",
       "approved": true,
       "dependsOn": [],
       "dispatchText": "SLICE=GRAFIK-19-SETTINGS-ENHANCE project=grafik_to root=G:\\_Grafik_TO verify=off (send DONE to architect)\nGoal: Settings enhancements — multiple vacations, machine/hour limit, winter months checkboxes.\n1. Multiple vacation periods:\n   - Replace single \"Отпуск инспектора\" (from/to) with dynamic list.\n   - UI: button \"+ Добавить период отпуска\" adds new from/to row; each row has delete ×.\n   - Store as array of {from, to} in localStorage/settings.\n   - Scheduler: exclude ALL dates falling in ANY vacation period.\n2. Machine/hour field:\n   - Rename label to \"Машин в час\" (remove \"(10–15)\").\n   - Input: type=number, min=1, max=100, default 12.\n   - Remove hard validation 10-15.\n3. Winter months:\n   - Replace <select multiple> with 4x3 grid of checkboxes (Янв, Фев, Мар, Апр, Май, Июн, Июл, Авг, Сен, Окт, Ноя, Дек).\n   - Click toggles; no Ctrl/Shift needed.\n   - Store as array of month numbers (0-11) in settings.\n   - Scheduler uses this array for winter weighting (D14).\nFiles: src/modules/ui.js (settings panel), src/modules/scheduler.js (vacation exclusion, winter months array), index.html (checkbox grid CSS), src/styles/main.css.\nverify: npm run verify green. Commit, push origin main (Pages redeploy). Confirm Actions run + Pages 200.\nReport: STATUS(done) commit, files, Actions run id. No acks.",
@@ -372,13 +372,13 @@
         "npm --prefix G:\\_Grafik_TO run verify"
       ],
       "owner": "orch1",
-      "commit": null,
-      "evidence": null,
+      "commit": "868c228",
+      "evidence": "G:\\_Grafik_TO\\docs\\context\\evidence\\GRAFIK-19-SETTINGS-ENHANCE.json",
       "rejections": 0,
-      "retro": null,
+      "retro": "multiple vacations, machines 1-100, winter checkboxes",
       "dispatchedBy": "architect",
       "dispatchedAt": "2026-11-23T21:34:29+05:00",
-      "updatedAt": "2026-11-23T21:34:29+05:00"
+      "updatedAt": "2026-11-23T21:41:23+05:00"
     },
     {
       "id": "GRAFIK-20-UI-OVERHAUL",
@@ -401,5 +401,5 @@
       "updatedAt": "2026-11-23T21:34:43+05:00"
     }
   ],
-  "updatedAt": "2026-11-23T21:37:58+05:00"
+  "updatedAt": "2026-11-23T21:41:23+05:00"
 }
