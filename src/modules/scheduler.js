@@ -313,8 +313,129 @@ const SETTLEMENT_MARKERS = [
   'рп',
 ];
 
-// D8: recognizes district (``... р-н`` / ``район``) and settlement (marker + name)
-// from a free-form address without any external geocoding. Location key = district|settlement.
+// D8/GRAFIK-15: district and region suffixes are separate so an explicit district
+// (р-н/район) still wins over a region, while a region alone gives a usable key.
+const DISTRICT_MARKERS = ['р-н', 'район'];
+const REGION_MARKERS = ['обл', 'область', 'край', 'ао', 'аобл', 'респ', 'республика', 'округ'];
+
+// Markers that mean "this part is a street/house", never a settlement on its own.
+const STREET_MARKERS = [
+  'ул',
+  'улица',
+  'пр-т',
+  'проспект',
+  'пр',
+  'проезд',
+  'пер',
+  'переулок',
+  'ш',
+  'шоссе',
+  'наб',
+  'набережная',
+  'пл',
+  'площадь',
+  'бул',
+  'бульвар',
+  'туп',
+  'тупик',
+  'мкр',
+  'микрорайон',
+  'кв-л',
+  'квартал',
+  'дор',
+  'дорога',
+];
+const HOUSE_MARKERS = [
+  'д',
+  'дом',
+  'кв',
+  'квартира',
+  'корп',
+  'корпус',
+  'стр',
+  'строение',
+  'оф',
+  'офис',
+  'пом',
+  'помещение',
+];
+
+const WORD_SPLIT = /[^а-яёa-z0-9-]+/u;
+
+function addressTokens(text) {
+  return String(text ?? '')
+    .toLowerCase()
+    .split(WORD_SPLIT)
+    .filter(Boolean);
+}
+
+function hasAnyToken(tokens, list) {
+  return list.some((token) => tokens.includes(token));
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// Removes whole marker words (р-н / район / обл / край / …) and punctuation,
+// returning the cleaned, normalized remainder.
+function stripMarkers(part, markers) {
+  let result = String(part);
+  for (const marker of markers) {
+    result = result.replace(
+      new RegExp(`(^|[^а-яёa-z0-9-])${escapeRegExp(marker)}(?=$|[^а-яёa-z0-9-])`, 'giu'),
+      ' ',
+    );
+  }
+  return normalizeName(result.replace(/[.,]/g, ' '));
+}
+
+// Splits a part like "г.Москва", "г Москва", "с. Рогачёво", "ст-ца Динская".
+// A marker must be followed by a dot, whitespace or end, so "Советская" (street)
+// does not match the single-letter marker "с".
+function splitSettlementMarker(part) {
+  const markers = [...SETTLEMENT_MARKERS].sort((a, b) => b.length - a.length);
+  for (const marker of markers) {
+    const match = part.match(new RegExp(`^${escapeRegExp(marker)}(?:\\.|\\s+|$)`, 'iu'));
+    if (!match) continue;
+    const name = part.slice(match[0].length).replace(/^[.\s]+/, '').trim();
+    if (!name || /^\d/.test(name)) continue;
+    return { marker, name };
+  }
+  return null;
+}
+
+// GRAFIK-15: a bare "Москва" without a marker is a settlement when the part has no
+// region/district/street/house marker, no digits, and starts with a capital letter.
+function looksLikeBareSettlement(part) {
+  const trimmed = String(part ?? '').trim();
+  if (!trimmed) return false;
+  const tokens = addressTokens(trimmed);
+  if (tokens.length === 0) return false;
+  if (hasAnyToken(tokens, REGION_MARKERS)) return false;
+  if (hasAnyToken(tokens, DISTRICT_MARKERS)) return false;
+  if (hasAnyToken(tokens, STREET_MARKERS)) return false;
+  if (hasAnyToken(tokens, HOUSE_MARKERS)) return false;
+  if (/\d/.test(trimmed)) return false;
+  if (!/^[А-ЯЁA-Z]/.test(trimmed)) return false;
+  return trimmed.length <= 60;
+}
+
+function districtFromPart(part) {
+  const tokens = addressTokens(part);
+  if (!hasAnyToken(tokens, DISTRICT_MARKERS)) return '';
+  return stripMarkers(part, DISTRICT_MARKERS);
+}
+
+function regionFromPart(part) {
+  const tokens = addressTokens(part);
+  if (!hasAnyToken(tokens, REGION_MARKERS)) return '';
+  return stripMarkers(part, REGION_MARKERS);
+}
+
+// D8: recognizes district (``... р-н`` / ``район``), region fallback (обл./край/…)
+// and settlement (marker + name, attached marker, or a bare city name) from a
+// free-form address without any external geocoding. Key = district|settlement.
 export function extractLocation(address) {
   const text = String(address ?? '')
     .replace(/\u00a0/g, ' ')
@@ -327,24 +448,36 @@ export function extractLocation(address) {
     .map((part) => part.trim())
     .filter(Boolean);
 
+  // An explicit district wins; a region is only a fallback grouping key.
   let district = '';
   for (const part of parts) {
-    if (/р-н|район/i.test(part)) {
-      district = normalizeName(part.replace(/р-н|район/gi, ''));
+    const value = districtFromPart(part);
+    if (value) {
+      district = value;
       break;
+    }
+  }
+  if (!district) {
+    for (const part of parts) {
+      const value = regionFromPart(part);
+      if (value) {
+        district = value;
+        break;
+      }
     }
   }
 
   let settlement = '';
   for (const part of parts) {
-    const match = part.match(/^(\S+)\s+(.+)$/);
-    if (!match) continue;
-    const marker = match[1].toLowerCase().replace(/\.$/, '');
-    if (!SETTLEMENT_MARKERS.includes(marker)) continue;
-    const name = match[2].trim();
-    if (/^\d/.test(name)) continue;
-    settlement = normalizeName(name);
-    break;
+    const split = splitSettlementMarker(part);
+    if (split) {
+      settlement = normalizeName(split.name);
+      break;
+    }
+    if (looksLikeBareSettlement(part)) {
+      settlement = normalizeName(part);
+      break;
+    }
   }
 
   return {

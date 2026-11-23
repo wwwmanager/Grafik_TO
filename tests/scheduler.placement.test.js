@@ -64,6 +64,49 @@ describe('extractLocation', () => {
   it('falls back for an empty address', () => {
     expect(extractLocation('').key).toBe('—|—');
   });
+
+  it('handles a settlement marker attached without a space (GRAFIK-15)', () => {
+    expect(extractLocation('г.Москва, ул. Тверская, д. 1').settlement).toBe('москва');
+    expect(extractLocation('г.Москва').settlement).toBe('москва');
+  });
+
+  it('recognizes a bare city name without a marker (GRAFIK-15)', () => {
+    expect(extractLocation('Москва, ул. Ленина, д. 1').settlement).toBe('москва');
+    expect(extractLocation('Нижний Новгород, ул. Большая, д. 1').settlement).toBe(
+      'нижний новгород',
+    );
+  });
+
+  it('does not treat a street-only address as a settlement (GRAFIK-15)', () => {
+    expect(extractLocation('ул. Ленина, д. 5').settlement).toBe('');
+  });
+
+  it('uses region markers as the district fallback (GRAFIK-15)', () => {
+    expect(extractLocation('Московская область, г. Одинцово').district).toBe('московская');
+    expect(extractLocation('Краснодарский край, г. Краснодар').district).toBe('краснодарский');
+    expect(extractLocation('Республика Крым, г. Симферополь').district).toBe('крым');
+    expect(extractLocation('Чукотский АО, г. Анадырь').district).toBe('чукотский');
+    expect(extractLocation('Еврейская аобл, г. Биробиджан').district).toBe('еврейская');
+  });
+
+  it('prefers an explicit district over a region (GRAFIK-15)', () => {
+    const location = extractLocation('Московская обл., Одинцовский р-н, г. Одинцово');
+    expect(location.district).toBe('одинцовский');
+    expect(location.settlement).toBe('одинцово');
+    expect(location.key).toBe('одинцовский|одинцово');
+  });
+
+  it('never returns the empty key for real addresses (GRAFIK-15)', () => {
+    for (const address of [
+      'г.Москва',
+      'Москва',
+      'г.Москва, ул. Тверская, д. 1',
+      'Московская область, г. Одинцово',
+      'Краснодарский край, г. Краснодар',
+    ]) {
+      expect(extractLocation(address).key).not.toBe('—|—');
+    }
+  });
 });
 
 describe('visitDurationMinutes', () => {
