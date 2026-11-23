@@ -29,7 +29,7 @@ export function defaultSettings(now = new Date()) {
   return {
     targetYear: now.getFullYear() + 1,
     acceptingDays: [],
-    vacation: { enabled: false, from: null, to: null },
+    vacations: [],
     toDepthYears: 3,
     groupWindowDays: 30,
     smallPhysicalMode: 'A',
@@ -68,6 +68,14 @@ export function loadPersistedSettings() {
         .filter((month) => Number.isInteger(month) && month >= 0 && month <= 11);
       result.winterMonths = [...new Set(months)];
     }
+    if (Array.isArray(data.vacations)) {
+      result.vacations = data.vacations
+        .map((period) => ({
+          from: typeof period?.from === 'string' ? period.from : '',
+          to: typeof period?.to === 'string' ? period.to : '',
+        }))
+        .filter((period) => period.from || period.to);
+    }
     return result;
   } catch {
     return {};
@@ -85,6 +93,7 @@ function persistSettings(settings) {
         groupSmallOwners: settings.groupSmallOwners,
         winterMonths: settings.winterMonths,
         winterLoadPercent: settings.winterLoadPercent,
+        vacations: settings.vacations,
       }),
     );
   } catch {
@@ -271,21 +280,23 @@ function readSettings(root, base) {
   const physical = root.querySelector('input[name="smallPhysical"]:checked');
   const travel = value('travelMinutes');
   const thresholdRaw = Number(value('physicalThreshold'));
-  const winterSelect = root.getElementById('winterMonths');
-  const winterMonths = winterSelect
-    ? [...winterSelect.selectedOptions].map((option) => Number(option.value))
-    : base.winterMonths;
+  const winterMonths = [...root.querySelectorAll('input[name="winterMonth"]:checked')].map(
+    (input) => Number(input.value),
+  );
+  const vacations = [...root.querySelectorAll('#vacationList .vacation-row')]
+    .map((row) => ({
+      from: row.querySelector('input[data-role="vacation-from"]')?.value || '',
+      to: row.querySelector('input[data-role="vacation-to"]')?.value || '',
+    }))
+    .filter((period) => period.from || period.to);
   const winterPercentRaw = value('winterLoadPercent');
   const winterPercent = Number(winterPercentRaw);
+  const perHourRaw = Number(value('perHour'));
   return {
     ...base,
     targetYear: Number(value('targetYear')) || base.targetYear,
     acceptingDays,
-    vacation: {
-      enabled: checked('vacationEnabled'),
-      from: value('vacationFrom') || null,
-      to: value('vacationTo') || null,
-    },
+    vacations,
     toDepthYears: Number(value('toDepthYears')) || base.toDepthYears,
     groupWindowDays: Number(value('groupWindowDays')) || base.groupWindowDays,
     smallPhysicalMode: physical ? physical.value : base.smallPhysicalMode,
@@ -304,7 +315,10 @@ function readSettings(root, base) {
       start: value('lunchStart') || base.lunch.start,
       end: value('lunchEnd') || base.lunch.end,
     },
-    perHour: Number(value('perHour')) || base.perHour,
+    perHour:
+      Number.isFinite(perHourRaw) && perHourRaw > 0
+        ? Math.min(100, Math.max(1, Math.round(perHourRaw)))
+        : base.perHour,
     travelMinutes: travel === '' ? base.travelMinutes : Number(travel),
     winterMonths,
     winterLoadPercent:
@@ -391,6 +405,28 @@ async function download(state, els, root) {
   }
 }
 
+function addVacationRow(container, period = {}) {
+  if (!container) return;
+  const row = element('div', 'vacation-row');
+  const from = document.createElement('input');
+  from.type = 'date';
+  from.dataset.role = 'vacation-from';
+  from.setAttribute('aria-label', 'Отпуск с');
+  from.value = period.from || '';
+  const dash = element('span', '', '—');
+  const to = document.createElement('input');
+  to.type = 'date';
+  to.dataset.role = 'vacation-to';
+  to.setAttribute('aria-label', 'Отпуск по');
+  to.value = period.to || '';
+  const remove = element('button', 'button vacation-remove', '×');
+  remove.type = 'button';
+  remove.setAttribute('aria-label', 'Удалить период отпуска');
+  remove.addEventListener('click', () => row.remove());
+  row.append(from, dash, to, remove);
+  container.append(row);
+}
+
 export function initUi(root = document) {
   const state = {
     records: [],
@@ -405,9 +441,8 @@ export function initUi(root = document) {
     analyzeButton: root.getElementById('analyzeButton'),
     downloadButton: root.getElementById('downloadButton'),
     dropZone: root.getElementById('drop-zone'),
-    vacationEnabled: root.getElementById('vacationEnabled'),
-    vacationFrom: root.getElementById('vacationFrom'),
-    vacationTo: root.getElementById('vacationTo'),
+    vacationList: root.getElementById('vacationList'),
+    addVacationButton: root.getElementById('addVacationButton'),
     lunchEnabled: root.getElementById('lunchEnabled'),
     lunchStart: root.getElementById('lunchStart'),
     lunchEnd: root.getElementById('lunchEnd'),
@@ -422,21 +457,18 @@ export function initUi(root = document) {
   if (groupSmallInput) groupSmallInput.checked = state.settings.groupSmallOwners !== false;
   const winterPercentInput = root.getElementById('winterLoadPercent');
   if (winterPercentInput) winterPercentInput.value = String(state.settings.winterLoadPercent);
-  const winterSelect = root.getElementById('winterMonths');
-  if (winterSelect) {
+  const winterCheckboxes = root.querySelectorAll('input[name="winterMonth"]');
+  if (winterCheckboxes.length > 0) {
     const selected = new Set(state.settings.winterMonths.map(Number));
-    for (const option of winterSelect.options) {
-      option.selected = selected.has(Number(option.value));
+    for (const checkbox of winterCheckboxes) {
+      checkbox.checked = selected.has(Number(checkbox.value));
     }
   }
 
-  const syncVacation = () => {
-    const enabled = Boolean(els.vacationEnabled?.checked);
-    if (els.vacationFrom) els.vacationFrom.disabled = !enabled;
-    if (els.vacationTo) els.vacationTo.disabled = !enabled;
-  };
-  els.vacationEnabled?.addEventListener('change', syncVacation);
-  syncVacation();
+  const vacations = Array.isArray(state.settings.vacations) ? state.settings.vacations : [];
+  if (vacations.length === 0) addVacationRow(els.vacationList);
+  else for (const period of vacations) addVacationRow(els.vacationList, period);
+  els.addVacationButton?.addEventListener('click', () => addVacationRow(els.vacationList));
 
   const syncLunch = () => {
     const enabled = Boolean(els.lunchEnabled?.checked);

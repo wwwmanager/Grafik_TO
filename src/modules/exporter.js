@@ -59,13 +59,25 @@ const THIN = { style: 'thin', color: { argb: 'FFB8BEC7' } };
 const BORDER = { top: THIN, left: THIN, bottom: THIN, right: THIN };
 const HEADER_FILL = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEFF2F7' } };
 
+function describeVacations(config) {
+  const periods = [];
+  if (Array.isArray(config.vacations)) {
+    for (const period of config.vacations) {
+      if (!period?.from && !period?.to) continue;
+      periods.push(`${formatMaybeDate(period.from)} — ${formatMaybeDate(period.to)}`);
+    }
+  }
+  if (periods.length === 0 && config.vacation?.enabled) {
+    periods.push(`${formatMaybeDate(config.vacation.from)} — ${formatMaybeDate(config.vacation.to)}`);
+  }
+  return periods.length > 0 ? periods.join('; ') : 'нет';
+}
+
 function describeSettings(settings, year) {
   const config = settings || {};
   const accepting =
     (config.acceptingDays || []).map((day) => WEEKDAYS[day]).filter(Boolean).join(', ') || '—';
-  const vacation = config.vacation?.enabled
-    ? `${formatMaybeDate(config.vacation.from)} — ${formatMaybeDate(config.vacation.to)}`
-    : 'нет';
+  const vacation = describeVacations(config);
   const lunch =
     config.lunch?.enabled === false
       ? 'нет'

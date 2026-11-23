@@ -46,26 +46,41 @@ function toDate(value) {
   return null;
 }
 
-function inVacation(date, vacation) {
-  if (!vacation || !vacation.enabled) return false;
-  const from = toDate(vacation.from);
-  const to = toDate(vacation.to);
+function inRange(time, from, to) {
   if (!from && !to) return false;
-  const time = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
   if (from && time < from.getTime()) return false;
   if (to && time > to.getTime()) return false;
   return true;
 }
 
+function inVacation(date, vacation) {
+  if (!vacation || !vacation.enabled) return false;
+  const from = toDate(vacation.from);
+  const to = toDate(vacation.to);
+  return inRange(new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime(), from, to);
+}
+
+// GRAFIK-19: multiple vacation periods. Settings carry a `vacations` array of
+// { from, to }; the legacy single `vacation` object is still honoured.
+function inAnyVacation(date, settings = {}) {
+  const time = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  const periods = Array.isArray(settings.vacations) ? settings.vacations : [];
+  for (const period of periods) {
+    if (period?.enabled === false) continue;
+    if (inRange(time, toDate(period?.from), toDate(period?.to))) return true;
+  }
+  return inVacation(date, settings.vacation);
+}
+
 // A date is a field-visit working day when it is not a production-calendar day
-// off, not an inspection "accepting" weekday, and not inside the inspector's vacation.
+// off, not an inspection "accepting" weekday, and not inside any inspector vacation.
 export function isWorkingDay(date, settings = {}, calendar = null) {
   const off =
     calendar && Array.isArray(calendar.days) ? calendar.days[getDayOfYear(date)] === 1 : false;
   if (off) return false;
   const accepting = Array.isArray(settings.acceptingDays) ? settings.acceptingDays : [];
   if (accepting.includes(date.getDay())) return false;
-  if (inVacation(date, settings.vacation)) return false;
+  if (inAnyVacation(date, settings)) return false;
   return true;
 }
 

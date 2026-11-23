@@ -78,6 +78,18 @@ describe('isWorkingDay', () => {
     expect(isWorkingDay(new Date(2026, 0, 12), settings, workingCalendar)).toBe(true);
   });
 
+  it('rejects dates inside ANY of several vacation periods (GRAFIK-19)', () => {
+    const settings = {
+      vacations: [
+        { from: '2026-01-05', to: '2026-01-09' },
+        { from: '2026-06-01', to: '2026-06-05' },
+      ],
+    };
+    expect(isWorkingDay(new Date(2026, 0, 7), settings, workingCalendar)).toBe(false);
+    expect(isWorkingDay(new Date(2026, 5, 3), settings, workingCalendar)).toBe(false);
+    expect(isWorkingDay(new Date(2026, 2, 3), settings, workingCalendar)).toBe(true);
+  });
+
   it('allows a regular working day', () => {
     expect(isWorkingDay(new Date(2026, 0, 7), {}, workingCalendar)).toBe(true);
   });

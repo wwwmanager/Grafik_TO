@@ -34,12 +34,11 @@
           </fieldset>
 
           <div class="field">
-            <label><input id="vacationEnabled" type="checkbox" /> Отпуск инспектора</label>
-            <div class="field-row">
-              <input id="vacationFrom" type="date" aria-label="Отпуск с" disabled />
-              <span>—</span>
-              <input id="vacationTo" type="date" aria-label="Отпуск по" disabled />
-            </div>
+            <span class="field-label">Отпуск инспектора</span>
+            <div id="vacationList" class="vacation-list"></div>
+            <button type="button" id="addVacationButton" class="button button-small">
+              + Добавить период отпуска
+            </button>
           </div>
 
           <div class="field-row">
@@ -76,23 +75,23 @@
 
           <fieldset class="field">
             <legend>Зимние месяцы и их загрузка</legend>
-            <label class="field">
+            <div class="field">
               <span>Зимние месяцы (для просроченных и «Без ТО»)</span>
-              <select id="winterMonths" multiple size="6" aria-label="Зимние месяцы">
-                <option value="0" selected>Январь</option>
-                <option value="1" selected>Февраль</option>
-                <option value="2">Март</option>
-                <option value="3">Апрель</option>
-                <option value="4">Май</option>
-                <option value="5">Июнь</option>
-                <option value="6">Июль</option>
-                <option value="7">Август</option>
-                <option value="8">Сентябрь</option>
-                <option value="9">Октябрь</option>
-                <option value="10">Ноябрь</option>
-                <option value="11" selected>Декабрь</option>
-              </select>
-            </label>
+              <div id="winterMonths" class="month-grid" role="group" aria-label="Зимние месяцы">
+                <label class="month-cell"><input type="checkbox" name="winterMonth" value="0" checked /> Янв</label>
+                <label class="month-cell"><input type="checkbox" name="winterMonth" value="1" checked /> Фев</label>
+                <label class="month-cell"><input type="checkbox" name="winterMonth" value="2" /> Мар</label>
+                <label class="month-cell"><input type="checkbox" name="winterMonth" value="3" /> Апр</label>
+                <label class="month-cell"><input type="checkbox" name="winterMonth" value="4" /> Май</label>
+                <label class="month-cell"><input type="checkbox" name="winterMonth" value="5" /> Июн</label>
+                <label class="month-cell"><input type="checkbox" name="winterMonth" value="6" /> Июл</label>
+                <label class="month-cell"><input type="checkbox" name="winterMonth" value="7" /> Авг</label>
+                <label class="month-cell"><input type="checkbox" name="winterMonth" value="8" /> Сен</label>
+                <label class="month-cell"><input type="checkbox" name="winterMonth" value="9" /> Окт</label>
+                <label class="month-cell"><input type="checkbox" name="winterMonth" value="10" /> Ноя</label>
+                <label class="month-cell"><input type="checkbox" name="winterMonth" value="11" checked /> Дек</label>
+              </div>
+            </div>
             <label class="field">
               <span>Загрузка зимних месяцев, % (0–100)</span>
               <input id="winterLoadPercent" type="number" min="0" max="100" value="30" />
@@ -126,8 +125,8 @@
 
           <div class="field-row">
             <label class="field">
-              <span>Машин в час (10–15)</span>
-              <input id="perHour" type="number" min="10" max="15" value="12" />
+              <span>Машин в час</span>
+              <input id="perHour" type="number" min="1" max="100" value="12" />
             </label>
             <label class="field">
               <span>Переезд между локациями, мин</span>

@@ -191,6 +191,65 @@ body {
   flex-wrap: wrap;
 }
 
+.field-label {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* GRAFIK-19: dynamic vacation periods — one from/to row per period. */
+.vacation-list {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.vacation-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.vacation-row input[type='date'] {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.vacation-remove {
+  flex: 0 0 auto;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  font-size: var(--text-md);
+  line-height: 1;
+}
+
+/* GRAFIK-19: winter months as a 4x3 toggle grid (no Ctrl/Shift needed). */
+.month-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-1);
+}
+
+.month-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.month-cell:has(input:checked) {
+  border-color: var(--color-accent);
+  background: var(--color-accent-weak);
+}
+
+.button-small {
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-sm);
+}
+
 .settings-form input[type='number'],
 .settings-form input[type='text'],
 .settings-form input[type='time'],
