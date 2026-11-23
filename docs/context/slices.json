@@ -319,7 +319,27 @@
       "dispatchedBy": "architect",
       "dispatchedAt": "2026-11-23T21:05:51+05:00",
       "updatedAt": "2026-11-23T21:09:19+05:00"
+    },
+    {
+      "id": "GRAFIK-17-EXPORT-READABILITY",
+      "title": "Export readability: structured lines in two columns, rename exclusion reason",
+      "status": "accepted",
+      "approved": true,
+      "dependsOn": [],
+      "dispatchText": "SLICE=GRAFIK-17-EXPORT-READABILITY project=grafik_to root=G:\\_Grafik_TO verify=off (send DONE to architect)\nGoal: improve readability of two export columns and rename one exclusion reason.\n1. Sheet \"График ТО\", column \"Гос. знаки / марки\": currently semicolon list \"A123AA Lada; B456BB Kamaz\". Change to one line per unit with bullet/number: \"1. A123AA — Lada\\n2. B456BB — Kamaz\". Keep within single Excel cell (wrap text on).\n2. Sheet \"Детализация\", column \"Единицы и исходные целевые даты\": currently semicolon list. Change to structured lines: \"1. A123AA (Lada) — целевая дата 15.03.2027\\n2. B456BB (Kamaz) — целевая дата 22.04.2027\". Wrap text on.\n3. Exclusion reason rename: \"Дата ТО старше глубины\" -> \"Дата ТО больше выбранной давности ТО\" everywhere (scheduler, exporter, tests, UI preview).\nFiles: src/modules/exporter.js (two sheet generators), src/modules/scheduler.js (reason string), src/modules/ui.js (preview tabs), tests/exporter.test.js, tests/scheduler.*.test.js.\nverify: npm run verify green. Commit, push origin main (Pages redeploy). Confirm Actions run + Pages 200.\nReport: STATUS(done) commit, files, example cell content from exporter, Actions run id. No acks.",
+      "acceptance": null,
+      "verifyCommands": [
+        "npm --prefix G:\\_Grafik_TO run verify"
+      ],
+      "owner": "orch1",
+      "commit": "5b18210",
+      "evidence": "G:\\_Grafik_TO\\docs\\context\\evidence\\GRAFIK-17-EXPORT-READABILITY.json",
+      "rejections": 0,
+      "retro": "structured lines in export cells, exclusion reason renamed",
+      "dispatchedBy": "architect",
+      "dispatchedAt": "2026-11-23T21:15:15+05:00",
+      "updatedAt": "2026-11-23T21:18:05+05:00"
     }
   ],
-  "updatedAt": "2026-11-23T21:09:19+05:00"
+  "updatedAt": "2026-11-23T21:18:05+05:00"
 }
