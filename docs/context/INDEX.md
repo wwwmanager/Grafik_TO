@@ -7,41 +7,51 @@
 **Owner:** L0 direct (no separate L1)
 
 ## Purpose
-[Тут описать назначение проекта: что делает, для чего нужен]
+Браузерное статическое веб-приложение для формирования годового графика технического осмотра
+самоходной техники по выгрузке из реестра (Excel). Обработка только на клиенте, без утечки данных.
 
 ## Tech Stack
-- C++17, CMake 3.20+
-- Qt 5.15 (Widgets, PrintSupport, Svg)
-- MinGW (Windows 7 SP1+ target)
-- Inno Setup 6.x for installer
+- Vite + Vanilla JS (ES-модули), собирается в статику `dist/` для GitHub Pages
+- Чистый CSS с дизайн-токенами (`src/styles/tokens.css`)
+- SheetJS (`xlsx`, тарбол с cdn.sheetjs.com) — чтение `.xlsx`/`.xls`
+- ExcelJS — экспорт оформленного `.xlsx`
+- Тесты: Vitest; линт: ESLint (flat config); форматирование: Prettier
 
 ## Repository Layout
 ```
 G:\_Grafik_TO\
-├── CMakeLists.txt
-├── src/           # .cpp
-├── include/       # .hpp
-├── resources/     # .qrc, icons, themes, fonts
-├── tests/         # unit/integration tests
-├── scripts/       # build/install scripts
+├── index.html
+├── package.json
+├── vite.config.js
+├── eslint.config.js
+├── src/
+│   ├── main.js
+│   ├── styles/        # tokens.css, main.css
+│   └── modules/       # parser, calendarService, scheduler, exporter, ui
+├── public/calendar/   # fallback production-calendar JSON (later slice)
+├── tests/             # Vitest
+├── .github/workflows/ # deploy.yml (GitHub Pages)
 └── docs/
-    ├── context/   # this INDEX.md + slice specs
-    └── adr/       # architecture decisions
+    ├── context/       # this INDEX.md + slices.json
+    └── spec/TZ.md     # authoritative spec
+
+## Commands
+```powershell
+npm install
+npm run dev
+npm run build
+npm run test
+npm run lint
+npm run verify   # lint + test + build
 ```
 
-## Build
-```powershell
-cmake -B build -DCMAKE_BUILD_TYPE=Release -G "MinGW Makefiles"
-cmake --build build --config Release --target grafik_to
-ctest --test-dir build --output-on-failure
-```
+## Privacy
+Обработка Excel — строго в браузере. Единственный сетевой запрос — `https://isdayoff.ru`
+(производственный календарь), закреплён в CSP `index.html`.
 
 ## Active Work
-- **Status:** Initializing project structure
-- **Next:** Define first feature slice, write spec in `docs/context/slices/`
-
-## Key Decisions (ADR)
-[Ссылки на ADR файлы в docs/adr/ по мере появления]
+- **Status:** каркас (scaffold) создан
+- **Next:** парсер Excel, календарь, планировщик (по `docs/spec/TZ.md`)
 
 ## Registry
 Machine-local registry: `~/.architect-os/registry/grafik_to.json`

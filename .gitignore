@@ -1,22 +1,8 @@
-# Build
-build*/
-out/
+node_modules/
 dist/
-*.user
-*.pro.user
-
-# IDE
-.vs/
-.idea/
-*.vcxproj*
-*.sln
-
-# Qt
-*.qm
-moc_*.cpp
-ui_*.h
-qrc_*.cpp
-
-# OS
+coverage/
+.vite/
+*.log
+.DS_Store
 Thumbs.db
 Desktop.ini

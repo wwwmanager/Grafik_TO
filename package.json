@@ -1,0 +1,28 @@
+{
+  "name": "grafik-to",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Генератор годового графика технического осмотра — статическое браузерное веб-приложение",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "verify": "npm run lint && npm run test && npm run build"
+  },
+  "dependencies": {
+    "exceljs": "^4.4.0",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.15.0",
+    "globals": "^17.14.0",
+    "prettier": "^3.10.1",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.1"
+  }
+}
