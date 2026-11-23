@@ -283,7 +283,7 @@
     {
       "id": "GRAFIK-15-GEO-FIX",
       "title": "Geo fix: bare cities, attached markers, region markers",
-      "status": "dispatched",
+      "status": "accepted",
       "approved": true,
       "dependsOn": [],
       "dispatchText": "SLICE=GRAFIK-15-GEO-FIX project=grafik_to root=G:\\_Grafik_TO verify=off (send DONE to architect)\nGoal: fix geo extraction so \"— / —\" stops appearing for real export addresses.\nRoot causes (from test):\n1. \"г.Москва\" (no space) — regex requires space after marker.\n2. Bare city names \"Москва\" — no marker, not recognized.\n3. Region markers missing: \"обл.\", \"область\", \"край\", \"АО\", \"респ.\", \"округ\" — district not recognized.\nFix in src/modules/scheduler.js extractLocation():\n- Handle marker attached to name: if part starts with marker+name without space (e.g., \"г.Москва\"), split after marker.\n- Heuristic for bare settlement: if first part has no marker but looks like a city name (capitalized word, not a street type), treat as settlement.\n- Add region markers to district detection: \"обл.\", \"область\", \"край\", \"АО\", \"респ.\", \"республика\", \"округ\", \"аобл\".\n- Keep backward compatibility; all existing tests pass.\nUpdate: SETTLEMENT_MARKERS, DISTRICT_MARKERS arrays; extractLocation logic; unit tests for all cases above + edge cases.\nverify: npm run verify green. Commit, push origin main (Pages redeploy). Confirm Actions run + Pages 200.\nReport: STATUS(done) commit, files, test cases added, Actions run id. No acks.",
@@ -292,14 +292,14 @@
         "npm --prefix G:\\_Grafik_TO run verify"
       ],
       "owner": "orch1",
-      "commit": null,
-      "evidence": null,
+      "commit": "98af9b3",
+      "evidence": "G:\\_Grafik_TO\\docs\\context\\evidence\\GRAFIK-15-GEO-FIX.json",
       "rejections": 0,
-      "retro": null,
+      "retro": "bare cities, attached markers, region fallback district",
       "dispatchedBy": "architect",
       "dispatchedAt": "2026-11-23T21:01:55+05:00",
-      "updatedAt": "2026-11-23T21:01:55+05:00"
+      "updatedAt": "2026-11-23T21:05:37+05:00"
     }
   ],
-  "updatedAt": "2026-11-23T21:02:46+05:00"
+  "updatedAt": "2026-11-23T21:05:37+05:00"
 }
