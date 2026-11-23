@@ -163,7 +163,7 @@
     {
       "id": "GRAFIK-09-DEPLOY",
       "title": "e2e pipeline test + GitHub repo + Pages + CORS check",
-      "status": "dispatched",
+      "status": "accepted",
       "approved": true,
       "dependsOn": [],
       "dispatchText": "SLICE GRAFIK-09-DEPLOY (e2e pipeline test + GitHub repo + Pages + CORS check). Spec: G:\\_Grafik_TO\\docs\\spec\\plan.md section GRAFIK-09 + TZ.md + decisions.md (decisions win). Verify: npm --prefix G:\\_Grafik_TO run verify",
@@ -172,14 +172,14 @@
         "npm --prefix G:\\_Grafik_TO run verify"
       ],
       "owner": "orch1",
-      "commit": null,
-      "evidence": null,
+      "commit": "52222ad",
+      "evidence": "G:\\_Grafik_TO\\docs\\context\\evidence\\GRAFIK-09-DEPLOY.json",
       "rejections": 0,
-      "retro": null,
+      "retro": "batch run by orch1 directly (L3 cannot write G:)",
       "dispatchedBy": "orch1",
       "dispatchedAt": "2026-11-23T19:32:10+05:00",
-      "updatedAt": "2026-11-23T19:32:10+05:00"
+      "updatedAt": "2026-11-23T19:52:59+05:00"
     }
   ],
-  "updatedAt": "2026-11-23T19:52:52+05:00"
+  "updatedAt": "2026-11-23T19:52:59+05:00"
 }
