@@ -521,6 +521,16 @@ function makeVisit(placed, builder, overdue) {
     durationMin: builder.duration,
     records: builder.cluster.records,
     sources: [...new Set(builder.cluster.items.map((item) => item.source))],
+    // Per-unit original target dates (GRAFIK-14): lets the details sheet show each
+    // unit's own planned date even when the owner is merged into one visit.
+    unitsDetail: builder.cluster.records.map((record) => {
+      const recordItems = builder.cluster.items.filter((item) => item.record === record);
+      return {
+        plate: record.plate || '',
+        brand: record.brand || '',
+        dates: recordItems.map((item) => ({ date: item.date, source: item.source })),
+      };
+    }),
     isA4: builder.cluster.items.some((item) => item.isA4),
   };
 }
@@ -563,14 +573,67 @@ export function buildSchedule(records, settings = {}, calendar = null) {
     }
   }
 
-  const regularBuilders = clusterTargets(
-    items.filter((item) => !item.overdue),
-    settings,
-  ).map((cluster) => makeBuilder(cluster, settings));
-  const overdueBuilders = clusterTargets(
-    items.filter((item) => item.overdue),
-    settings,
-  ).map((cluster) => makeBuilder(cluster, settings));
+  // GRAFIK-14: group every small owner (physical or legal, post-filter units <= the
+  // D11 limit) into ONE visit on the latest target date of its units. Off (or an
+  // owner above the limit) keeps the per-unit behaviour clustered by the window.
+  const groupSmall = settings.groupSmallOwners !== false;
+  const limit = physicalThreshold(effective);
+  const keptByOwner = new Map();
+  for (const record of physical.kept) {
+    const key = ownerKey(record);
+    if (!keptByOwner.has(key)) keptByOwner.set(key, []);
+    keptByOwner.get(key).push(record);
+  }
+
+  const itemsByOwner = new Map();
+  for (const item of items) {
+    if (!itemsByOwner.has(item.ownerKey)) itemsByOwner.set(item.ownerKey, []);
+    itemsByOwner.get(item.ownerKey).push(item);
+  }
+
+  const groupedBuilders = [];
+  const standaloneItems = [];
+  for (const [key, ownerItems] of itemsByOwner) {
+    const ownerUnits = keptByOwner.get(key)?.length ?? 0;
+    if (groupSmall && ownerUnits > 0 && ownerUnits <= limit) {
+      const records = [...new Set(ownerItems.map((item) => item.record))];
+      const latest = ownerItems.reduce(
+        (best, item) => (item.date.getTime() > best.date.getTime() ? item : best),
+        ownerItems[0],
+      );
+      groupedBuilders.push(
+        makeBuilder(
+          {
+            ownerKey: key,
+            date: latest.date,
+            overdue: Boolean(latest.overdue),
+            units: records.length,
+            records,
+            items: ownerItems,
+          },
+          settings,
+        ),
+      );
+    } else {
+      standaloneItems.push(...ownerItems);
+    }
+  }
+
+  const byClusterDate = (a, b) => a.cluster.date - b.cluster.date;
+  const regularBuilders = [
+    ...groupedBuilders.filter((builder) => !builder.cluster.overdue),
+    ...clusterTargets(
+      standaloneItems.filter((item) => !item.overdue),
+      settings,
+    ).map((cluster) => makeBuilder(cluster, settings)),
+  ].sort(byClusterDate);
+  const overdueBuilders = [
+    ...groupedBuilders.filter((builder) => builder.cluster.overdue),
+    ...clusterTargets(
+      standaloneItems.filter((item) => item.overdue),
+      settings,
+    ).map((cluster) => makeBuilder(cluster, settings)),
+  ].sort(byClusterDate);
 
   const dayStates = new Map();
   const visits = [];

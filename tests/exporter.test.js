@@ -145,6 +145,37 @@ describe('exportScheduleToXlsx', () => {
     expect(details.getRow(2).getCell(2).value).toBe('с 9-00 до 10-00');
   });
 
+  it('merges a small owner into one row and lists unit target dates (GRAFIK-14)', async () => {
+    const units = [
+      record({
+        owner: 'ООО «Малый»',
+        inn: '7700000009',
+        plate: 'А201ММ77',
+        nextTo: new Date(2026, 1, 10),
+      }),
+      record({
+        owner: 'ООО «Малый»',
+        inn: '7700000009',
+        plate: 'А202ММ77',
+        nextTo: new Date(2026, 9, 10),
+      }),
+    ];
+    const grouped = buildSchedule(units, SETTINGS, CALENDAR);
+    expect(grouped.visits).toHaveLength(1);
+
+    const workbook = await loadWorkbook(await exportScheduleToXlsx(grouped, SETTINGS));
+    const schedule = workbook.getWorksheet('График ТО');
+    expect(schedule.rowCount).toBe(2);
+    expect(schedule.getRow(2).getCell(2).value).toBe('ООО «Малый»');
+
+    const details = workbook.getWorksheet('Детализация');
+    const unitCell = String(details.getRow(2).getCell(13).value);
+    expect(unitCell).toContain('А201ММ77');
+    expect(unitCell).toContain('10.02.2026');
+    expect(unitCell).toContain('А202ММ77');
+    expect(unitCell).toContain('10.10.2026');
+  });
+
   it('appends the reception note when mode B excludes individuals', async () => {
     const modeB = buildSchedule(records, { ...SETTINGS, smallPhysicalMode: 'B' }, CALENDAR);
     expect(modeB.notes).toHaveLength(1);

@@ -21,6 +21,19 @@ export function formatTimeRange(startMin, endMin) {
   return `с ${label(startMin)} до ${label(endMin)}`;
 }
 
+// GRAFIK-14: "PLATE BRAND — DD.MM.YYYY[, DD.MM.YYYY]; …" for one visit's units.
+export function formatUnitTargets(unitsDetail) {
+  return (unitsDetail || [])
+    .map((unit) => {
+      const label = [unit?.plate, unit?.brand].filter(Boolean).join(' ') || 'ед.';
+      const dates = (unit?.dates || [])
+        .map((entry) => formatDate(entry?.date))
+        .filter(Boolean);
+      return dates.length > 0 ? `${label} — ${dates.join(', ')}` : label;
+    })
+    .join('; ');
+}
+
 export function formatMaybeDate(value) {
   if (!value) return '—';
   if (value instanceof Date) return formatDate(value);

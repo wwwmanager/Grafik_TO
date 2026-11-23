@@ -21,6 +21,7 @@ describe('defaultSettings', () => {
     expect(settings.smallPhysicalMode).toBe('A');
     expect(settings.acceptingDays).toEqual([]);
     expect(settings.physicalThreshold).toBe(3);
+    expect(settings.groupSmallOwners).toBe(true);
     expect(settings.winterMonths).toEqual([11, 0, 1]);
     expect(settings.winterLoadPercent).toBe(30);
   });
@@ -38,6 +39,9 @@ describe('preview rows', () => {
     units: 1,
     durationMin: 60,
     records: [{ plate: 'А001ММ77', brand: 'МТЗ' }],
+    unitsDetail: [
+      { plate: 'А001ММ77', brand: 'МТЗ', dates: [{ date: new Date(2026, 5, 10) }] },
+    ],
   };
 
   it('schedule preview shows only the owner name (no overdue suffix)', () => {
@@ -49,6 +53,12 @@ describe('preview rows', () => {
   it('details preview uses «с ЧЧ-ММ до ЧЧ-ММ»', () => {
     const rows = detailPreviewRows({ visits: [visit] });
     expect(rows[0][1]).toBe('с 9-00 до 10-00');
+  });
+
+  it('details preview lists each unit with its original target date', () => {
+    const rows = detailPreviewRows({ visits: [visit] });
+    expect(rows[0][8]).toContain('А001ММ77');
+    expect(rows[0][8]).toContain('10.06.2026');
   });
 });
 

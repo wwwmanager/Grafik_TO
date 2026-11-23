@@ -58,6 +58,16 @@
             <input id="physicalThreshold" type="number" min="0" max="100" value="3" />
           </label>
 
+          <div class="field">
+            <label>
+              <input id="groupSmallOwners" type="checkbox" checked />
+              Группировать малых владельцев (≤ порога ед.) по последней дате ТО
+            </label>
+            <p class="placeholder">
+              Все единицы такого владельца попадут в один визит на самую позднюю целевую дату.
+            </p>
+          </div>
+
           <fieldset class="field">
             <legend>Физлица с числом единиц не более порога</legend>
             <label><input type="radio" name="smallPhysical" value="A" checked /> А — исключить</label>

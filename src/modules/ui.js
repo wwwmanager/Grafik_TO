@@ -1,7 +1,12 @@
 // Wires the app: settings panel, drag-and-drop upload, calendar lookup,
 // schedule computation, preview tabs and .xlsx download.
 import { loadProductionCalendar } from './calendarService.js';
-import { formatDate, formatTimeLabel, formatTimeRange } from './format.js';
+import {
+  formatDate,
+  formatTimeLabel,
+  formatTimeRange,
+  formatUnitTargets,
+} from './format.js';
 import { buildSchedule } from './scheduler.js';
 
 const MONTHS = [
@@ -28,6 +33,7 @@ export function defaultSettings(now = new Date()) {
     groupWindowDays: 30,
     smallPhysicalMode: 'A',
     physicalThreshold: 3,
+    groupSmallOwners: true,
     inspectionAddress: '',
     workStart: '09:00',
     workEnd: '18:00',
@@ -52,6 +58,7 @@ export function loadPersistedSettings() {
     const result = {};
     const threshold = Number(data.physicalThreshold);
     if (Number.isFinite(threshold) && threshold >= 0) result.physicalThreshold = threshold;
+    if (typeof data.groupSmallOwners === 'boolean') result.groupSmallOwners = data.groupSmallOwners;
     const percent = Number(data.winterLoadPercent);
     if (Number.isFinite(percent)) result.winterLoadPercent = Math.min(100, Math.max(0, percent));
     if (Array.isArray(data.winterMonths)) {
@@ -74,6 +81,7 @@ function persistSettings(settings) {
       STORAGE_KEY,
       JSON.stringify({
         physicalThreshold: settings.physicalThreshold,
+        groupSmallOwners: settings.groupSmallOwners,
         winterMonths: settings.winterMonths,
         winterLoadPercent: settings.winterLoadPercent,
       }),
@@ -177,6 +185,7 @@ export function detailPreviewRows(result) {
     visit.records
       .map((record) => [record.plate, record.brand].filter(Boolean).join(' '))
       .join('; '),
+    formatUnitTargets(visit.unitsDetail),
   ]);
 }
 
@@ -211,6 +220,7 @@ function renderResults(root, result) {
               'Техники',
               'Длительность, мин',
               'Знаки / марки',
+              'Единицы и исходные даты',
             ],
             detailPreviewRows(result),
           ),
@@ -284,6 +294,9 @@ function readSettings(root, base) {
       Number.isFinite(thresholdRaw) && thresholdRaw >= 0
         ? Math.floor(thresholdRaw)
         : base.physicalThreshold,
+    groupSmallOwners: root.getElementById('groupSmallOwners')
+      ? checked('groupSmallOwners')
+      : base.groupSmallOwners,
     inspectionAddress: value('inspectionAddress').trim(),
     workStart: value('workStart') || base.workStart,
     workEnd: value('workEnd') || base.workEnd,
@@ -405,6 +418,8 @@ export function initUi(root = document) {
 
   const thresholdInput = root.getElementById('physicalThreshold');
   if (thresholdInput) thresholdInput.value = String(state.settings.physicalThreshold);
+  const groupSmallInput = root.getElementById('groupSmallOwners');
+  if (groupSmallInput) groupSmallInput.checked = state.settings.groupSmallOwners !== false;
   const winterPercentInput = root.getElementById('winterLoadPercent');
   if (winterPercentInput) winterPercentInput.value = String(state.settings.winterLoadPercent);
   const winterSelect = root.getElementById('winterMonths');

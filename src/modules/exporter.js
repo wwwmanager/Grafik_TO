@@ -7,6 +7,7 @@ import {
   formatMaybeDate,
   formatTimeLabel,
   formatTimeRange,
+  formatUnitTargets,
 } from './format.js';
 
 export { formatDate, formatTimeLabel, formatTimeRange } from './format.js';
@@ -91,6 +92,10 @@ function describeSettings(settings, year) {
     ['Переезд между локациями, мин', config.travelMinutes ?? 60],
     ['Порог физлиц, ед. техники', threshold],
     [`Физлица с ≤${threshold} ед. техники`, physical],
+    [
+      'Группировать малых владельцев по последней дате ТО',
+      config.groupSmallOwners !== false ? `да (≤${threshold} ед.)` : 'нет',
+    ],
     ['Адрес инспекции', config.inspectionAddress || '—'],
     ['Зимние месяцы', winterLabel(config)],
     ['Загрузка зимних месяцев, %', winterPercent],
@@ -169,6 +174,7 @@ function buildDetailsSheet(workbook, result) {
     { header: 'Источник даты', width: 26 },
     { header: 'Просроченная', width: 12 },
     { header: 'Перегруз', width: 10 },
+    { header: 'Единицы и исходные целевые даты', width: 48 },
   ];
   result.visits.forEach((visit) => {
     const vehicles = visit.records
@@ -187,6 +193,7 @@ function buildDetailsSheet(workbook, result) {
       (visit.sources || []).join('; '),
       visit.overdue ? 'да' : '',
       visit.overload ? 'да' : '',
+      formatUnitTargets(visit.unitsDetail),
     ]);
   });
   finalize(sheet);
