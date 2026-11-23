@@ -43,7 +43,7 @@
     {
       "id": "GRAFIK-03-CALENDAR",
       "title": "calendarService.js + bundled 2025-2027 calendar",
-      "status": "dispatched",
+      "status": "accepted",
       "approved": true,
       "dependsOn": [],
       "dispatchText": "SLICE GRAFIK-03-CALENDAR (calendarService.js + bundled 2025-2027 calendar). Spec: G:\\_Grafik_TO\\docs\\spec\\plan.md section GRAFIK-03 + TZ.md + decisions.md (decisions win). Verify: npm --prefix G:\\_Grafik_TO run verify",
@@ -52,13 +52,13 @@
         "npm --prefix G:\\_Grafik_TO run verify"
       ],
       "owner": "orch1",
-      "commit": null,
-      "evidence": null,
+      "commit": "d0c8ff9",
+      "evidence": "G:\\_Grafik_TO\\docs\\context\\evidence\\GRAFIK-03-CALENDAR.json",
       "rejections": 0,
-      "retro": null,
+      "retro": "batch run by orch1 directly (L3 cannot write G:)",
       "dispatchedBy": "orch1",
       "dispatchedAt": "2026-11-23T19:32:06+05:00",
-      "updatedAt": "2026-11-23T19:32:06+05:00"
+      "updatedAt": "2026-11-23T19:52:15+05:00"
     },
     {
       "id": "GRAFIK-04-FILTER",
@@ -181,5 +181,5 @@
       "updatedAt": "2026-11-23T19:32:10+05:00"
     }
   ],
-  "updatedAt": "2026-11-23T19:52:07+05:00"
+  "updatedAt": "2026-11-23T19:52:15+05:00"
 }
