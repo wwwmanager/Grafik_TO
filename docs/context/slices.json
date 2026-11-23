@@ -259,7 +259,47 @@
       "dispatchedBy": "architect",
       "dispatchedAt": "2026-11-23T20:48:15+05:00",
       "updatedAt": "2026-11-23T20:50:43+05:00"
+    },
+    {
+      "id": "GRAFIK-14-GROUP-SMALL",
+      "title": "Group small owners (≤N) by latest TO date",
+      "status": "accepted",
+      "approved": true,
+      "dependsOn": [],
+      "dispatchText": "SLICE=GRAFIK-14-GROUP-SMALL project=grafik_to root=G:\\_Grafik_TO verify=off (send DONE to architect)\nGoal: new feature per owner — group small owners by latest TO date.\nFeature: when an owner (physical or legal) has ≤ N units of equipment after all filters, optionally group ALL those units into ONE visit on the date of the LATEST TO among them (i.e. the maximum target date of that owner's units), instead of scheduling each unit on its own target date.\nUI: new setting \"Группировать малых владельцев (≤N ед.) по последней дате ТО\" (checkbox, default ON). N = same \"Порог физлиц, ед. техники\" setting (D11). Applies to ALL owners with unit count ≤ N, not only physical persons.\nBehaviour: if ON and owner's post-filter unit count ≤ N:\n- compute max target date among that owner's units;\n- create ONE visit for that owner on that date (respecting grouping window, winter weighting if overdue, etc.);\n- all units of that owner go into that visit; Details sheet shows all units with their individual original target dates.\nIf OFF (or count > N): current behaviour — each unit on its own target date, possibly clustered by window.\nUpdate: scheduler.placement logic; exporter sheet 1 & 2 to show single visit row with multiple units; preview tabs; tests covering ON/OFF, 1/2/3/4 units, mixed physical/legal, overdue + normal dates, winter months.\nverify: npm run verify green. Commit, push origin main (Pages redeploy). Confirm Actions run + Pages 200.\nReport: STATUS(done) commit, files, test count, Actions run id. No acks.",
+      "acceptance": null,
+      "verifyCommands": [
+        "npm --prefix G:\\_Grafik_TO run verify"
+      ],
+      "owner": "orch1",
+      "commit": "e45910a",
+      "evidence": "G:\\_Grafik_TO\\docs\\context\\evidence\\GRAFIK-14-GROUP-SMALL.json",
+      "rejections": 0,
+      "retro": "group small owners by latest TO date, checkbox ON by default",
+      "dispatchedBy": "architect",
+      "dispatchedAt": "2026-11-23T20:58:33+05:00",
+      "updatedAt": "2026-11-23T21:02:46+05:00"
+    },
+    {
+      "id": "GRAFIK-15-GEO-FIX",
+      "title": "Geo fix: bare cities, attached markers, region markers",
+      "status": "dispatched",
+      "approved": true,
+      "dependsOn": [],
+      "dispatchText": "SLICE=GRAFIK-15-GEO-FIX project=grafik_to root=G:\\_Grafik_TO verify=off (send DONE to architect)\nGoal: fix geo extraction so \"— / —\" stops appearing for real export addresses.\nRoot causes (from test):\n1. \"г.Москва\" (no space) — regex requires space after marker.\n2. Bare city names \"Москва\" — no marker, not recognized.\n3. Region markers missing: \"обл.\", \"область\", \"край\", \"АО\", \"респ.\", \"округ\" — district not recognized.\nFix in src/modules/scheduler.js extractLocation():\n- Handle marker attached to name: if part starts with marker+name without space (e.g., \"г.Москва\"), split after marker.\n- Heuristic for bare settlement: if first part has no marker but looks like a city name (capitalized word, not a street type), treat as settlement.\n- Add region markers to district detection: \"обл.\", \"область\", \"край\", \"АО\", \"респ.\", \"республика\", \"округ\", \"аобл\".\n- Keep backward compatibility; all existing tests pass.\nUpdate: SETTLEMENT_MARKERS, DISTRICT_MARKERS arrays; extractLocation logic; unit tests for all cases above + edge cases.\nverify: npm run verify green. Commit, push origin main (Pages redeploy). Confirm Actions run + Pages 200.\nReport: STATUS(done) commit, files, test cases added, Actions run id. No acks.",
+      "acceptance": null,
+      "verifyCommands": [
+        "npm --prefix G:\\_Grafik_TO run verify"
+      ],
+      "owner": "orch1",
+      "commit": null,
+      "evidence": null,
+      "rejections": 0,
+      "retro": null,
+      "dispatchedBy": "architect",
+      "dispatchedAt": "2026-11-23T21:01:55+05:00",
+      "updatedAt": "2026-11-23T21:01:55+05:00"
     }
   ],
-  "updatedAt": "2026-11-23T20:50:43+05:00"
+  "updatedAt": "2026-11-23T21:02:46+05:00"
 }
