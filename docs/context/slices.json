@@ -123,7 +123,7 @@
     {
       "id": "GRAFIK-07-EXPORT",
       "title": "exporter.js 4 sheets",
-      "status": "dispatched",
+      "status": "accepted",
       "approved": true,
       "dependsOn": [],
       "dispatchText": "SLICE GRAFIK-07-EXPORT (exporter.js 4 sheets). Spec: G:\\_Grafik_TO\\docs\\spec\\plan.md section GRAFIK-07 + TZ.md + decisions.md (decisions win). Verify: npm --prefix G:\\_Grafik_TO run verify",
@@ -132,13 +132,13 @@
         "npm --prefix G:\\_Grafik_TO run verify"
       ],
       "owner": "orch1",
-      "commit": null,
-      "evidence": null,
+      "commit": "f5f4068",
+      "evidence": "G:\\_Grafik_TO\\docs\\context\\evidence\\GRAFIK-07-EXPORT.json",
       "rejections": 0,
-      "retro": null,
+      "retro": "batch run by orch1 directly (L3 cannot write G:)",
       "dispatchedBy": "orch1",
       "dispatchedAt": "2026-11-23T19:32:09+05:00",
-      "updatedAt": "2026-11-23T19:32:09+05:00"
+      "updatedAt": "2026-11-23T19:52:44+05:00"
     },
     {
       "id": "GRAFIK-08-UI",
@@ -181,5 +181,5 @@
       "updatedAt": "2026-11-23T19:32:10+05:00"
     }
   ],
-  "updatedAt": "2026-11-23T19:52:37+05:00"
+  "updatedAt": "2026-11-23T19:52:44+05:00"
 }
