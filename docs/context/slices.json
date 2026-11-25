@@ -403,7 +403,7 @@
     {
       "id": "GRAFIK-21-MANUAL-UPDATE",
       "title": "Update manual.md + generate manual.docx to current state",
-      "status": "dispatched",
+      "status": "accepted",
       "approved": true,
       "dependsOn": [],
       "dispatchText": "SLICE=GRAFIK-21-MANUAL-UPDATE project=grafik_to root=G:\\_Grafik_TO verify=off (send DONE to architect)\nGoal: update user manual (docs/manual.md) to match current application state, and generate docs/manual.docx.\nCurrent manual covers up to GRAFIK-12. Since then these features changed:\n- GRAFIK-13: \"График ТО\" tab shows only name (no \"(просроченная)\" suffix); Details time format \"с 9-00 до 10-00\".\n- GRAFIK-14: New setting \"Группировать малых владельцев (≤N ед.) по последней дате ТО\" (checkbox, default ON). N = \"Порог физлиц, ед. техники\". Details sheet shows \"Единицы и исходные целевые даты\" block.\n- GRAFIK-15: Geo extraction fixed — bare cities (\"Москва\"), attached markers (\"г.Москва\"), region markers (\"обл.\", \"край\", \"АО\", \"респ.\") now recognized.\n- GRAFIK-16: Parser reads address from split columns (region/район/насел.пункт/улица/дом) via header markers.\n- GRAFIK-17: Export readability: \"Гос. знаки / марки\" and \"Единицы и исходные целевые даты\" columns now numbered lines with wrap text. Exclusion reason renamed: \"Дата ТО старше глубины\" -> \"Дата ТО больше выбранной давности ТО\".\n- GRAFIK-18: CRITICAL date logic: future current-year next-TO dates treated as on-time, projected to target year (same month/day; A4 steps +6 months). Not overdue.\n- GRAFIK-19: Settings: multiple vacation periods (+ Add / × Delete); \"Машин в час\" 1-100 (default 12); winter months as 4x3 checkbox grid (Янв...Дек).\n- GRAFIK-20: UI overhaul: two-column layout. Left panel: accordion \"Дополнительные настройки\", uniform input widths, \"Сформировать график\" sticky visible. Right area: compact upload zone (~120px), collapses to single bar after file load, rest = preview tabs + sticky \"Скачать Excel\". No auto-generation.\nUpdate docs/manual.md: rewrite affected sections (settings table, step-by-step, sheets description, exclusion reasons table, FAQ). Keep plain Russian, no jargon, quote UI labels exactly.\nGenerate docs/manual.docx from the .md (use pandoc if available, or npm package docx/markdown-it). Commit both files.\nverify: npm run verify green. Commit, push origin main (Pages redeploy). Confirm Actions run + Pages 200.\nReport: STATUS(done) commit, files, docx generated, Actions run id. No acks.",
@@ -412,13 +412,13 @@
         "npm --prefix G:\\_Grafik_TO run verify"
       ],
       "owner": "orch1",
-      "commit": null,
-      "evidence": null,
+      "commit": "7dc2fbe",
+      "evidence": "G:\\_Grafik_TO\\docs\\context\\evidence\\GRAFIK-21-MANUAL-UPDATE.json",
       "rejections": 0,
-      "retro": null,
+      "retro": "L0 verify in clean worktree at 7dc2fbe: verify green (12 files, 159 tests); docx->devDependencies; manual.md/docx from 5e56d20",
       "dispatchedBy": "architect",
       "dispatchedAt": "2026-11-23T21:41:37+05:00",
-      "updatedAt": "2026-11-23T21:41:37+05:00"
+      "updatedAt": "2026-11-25T23:27:01+05:00"
     },
     {
       "id": "GRAFIK-22-DETAILS-NUMBERING",
@@ -769,5 +769,5 @@
       "updatedAt": "2026-11-25T21:20:59+05:00"
     }
   ],
-  "updatedAt": "2026-11-25T21:21:25+05:00"
+  "updatedAt": "2026-11-25T23:27:01+05:00"
 }
