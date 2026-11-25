@@ -727,7 +727,27 @@
       "dispatchedBy": null,
       "dispatchedAt": null,
       "updatedAt": "2026-11-25T19:53:07+05:00"
+    },
+    {
+      "id": "GRAFIK-37-BOUNDARY-FIX",
+      "title": "Fix municipality assignment (area membership), rebuild 74, drop nearest marker",
+      "status": "accepted",
+      "approved": true,
+      "dependsOn": [],
+      "dispatchText": "SLICE=GRAFIK-37-BOUNDARY-FIX project=grafik_to root=G:\\_Grafik_TO verify=off (send DONE to architect)\nBug in your GRAFIK-32 build: 3757 of 3955 records (95%) got municipality by nearest-centroid fallback, and the marker \" (nearest)\" was written INTO the data. Cause: scripts/build-settlements.mjs buildGeometry closes each relation member way into its own ring, so a district boundary made of many segments becomes a set of slivers instead of one outline; point-in-polygon then almost never matches.\nPreferred fix (simplest, authoritative): drop geometry assembly. Use Overpass area membership - for each admin_level=6 relation already found, fetch its place nodes with: node[\"place\"~\"city|town|village|hamlet|locality\"](area:3600000000+<relId>); out body; then build records from those nodes. Pause 2-3 s between requests, retry with backoff, resumable. Alternative allowed: correctly stitch member ways into closed rings (shared endpoints) and keep point-in-polygon - only if it reaches the same result.\nOutput rules: same schema and file path (public/data/settlements-74.json), sorted, minified, <= 700 KB raw; municipality = clean district/okrug name with NO \"(nearest)\" or any other marker; a node not matching any district must be reported in the log and in the report, never silently assigned.\nTests (tests/settlements-data.test.js): no record contains \"nearest\" or \"(\"; 100% of records have a municipality (or an explicit allowlist with reasons); spot checks Сатка and Бердяуш -> Саткинский, Тайнак -> Кусинский (per OSM); at least 10 more spot checks of your choice printed in the report.\nAlso update the measured numbers in docs/analysis/addr-reference-spike.md (exact-assignment count, no fallback).\nReport EN <=10 lines: STATUS(done|failed), commit, records, exact=, fallback=, unassigned=, file size raw, spot-check table, tests. No acks.\n",
+      "acceptance": null,
+      "verifyCommands": [
+        "npm --prefix G:\\_Grafik_TO run verify"
+      ],
+      "owner": "orch1",
+      "commit": "8253831",
+      "evidence": "G:\\_Grafik_TO\\docs\\context\\evidence\\GRAFIK-37-BOUNDARY-FIX.json",
+      "rejections": 0,
+      "retro": "area membership works: 2164 recs, 0 fallback/unassigned, no marker, districts spot-checked; dupes/junk localities deferred to cleanup slice",
+      "dispatchedBy": "architect",
+      "dispatchedAt": "2026-11-25T20:30:24+05:00",
+      "updatedAt": "2026-11-25T21:00:31+05:00"
     }
   ],
-  "updatedAt": "2026-11-25T20:23:11+05:00"
+  "updatedAt": "2026-11-25T21:00:31+05:00"
 }
