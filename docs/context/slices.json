@@ -709,8 +709,8 @@
     {
       "id": "GRAFIK-36-ALL-REGIONS",
       "title": "OSM settlement references for all RF regions + regions.json",
-      "status": "planned",
-      "approved": false,
+      "status": "dispatched",
+      "approved": true,
       "dependsOn": [
         "GRAFIK-32-OSM-SETTLEMENTS"
       ],
@@ -724,9 +724,9 @@
       "evidence": null,
       "rejections": 0,
       "retro": null,
-      "dispatchedBy": null,
-      "dispatchedAt": null,
-      "updatedAt": "2026-11-25T19:53:07+05:00"
+      "dispatchedBy": "architect",
+      "dispatchedAt": "2026-11-25T21:21:25+05:00",
+      "updatedAt": "2026-11-25T21:21:25+05:00"
     },
     {
       "id": "GRAFIK-37-BOUNDARY-FIX",
@@ -769,5 +769,5 @@
       "updatedAt": "2026-11-25T21:20:59+05:00"
     }
   ],
-  "updatedAt": "2026-11-25T21:20:59+05:00"
+  "updatedAt": "2026-11-25T21:21:25+05:00"
 }
