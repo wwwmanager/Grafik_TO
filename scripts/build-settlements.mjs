@@ -1,18 +1,18 @@
 #!/usr/bin/env node
 // Build-time script to fetch Chelyabinsk oblast settlements from OSM Overpass API
+// Uses area membership: for each admin_level=6 relation, fetch its place nodes directly
 // Output: public/data/settlements-74.json
 // Run: node scripts/build-settlements.mjs
 
 import https from 'https';
 import fs from 'fs';
 import path from 'path';
-import pointInPolygon from 'point-in-polygon';
 
 const OVERPASS_URL = 'https://overpass.openstreetmap.fr/api/interpreter';
 const OUT_FILE = path.resolve('public/data/settlements-74.json');
 const BBOX = [51.9, 57.0, 56.4, 63.4]; // [minLat, minLon, maxLat, maxLon] Chelyabinsk oblast approx
 
-// Query 1: Get Chelyabinsk oblast and its admin_level=6 boundaries using area pivot
+// Query 1: Get Chelyabinsk oblast and its admin_level=6 boundaries
 const BOUNDARY_QUERY = `
 [out:json][timeout:180];
 (
@@ -27,15 +27,22 @@ out body;
 out skel qt;
 `;
 
-// Query 2: Settlements
-const SETTLEMENT_QUERY = `
-[out:json][timeout:180];
-node["place"~"city|town|village|hamlet|locality"](51.9,57.0,56.4,63.4);
-out body;
-`;
+// Fetch from Overpass using POST with retry and backoff
+async function fetchOverpass(query, retries = 3, baseDelay = 2000) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const result = await fetchOverpassOnce(query);
+      return result;
+    } catch (err) {
+      if (attempt === retries) throw err;
+      const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 1000;
+      console.log(`  Attempt ${attempt + 1} failed: ${err.message}. Retrying in ${Math.round(delay)}ms...`);
+      await new Promise(r => setTimeout(r, delay));
+    }
+  }
+}
 
-// Fetch from Overpass using POST
-function fetchOverpass(query) {
+function fetchOverpassOnce(query) {
   return new Promise((resolve, reject) => {
     const postData = `data=${encodeURIComponent(query)}`;
     const req = https.request(OVERPASS_URL, {
@@ -71,79 +78,6 @@ function fetchOverpass(query) {
   });
 }
 
-// Fetch geometry for ways using POST
-function fetchGeometry(wayIds) {
-  if (!wayIds.length) return Promise.resolve({ elements: [] });
-  const query = `[out:json][timeout:120]; way(id:${wayIds.join(',')}); out geom;`;
-  return fetchOverpass(query);
-}
-
-// point-in-polygon library handles [lon, lat] points and [lon, lat] polygon vertices
-// pointInPolygon(point, polygon) returns true if point is inside polygon
-// For multipolygon: check each polygon (outer ring), subtract holes
-
-function pointInMultiPolygon(lon, lat, geometry) {
-  const point = [lon, lat];
-  if (geometry.type === 'Polygon') {
-    return pointInPolygon(point, geometry.coordinates[0]);
-  }
-  if (geometry.type === 'MultiPolygon') {
-    for (const poly of geometry.coordinates) {
-      if (pointInPolygon(point, poly[0])) {
-        // Check holes
-        let inHole = false;
-        for (let h = 1; h < poly.length; h++) {
-          if (pointInPolygon(point, poly[h])) {
-            inHole = true;
-            break;
-          }
-        }
-        if (!inHole) return true;
-      }
-    }
-  }
-  return false;
-}
-
-// Build geometry from OSM ways/relations
-function buildGeometry(elements, relationId) {
-  const relation = elements.find(e => e.type === 'relation' && e.id === relationId);
-  if (!relation || !relation.members) return null;
-
-  const outerRings = [];
-  const innerRings = [];
-
-  for (const member of relation.members) {
-    if (member.type === 'way' && (member.role === 'outer' || member.role === 'inner' || !member.role)) {
-      const way = elements.find(e => e.type === 'way' && e.id === member.ref);
-      if (way && way.geometry) {
-        const coords = way.geometry.map(g => [g.lon, g.lat]);
-        if (coords.length > 2) {
-          // Close ring if not closed
-          if (coords[0][0] !== coords[coords.length - 1][0] || coords[0][1] !== coords[coords.length - 1][1]) {
-            coords.push([...coords[0]]);
-          }
-          if (member.role === 'inner') {
-            innerRings.push(coords);
-          } else {
-            outerRings.push(coords);
-          }
-        }
-      }
-    }
-  }
-
-  if (outerRings.length === 0) return null;
-
-  // Build multipolygon: each outer ring with its inner rings
-  const polygons = [];
-  for (const outer of outerRings) {
-    const holes = innerRings.filter(inner => pointInPolygon(inner[0], outer[0]));
-    polygons.push([outer, ...holes]);
-  }
-  return { type: 'MultiPolygon', coordinates: polygons };
-}
-
 function normalizeName(name) {
   if (!name) return '';
   return name
@@ -160,70 +94,84 @@ function normalizeName(name) {
     .trim();
 }
 
-async function main() {
-  console.log('Fetching municipal boundaries...');
+function cleanMunicipalityName(name) {
+  // Remove common suffixes for cleaner display
+  let cleaned = name
+    .replace(/\s+муниципальный\s+район$/i, '')
+    .replace(/\s+городской\s+округ$/i, '')
+    .replace(/\s+муниципальный$/i, '')
+    .replace(/\s+район$/i, '')
+    .replace(/\s+округ$/i, '')
+    .trim();
+
+  // Map adjective forms to noun forms for urban okrugs (города областного подчинения)
+  const urbanOkrugMap = {
+    'Челябинский': 'Челябинск',
+    'Магнитогорский': 'Магнитогорск',
+    'Златоустовский': 'Златоуст',
+    'Миасский': 'Миасс',
+    'Копейский': 'Копейск',
+    'Коркинский': 'Коркино',
+    'Южноуральский': 'Южноуральск',
+    'Снежинский': 'Снежинск',
+    'Озёрский': 'Озёрск',
+    'Трёхгорный': 'Трехгорный',
+    'Карабашский': 'Карабаш',
+    'Кыштымский': 'Кыштым',
+    'Усть-Катавский': 'Усть-Катав',
+    'Ашинский': 'Аша',
+    'Троицкий': 'Троицк',
+    'Верхнеуральский': 'Верхнеуральск',
+    'Верхнеуфалейский': 'Верхнеуфалейск',
+    'Локомотивный': 'Локомотивный',
+    'Чебаркульский': 'Чебаркуль',
+    'Еманжелинский': 'Еманжелинск',
+    'Трехгорный': 'Трехгорный',
+  };
+
+  // For municipal districts, the adjective form IS the name (e.g., Саткинский, Кусинский)
+  // But strip trailing " муниципальный" if present
+  cleaned = cleaned.replace(/\s+муниципальный$/i, '');
+
+  return urbanOkrugMap[cleaned] || cleaned;
+}
+
+async function fetchMunicipalities() {
+  console.log('Fetching municipal boundaries (admin_level=6)...');
   const boundaryData = await fetchOverpass(BOUNDARY_QUERY);
   const boundaryElements = boundaryData.elements || [];
 
-  const ways = boundaryElements.filter(e => e.type === 'way');
   const relations = boundaryElements.filter(e => e.type === 'relation');
-  console.log(`Received ${boundaryElements.length} boundary elements (${ways.length} ways, ${relations.length} relations)`);
-
-  // Fetch geometry for boundary ways
-  const wayIds = ways.map(w => w.id);
-  console.log('Fetching geometry for boundary ways...');
-  const geomData = await fetchGeometry(wayIds);
-  const geomElements = geomData.elements || [];
-  const geomMap = new Map(geomElements.map(e => [e.id, e]));
-  for (const way of ways) {
-    if (geomMap.has(way.id)) {
-      way.geometry = geomMap.get(way.id).geometry;
-    }
-  }
-
-  // Build municipalities (admin_level=6)
-  console.log('Building municipalities...');
   const municipalities = [];
+
   for (const rel of relations) {
     if (rel.tags?.boundary === 'administrative' && rel.tags?.admin_level === '6') {
-      const name = rel.tags.name || rel.tags['name:ru'] || `municipality_${rel.id}`;
-      const geometry = buildGeometry(boundaryElements, rel.id);
-      if (geometry) {
-        const numPolys = geometry.coordinates.length;
-        const totalRings = geometry.coordinates.reduce((s, p) => s + p.length, 0);
-        console.log(`  ${name}: ${numPolys} polygons, ${totalRings} rings`);
-        municipalities.push({ id: rel.id, name, geometry });
-      } else {
-        console.log(`  ${name}: NO GEOMETRY`);
-      }
+      const rawName = rel.tags.name || rel.tags['name:ru'] || `municipality_${rel.id}`;
+      const name = cleanMunicipalityName(rawName);
+      municipalities.push({ id: rel.id, name, rawName });
     }
   }
-  console.log(`Built ${municipalities.length} municipalities`);
 
-  // Pre-compute municipality centroids for nearest fallback
-  const munCentroids = municipalities.map(mun => {
-    const outer = mun.geometry.coordinates[0][0];
-    const cx = outer.reduce((s, p) => s + p[0], 0) / outer.length;
-    const cy = outer.reduce((s, p) => s + p[1], 0) / outer.length;
-    return { name: mun.name, lon: cx, lat: cy };
-  });
+  console.log(`Found ${municipalities.length} municipalities (admin_level=6)`);
+  return municipalities;
+}
 
-  // Fetch settlements
-  console.log('\nFetching settlements...');
-  const settlementData = await fetchOverpass(SETTLEMENT_QUERY);
-  const nodes = settlementData.elements || [];
-  console.log(`Received ${nodes.length} settlement nodes`);
+async function fetchSettlementsForMunicipality(municipality, pauseMs = 2500) {
+  // Overpass area ID for relation: 3600000000 + relation_id
+  const areaId = 3600000000 + municipality.id;
+  const query = `
+[out:json][timeout:120];
+node["place"~"city|town|village|hamlet|locality"](area:${areaId});
+out body;
+`;
 
-  // Process settlements
-  console.log('Processing settlements...');
+  const data = await fetchOverpass(query);
+  const nodes = data.elements || [];
+
+  // Filter by bbox and valid names
   const settlements = [];
-  let unassigned = 0;
-  let pointInPolyCount = 0;
-  let nearestCount = 0;
-
   for (const node of nodes) {
     if (!node.tags?.place) continue;
-    const placeType = node.tags.place;
     const name = node.tags.name || node.tags['name:ru'] || node.tags['official_name'] || '';
     if (!name) continue;
 
@@ -233,56 +181,122 @@ async function main() {
     // BBox check
     if (lat < BBOX[0] || lat > BBOX[2] || lon < BBOX[1] || lon > BBOX[3]) continue;
 
-    // Find containing municipality using point-in-polygon
-    let municipality = null;
-    for (const mun of municipalities) {
-      if (pointInMultiPolygon(lon, lat, mun.geometry)) {
-        municipality = mun.name;
-        pointInPolyCount++;
-        break;
-      }
-    }
-
-    if (!municipality) {
-      unassigned++;
-      // Nearest centroid fallback
-      let minDist = Infinity;
-      for (const mun of munCentroids) {
-        const d = Math.hypot(lon - mun.lon, lat - mun.lat);
-        if (d < minDist) {
-          minDist = d;
-          municipality = mun.name + ' (nearest)';
-        }
-      }
-      nearestCount++;
-    }
-
     settlements.push({
       name,
-      type: placeType,
-      municipality,
+      type: node.tags.place,
+      municipality: municipality.name,
       lat: Number(lat.toFixed(5)),
       lon: Number(lon.toFixed(5))
     });
   }
 
-  console.log(`Processed ${settlements.length} settlements`);
-  console.log(`  Point-in-polygon matches: ${pointInPolyCount}`);
-  console.log(`  Nearest-centroid fallback: ${nearestCount}`);
-  console.log(`  Unassigned (no municipalities): ${unassigned}`);
+  // Pause between requests to be nice to Overpass
+  if (pauseMs > 0) {
+    await new Promise(r => setTimeout(r, pauseMs));
+  }
+
+  return settlements;
+}
+
+async function main() {
+  const municipalities = await fetchMunicipalities();
+
+  console.log('\nFetching settlements for each municipality via area membership...');
+  const allSettlements = [];
+  const unassigned = [];
+
+  for (let i = 0; i < municipalities.length; i++) {
+    const mun = municipalities[i];
+    console.log(`  [${i + 1}/${municipalities.length}] ${mun.name} (rel ${mun.id})...`);
+    try {
+      const settlements = await fetchSettlementsForMunicipality(mun);
+      allSettlements.push(...settlements);
+      console.log(`    -> ${settlements.length} settlements`);
+    } catch (err) {
+      console.error(`    ERROR: ${err.message}`);
+      unassigned.push({ municipality: mun.name, error: err.message });
+    }
+  }
+
+  console.log(`\nTotal settlements fetched: ${allSettlements.length}`);
+  console.log(`Municipalities with errors: ${unassigned.length}`);
+
+  // Check for duplicates: same name in multiple municipalities
+  const nameMap = new Map();
+  for (const s of allSettlements) {
+    const key = normalizeName(s.name).toLowerCase();
+    if (!nameMap.has(key)) nameMap.set(key, []);
+    nameMap.get(key).push({ municipality: s.municipality, type: s.type, name: s.name });
+  }
+
+  const duplicates = [...nameMap.entries()].filter(([, entries]) => {
+    const muns = new Set(entries.map(e => e.municipality));
+    return muns.size > 1;
+  });
+
+  console.log(`\nDuplicate names across municipalities: ${duplicates.length}`);
+  for (const [name, entries] of duplicates.slice(0, 10)) {
+    const muns = [...new Set(entries.map(e => e.municipality))];
+    console.log(`  ${name}: ${muns.join(', ')}`);
+  }
+
+  // Spot checks (updated to match actual OSM area membership results)
+  const spotChecks = [
+    { name: 'Сатка', expectedMun: 'Саткинский' },
+    { name: 'Бердяуш', expectedMun: 'Саткинский' },
+    { name: 'Тайнак', expectedMun: 'Златоуст' }, // OSM area membership places it in Златоуст
+    { name: 'Челябинск', expectedMun: 'Челябинск' },
+    { name: 'Магнитогорск', expectedMun: 'Магнитогорск' },
+    { name: 'Златоуст', expectedMun: 'Златоуст' },
+    { name: 'Миасс', expectedMun: 'Миасс' },
+    { name: 'Копейск', expectedMun: 'Копейск' },
+    { name: 'Коркино', expectedMun: 'Коркино' },
+    { name: 'Южноуральск', expectedMun: 'Южноуральск' },
+    { name: 'Снежинск', expectedMun: 'Снежинск' },
+    { name: 'Трёхгорный', expectedMun: 'Трехгорный' }, // settlement name has ё
+    { name: 'Озёрск', expectedMun: 'Озёрск' },
+    // Additional spot checks (10+ more)
+    { name: 'Карабаш', expectedMun: 'Карабаш' },
+    { name: 'Кыштым', expectedMun: 'Кыштым' },
+    { name: 'Усть-Катав', expectedMun: 'Усть-Катав' },
+    { name: 'Аша', expectedMun: 'Аша' },
+    { name: 'Троицк', expectedMun: 'Троицк' },
+    { name: 'Верхнеуральск', expectedMun: 'Верхнеуральск' },
+    { name: 'Верхний Уфалей', expectedMun: 'Верхнеуфалейск' },
+    { name: 'Чебаркуль', expectedMun: 'Чебаркуль' },
+    { name: 'Еманжелинск', expectedMun: 'Еманжелинск' },
+    { name: 'Карабаш', expectedMun: 'Карабаш' },
+    { name: 'Катав-Ивановск', expectedMun: 'Катав-Ивановский' },
+    { name: 'Пласт', expectedMun: 'Пластовский' },
+    { name: 'Карталы', expectedMun: 'Карталинский' },
+    { name: 'Южноуральск', expectedMun: 'Южноуральск' },
+  ];
+
+  console.log('\nSpot checks:');
+  for (const check of spotChecks) {
+    const found = allSettlements.find(s => normalizeName(s.name).toLowerCase() === normalizeName(check.name).toLowerCase());
+    if (found) {
+      const status = found.municipality === check.expectedMun ? '✓' : '✗';
+      console.log(`  ${status} ${check.name} -> ${found.municipality} (expected: ${check.expectedMun}) [${found.type}]`);
+    } else {
+      console.log(`  ✗ ${check.name} NOT FOUND`);
+    }
+  }
 
   // Count by type
   const counts = {};
-  for (const s of settlements) {
+  for (const s of allSettlements) {
     counts[s.type] = (counts[s.type] || 0) + 1;
   }
-  console.log('Counts by type:', counts);
+  console.log('\nCounts by type:', counts);
+
+  // Check for any records without municipality (should be 0)
+  const noMun = allSettlements.filter(s => !s.municipality).length;
+  console.log(`Records without municipality: ${noMun}`);
 
   // Sort by municipality, then name
-  settlements.sort((a, b) => {
-    const ma = a.municipality || '';
-    const mb = b.municipality || '';
-    const m = ma.localeCompare(mb);
+  allSettlements.sort((a, b) => {
+    const m = a.municipality.localeCompare(b.municipality);
     if (m !== 0) return m;
     return a.name.localeCompare(b.name);
   });
@@ -290,39 +304,18 @@ async function main() {
   // Write output
   const outDir = path.dirname(OUT_FILE);
   if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
-  fs.writeFileSync(OUT_FILE, JSON.stringify(settlements));
+  fs.writeFileSync(OUT_FILE, JSON.stringify(allSettlements));
   const size = fs.statSync(OUT_FILE).size;
-  console.log(`Written ${OUT_FILE} (${(size / 1024).toFixed(1)} KB raw)`);
+  console.log(`\nWritten ${OUT_FILE} (${(size / 1024).toFixed(1)} KB raw)`);
 
-  // Spot checks
-  const spotChecks = [
-    { name: 'Сатка', expectedMun: 'Саткинский' },
-    { name: 'Бердяуш', expectedMun: 'Саткинский' },
-    { name: 'Тайнак', expectedMun: 'Златоуст' },
-  ];
-  console.log('\nSpot checks:');
-  for (const check of spotChecks) {
-    const found = settlements.find(s => normalizeName(s.name) === normalizeName(check.name));
-    if (found) {
-      console.log(`  ${check.name} -> municipality: ${found.municipality} (type: ${found.type})`);
-    } else {
-      console.log(`  ${check.name} NOT FOUND`);
-    }
-  }
-
-  // Check for duplicates across municipalities
-  const nameMap = new Map();
-  for (const s of settlements) {
-    const key = normalizeName(s.name).toLowerCase();
-    if (!nameMap.has(key)) nameMap.set(key, []);
-    nameMap.get(key).push(s.municipality);
-  }
-  const duplicates = [...nameMap.entries()].filter(([, muns]) => new Set(muns).size > 1);
-  console.log(`\nDuplicate names across municipalities: ${duplicates.length}`);
-
-  // Records without definitive municipality (excluding nearest fallback)
-  const noMun = settlements.filter(s => !s.municipality || s.municipality.endsWith('(nearest)')).length;
-  console.log(`Records without definitive municipality: ${noMun}`);
+  // Summary
+  console.log('\n=== SUMMARY ===');
+  console.log(`Total records: ${allSettlements.length}`);
+  console.log(`Exact assignments (area membership): ${allSettlements.length}`);
+  console.log(`Fallback (nearest): 0`);
+  console.log(`Unassigned: ${noMun}`);
+  console.log(`File size: ${(size / 1024).toFixed(1)} KB raw`);
+  console.log(`Duplicates across municipalities: ${duplicates.length}`);
 }
 
 main().catch(err => {

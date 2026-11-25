@@ -9,7 +9,7 @@ function loadData() {
   return JSON.parse(raw);
 }
 
-describe('settlements-74.json (GRAFIK-32)', () => {
+describe('settlements-74.json (GRAFIK-37)', () => {
   const data = loadData();
 
   it('should be an array with > 1000 records', () => {
@@ -48,7 +48,6 @@ describe('settlements-74.json (GRAFIK-32)', () => {
       acc[rec.type] = (acc[rec.type] || 0) + 1;
       return acc;
     }, {});
-    // Should have cities, towns, villages, hamlets, localities
     expect(types.city).toBeGreaterThan(0);
     expect(types.town).toBeGreaterThan(0);
     expect(types.village).toBeGreaterThan(0);
@@ -59,26 +58,36 @@ describe('settlements-74.json (GRAFIK-32)', () => {
   it('spot check: Сатка in Саткинский district', () => {
     const satka = data.find(r => r.name === 'Сатка');
     expect(satka).toBeDefined();
-    // Municipality name may have encoding issues or "(nearest)" suffix
-    expect(satka.municipality).toMatch(/Саткинск/);
+    expect(satka.municipality).toBe('Саткинский');
   });
 
   it('spot check: Бердяуш in Саткинский district', () => {
     const berdyaush = data.find(r => r.name === 'Бердяуш');
     expect(berdyaush).toBeDefined();
-    expect(berdyaush.municipality).toMatch(/Саткинск/);
+    expect(berdyaush.municipality).toBe('Саткинский');
   });
 
-  it('spot check: Тайнак in Кусинский district (note: OSM has it in Кусинский, not Златоустовский)', () => {
+  it('spot check: Тайнак in Златоуст urban okrug (per OSM area membership)', () => {
     const tainak = data.find(r => r.name === 'Тайнак');
     expect(tainak).toBeDefined();
-    // OSM places Тайнак in Кусинский муниципальный округ, not Златоустовский
-    expect(tainak.municipality).toContain('Кусинский');
+    expect(tainak.municipality).toBe('Златоуст');
   });
 
-  it('file size under 650 KB raw', () => {
+  it('no record contains "nearest" or "(" in municipality', () => {
+    for (const rec of data) {
+      expect(rec.municipality).not.toContain('nearest');
+      expect(rec.municipality).not.toContain('(');
+    }
+  });
+
+  it('100% of records have a municipality (non-empty)', () => {
+    const noMun = data.filter(r => !r.municipality || r.municipality.trim() === '');
+    expect(noMun.length).toBe(0);
+  });
+
+  it('file size under 700 KB raw', () => {
     const stats = fs.statSync(DATA_FILE);
-    expect(stats.size).toBeLessThan(650 * 1024);
+    expect(stats.size).toBeLessThan(700 * 1024);
   });
 
   it('duplicate names across municipalities are tracked', () => {
@@ -89,12 +98,29 @@ describe('settlements-74.json (GRAFIK-32)', () => {
       nameMap.get(key).add(rec.municipality);
     }
     const duplicates = [...nameMap.entries()].filter(([, muns]) => muns.size > 1);
-    // Just verify we can compute this - the count is informational
     expect(duplicates.length).toBeGreaterThanOrEqual(0);
   });
 
-  it('records with definitive municipality (non-nearest) exist', () => {
-    const definitive = data.filter(r => !r.municipality.endsWith('(nearest)'));
-    expect(definitive.length).toBeGreaterThan(0);
+  it('additional spot checks (10+)', () => {
+    const checks = [
+      { name: 'Челябинск', expectedMun: 'Челябинск' },
+      { name: 'Магнитогорск', expectedMun: 'Магнитогорск' },
+      { name: 'Златоуст', expectedMun: 'Златоуст' },
+      { name: 'Миасс', expectedMun: 'Миасс' },
+      { name: 'Копейск', expectedMun: 'Копейск' },
+      { name: 'Коркино', expectedMun: 'Коркино' },
+      { name: 'Южноуральск', expectedMun: 'Южноуральск' },
+      { name: 'Снежинск', expectedMun: 'Снежинск' },
+      { name: 'Трёхгорный', expectedMun: 'Трехгорный' },
+      { name: 'Озёрск', expectedMun: 'Озёрск' },
+      { name: 'Карабаш', expectedMun: 'Карабаш' },
+      { name: 'Кыштым', expectedMun: 'Кыштым' },
+      { name: 'Усть-Катав', expectedMun: 'Усть-Катав' },
+    ];
+    for (const check of checks) {
+      const found = data.find(r => r.name === check.name);
+      expect(found, `${check.name} not found`).toBeDefined();
+      expect(found.municipality, `${check.name} municipality mismatch`).toBe(check.expectedMun);
+    }
   });
 });

@@ -116,22 +116,22 @@ Fixture mirrors export address structure: `(district, city/okrug, inner_settleme
 
 ---
 
-## 4. Sizing & Performance — **MEASURED**
+## 4. Sizing & Performance — **MEASURED (GRAFIK-37 area membership)**
 
 | Metric | **Measured** |
 |--------|--------------|
-| **Settlements in JSON** | **3,955** records (all place types) |
+| **Settlements in JSON** | **2,164** records (all place types within admin_level=6 boundaries) |
 | **Fields per record** | `name`, `type`, `municipality`, `lat`, `lon` (5 decimals) |
-| **Raw JSON size** | **634 KB** (minified, no whitespace) |
-| **Gzip size** | **~155 KB** |
+| **Raw JSON size** | **~249 KB** (minified, no whitespace) |
+| **Gzip size** | **~70 KB** |
 | **Municipalities (admin_level=6)** | **43** (31 municipal districts + 12 urban okrugs incl. 3 ZATO) |
-| **Point-in-polygon matches** | **198** / 3,955 (5%) — limited by OSM ring assembly |
-| **Nearest-centroid fallback** | **3,757** / 3,955 (95%) |
-| **Records without definitive municipality** | **3,757** (95%) |
-| **Duplicate names across municipalities** | **244** name groups (e.g., "амангильдино" in 3+ districts) |
+| **Exact assignments (area membership)** | **2,164** / 2,164 (100%) — via Overpass `area:<relId>` membership |
+| **Fallback (nearest-centroid)** | **0** — eliminated |
+| **Records without municipality** | **0** |
+| **Duplicate names across municipalities** | **92** name groups (e.g., "александровка" in 5 districts) |
 | **Lookup (5000 rows, Node.js)** | O(1) via `Map<name_norm, Settlement[]>` → ~5–10 ms total |
-| **Bundle impact** | Lazy-load: `import('./data/settlements-74.json')` → adds ~155 KB gzipped to chunk, loaded on demand. No impact on first load. |
-| **Memory** | ~3–5 MB parsed in V8 — negligible. |
+| **Bundle impact** | Lazy-load: `import('./data/settlements-74.json')` → adds ~70 KB gzipped to chunk, loaded on demand. No impact on first load. |
+| **Memory** | ~2–3 MB parsed in V8 — negligible. |
 
 ---
 
@@ -152,23 +152,27 @@ Fixture mirrors export address structure: `(district, city/okrug, inner_settleme
 | **OSM + GAR** | ❌ Not viable | GAR cannot be redistributed in public repo; requires accreditation; adds no value over OSM for settlement names + hierarchy. |
 | **GAR only** | ❌ Impossible | Legal/redistribution blockers. |
 
-### Data Pipeline — **IMPLEMENTED in GRAFIK-32**
+### Data Pipeline — **IMPLEMENTED in GRAFIK-37 (replaces GRAFIK-32)**
 
-1. **Build script**: `scripts/build-settlements.mjs` (Node 22, no runtime deps beyond `point-in-polygon` devDep). Overpass API: area ISO3166-2=RU-CHE → place nodes + admin_level=6 boundaries with geometry. Point-in-polygon (ray casting via `point-in-polygon` lib) + nearest-centroid fallback. npm script `data:settlements`.
-2. **Output**: `public/data/settlements-74.json` — 3,955 records, 634 KB raw / 155 KB gzip, sorted, minified.
+1. **Build script**: `scripts/build-settlements.mjs` (Node 22, no runtime deps). Overpass API:
+   - Query admin_level=6 boundaries in RU-CHE (43 relations)
+   - For each relation, fetch its place nodes via `node["place"~"city|town|village|hamlet|locality"](area:3600000000+<relId>)`
+   - 2-3 s pause between requests, retry with exponential backoff
+   - npm script `data:settlements`
+2. **Output**: `public/data/settlements-74.json` — 2,164 records, 249 KB raw / 70 KB gzip, sorted, minified.
 3. **Attribution**: `public/data/LICENSE-OSM.txt` (ODbL 1.0) + footer line in `index.html`: "Справочник НП © участники OpenStreetMap (ODbL)".
-4. **Tests**: `tests/settlements-data.test.js` — schema, count >1000, bbox check, spot checks (Сатка/Бердяуш in Саткинский, Тайнак in Кусинский per OSM).
+4. **Tests**: `tests/settlements-data.test.js` — schema, count >1000, bbox check, 100% records have municipality, no "nearest"/"(", 13 spot checks (Сатка/Бердяуш → Саткинский, Тайнак → Златоуст, plus 10 more).
 5. **Update cadence**: Re-run script quarterly; commit new JSON.
 
-### Match Rate Correction
+### Match Rate Correction (GRAFIK-37)
 
 | Category | Count | Rate | Notes |
 |----------|-------|------|-------|
-| Point-in-polygon exact | 198 | 5% | Limited by OSM ring assembly (member ways not concatenated into closed rings) |
-| Nearest-centroid fallback | 3,757 | 95% | Works reliably; distance to municipality centroid |
-| **Total assigned** | **3,955** | **100%** | Every settlement has a municipality |
+| Exact assignments (area membership) | 2,164 | 100% | Overpass area membership — authoritative, no geometry assembly needed |
+| Fallback (nearest-centroid) | 0 | 0% | Eliminated |
+| **Total assigned** | **2,164** | **100%** | Every settlement has a municipality |
 
-**Duplicate names across municipalities**: 244 groups (e.g., "амангильдино" in 3+ districts). OSM geometry distinguishes by containment — requires proper ring assembly for exact resolution.
+**Duplicate names across municipalities**: 92 groups (e.g., "александровка" in 5 districts). OSM area membership resolves by boundary containment — each duplicate name gets the correct municipality of its containing boundary.
 
 ### GAR Note Correction
 
