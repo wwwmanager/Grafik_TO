@@ -539,7 +539,47 @@
       "dispatchedBy": "architect",
       "dispatchedAt": "2026-11-23T22:39:39+05:00",
       "updatedAt": "2026-11-23T22:41:41+05:00"
+    },
+    {
+      "id": "GRAFIK-28-GAP-AUDIT",
+      "title": "Read-only gap audit: functional, UI, Excel, quality",
+      "status": "dispatched",
+      "approved": true,
+      "dependsOn": [],
+      "dispatchText": "SLICE=GRAFIK-28-GAP-AUDIT project=grafik_to root=G:\\_Grafik_TO verify=off (send DONE to architect)\nGoal: READ-ONLY gap audit of the whole app. No code changes. Output one report file, commit it, push.\nSources of truth: docs/spec/TZ.md, docs/spec/decisions.md (D1-D14 override TZ), docs/manual.md, docs/context/slices.json (GRAFIK-01..27 history).\nSplit for L3 in parallel (read-only), then merge:\n1) Functional: every TZ/decisions requirement -> implemented? (cite file:function or \"missing\"). Edge cases: empty/invalid xlsx, huge files, duplicate units, A4 twice/year, vacations overlapping, no working days in window, capacity overflow, phys persons, '*' dates, calendar API offline.\n2) UI/UX: run `npm --prefix G:\\_Grafik_TO run dev` or build preview; check flow upload->settings->generate->preview->download: validation messages, empty/error states, loading indicator, settings persistence between sessions, reset to defaults, keyboard/a11y, mobile width, consistency of labels with manual.\n3) Output/Excel: 4 sheets readability, print setup (orientation, fit to width, repeat header row), freeze panes, filters, totals.\n4) Quality: test coverage gaps by module, dead code, error handling, performance on 5000+ rows.\nReport file: docs/analysis/gap-audit.md (RU, plain language for the owner): table ID | area | finding | impact (high/med/low) | proposed fix | effort (S/M/L). Group into ready-to-dispatch slice candidates.\nverify: npm run verify still green (no code touched). Commit only the report.\nFinal report to architect, EN <=10 lines: commit, path, counts by impact, top-5 high findings one line each. No acks.\n",
+      "acceptance": null,
+      "verifyCommands": [
+        "npm --prefix G:\\_Grafik_TO run verify"
+      ],
+      "owner": "orch1",
+      "commit": null,
+      "evidence": null,
+      "rejections": 0,
+      "retro": null,
+      "dispatchedBy": "architect",
+      "dispatchedAt": "2026-11-25T18:10:35+05:00",
+      "updatedAt": "2026-11-25T18:10:35+05:00"
+    },
+    {
+      "id": "GRAFIK-29-STATUS-TWO",
+      "title": "Two date statuses by day: Просрочен / По графику",
+      "status": "accepted",
+      "approved": true,
+      "dependsOn": [],
+      "dispatchText": "SLICE=GRAFIK-29-STATUS-TWO project=grafik_to root=G:\\_Grafik_TO verify=off (send DONE to architect)\nGoal: owner decision (variant A): only two date statuses, compared by full DAY, not year.\nRule in src/modules/format.js formatUnitTargets (and any preview/export using it):\n- unit target date < exportDate (day precision; exportDate from title row, else today) -> 'Просрочен (ДД.ММ.ГГГГ)'\n- otherwise -> 'По графику (ДД.ММ.ГГГГ)'\n- '*' unit with no/invalid date -> 'Просрочен (дата неизвестна)'\nRemove 'Текущий год'/'Целевой год'/'Плановый год' everywhere (preview, Excel, manual mentions if present in code strings).\nTests (tests/format.test.js): export 23.11.2026: 15.03.2026 -> Просрочен; 23.11.2026 -> По графику; 01.01.2027 -> По графику; 01.01.2025 -> Просрочен; '*' no date -> Просрочен (дата неизвестна).\nNote: GRAFIK-28 audit may be running on this repo; touch only format.js, its callers and tests.\nverify: npm run verify green. Commit, push origin main, confirm Actions run + Pages 200.\nReport: STATUS(done) commit, files, tests, Actions run id. EN <=10 lines. No acks.\n",
+      "acceptance": null,
+      "verifyCommands": [
+        "npm --prefix G:\\_Grafik_TO run verify"
+      ],
+      "owner": "orch1",
+      "commit": "d0c7c5e",
+      "evidence": "G:\\_Grafik_TO\\docs\\context\\evidence\\GRAFIK-29-STATUS-TWO.json",
+      "rejections": 0,
+      "retro": "two statuses by day precision vs exportDate",
+      "dispatchedBy": "architect",
+      "dispatchedAt": "2026-11-25T18:21:03+05:00",
+      "updatedAt": "2026-11-25T18:34:10+05:00"
     }
   ],
-  "updatedAt": "2026-11-23T22:41:41+05:00"
+  "updatedAt": "2026-11-25T18:34:10+05:00"
 }
