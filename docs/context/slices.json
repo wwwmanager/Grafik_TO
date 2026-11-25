@@ -625,6 +625,9 @@
       "title": "Address parse/normalize, region select, resolve to OSM settlement",
       "status": "planned",
       "approved": false,
+      "dependsOn": [
+        "GRAFIK-36-ALL-REGIONS"
+      ],
       "dispatchText": "SLICE=GRAFIK-33-ADDR-RESOLVER project=grafik_to root=G:\\_Grafik_TO verify=off (send DONE to architect)\nDepends on GRAFIK-36 (public/data/regions.json + public/data/settlements/<code>.json). Context: docs/spec/decisions.md D20, D21, D23; docs/spec/headers-sample.txt; src/modules/parser.js.\nGoal: parse owner addresses, pick region(s), resolve to settlements. Scheduler unchanged.\n1. src/modules/address.js parseAddress(text): comma-separated parts; region part if present (e.g. \"ЧЕЛЯБИНСКАЯ ОБЛ\", \"РЕСП БАШКОРТОСТАН\"); 1-based part 4 = district (\"КУСИНСКИЙ Р-Н\", empty for urban okrugs), part 5 = city/village (\"ЗЛАТОУСТ Г\", \"МАГНИТКА РП\", \"ТЮБУК С\"), part 8 = inner settlement (\"ТАЙНАК П\"). Confirm indexes against headers-sample.txt and real parser output; report differences. Levels may be missing.\n2. normalizeName(s): lowercase, ё->е, strip type tokens as prefix/suffix with/without dot (г, п, пос, с, д, дер, рп, р-н, район, х, ст, мкр, тер, снт, обл, респ, край, ао), collapse spaces/hyphens. \"ТАЙНАК П\" == \" П. ТАЙНАК\"; \"Г. ЗЛАТОУСТ\" == \"ЗЛАТОУСТ Г\".\n3. Group key = finest given level; parent = district, else city.\n4. detectRegion(records, regions): majority region by name match against regions.json; null if no region part.\n5. Settings block 4: \"Регион инспекции\" select + \"Соседние регионы\" multi-select from regions.json; default = detected region, else none selected with a hint to choose. Persist like other settings; live summary.\n6. loadSettlements(codes): lazy fetch(import.meta.env.BASE_URL + 'data/settlements/<code>.json') only for selected regions, cached; nothing loads at startup or when physical grouping is off.\n7. resolveSettlement(parsed, ref) -> {key,name,parent,municipality,region,lat,lon,match:'exact'|'fuzzy'|'none'}: Map lookup; on duplicates prefer municipality matching district/city, then the main region; Levenshtein <=2 only if unique; 'none' keeps a text key.\n8. tests/address.test.js: >=25 FICTIONAL addresses (real settlement names allowed, streets/houses/persons invented) incl. spelling variants, missing levels (Кизильский р-н without city; Трёхгорный without district), duplicates across districts, one neighbour-region address. Print match rate exact/fuzzy/none.\nverify: npm run verify green. Commit, push main, Actions + Pages 200.\nReport EN <=10 lines: STATUS(done), commit, files, match rate, tests. No acks.\n",
       "acceptance": null,
       "verifyCommands": [
@@ -637,16 +640,16 @@
       "retro": null,
       "dispatchedBy": null,
       "dispatchedAt": null,
-      "updatedAt": "2026-11-25T19:28:59+05:00",
-      "dependsOn": [
-        "GRAFIK-36-ALL-REGIONS"
-      ]
+      "updatedAt": "2026-11-25T19:28:59+05:00"
     },
     {
       "id": "GRAFIK-34-PHYSICAL-SCHEDULE",
       "title": "Physical persons day routes over nearby settlements + onsite + Excel",
       "status": "planned",
       "approved": false,
+      "dependsOn": [
+        "GRAFIK-33-ADDR-RESOLVER"
+      ],
       "dispatchText": "SLICE=GRAFIK-34-PHYSICAL-SCHEDULE project=grafik_to root=G:\\_Grafik_TO verify=off (send DONE to architect)\nDepends on GRAFIK-33 (src/modules/address.js) and GRAFIK-32 (settlement coords). Authority: docs/spec/decisions.md D20 (read fully), D3, D4, D11, D14, D18.\nGoal: schedule physical persons as efficient day routes over nearby settlements. With the new checkbox OFF output must be byte-identical to today (D5 note); regression test for that.\nSettings (block 4 \"Физлица и малые владельцы\", live summary): includePhysical \"Включать физлиц в график\" (default off); physicalScope \"только до порога\" (default) | \"все физлица\"; minUnitsForVisit \"Мин. единиц техники для выезда\" (default 5); baseSettlement \"Населённый пункт инспекции\" (pick from reference, start point of routes); maxRadiusKm \"Радиус маршрута, км\" (default 40); avgSpeedKmh \"Средняя скорость, км/ч\" (default 50); onsite days checkboxes with \"как приёмные дни\" (default on); onsite location \"у инспекции\" (inspectionAddress) | \"своя площадка\" + address. Persist like other settings.\nAlgorithm (new module src/modules/physical.js, scheduler.js changes minimal):\n1. Eligible physical units -> settlement (address.js) -> stop = settlement x month (overdue and \"*\" pick the month like legal entities, D14 weighting).\n2. Travel minutes between points = haversine km x 1.3 / avgSpeed x 60, rounded up to 5 min. Unresolved settlement (no coords): own route only, fixed travelMinutes (D18).\n3. Per month, build day routes greedily: seed = stop farthest from base; add the nearest stop within maxRadiusKm of the seed while day fits (base->stops->base travel + inspection time per D18 rounding, lunch, workday). Order stops by nearest neighbour from base. Large stops split across days by capacity.\n4. Route with total units >= minUnitsForVisit -> outbound day on a workday that is not accepting/onsite day; otherwise its units go onsite on onsite days of that month, capacity-split.\nExcel common schedule rows: \"ТО физлиц: п. Тайнак → п. Тундуш (Златоуст) — 9 чел., 12 ед., маршрут 74 км\" and \"ТО физлиц на площадке: <адрес> — N чел., M ед.\"; Детализация lists owners and units per stop in route order; travel column = route travel minutes.\nTests (fictional data): off = unchanged, scope, radius, capacity split, route order, min-units -> onsite, Excel row text.\nverify: npm run verify green. Commit, push main, Actions + Pages 200.\nReport EN <=10 lines: STATUS(done), commit, files, tests. No acks.\n",
       "acceptance": null,
       "verifyCommands": [
@@ -659,16 +662,16 @@
       "retro": null,
       "dispatchedBy": null,
       "dispatchedAt": null,
-      "updatedAt": "2026-11-25T19:28:59+05:00",
-      "dependsOn": [
-        "GRAFIK-33-ADDR-RESOLVER"
-      ]
+      "updatedAt": "2026-11-25T19:28:59+05:00"
     },
     {
       "id": "GRAFIK-35-PHYSICAL-TAB",
       "title": "Preview tab Физлица with manual merge + persistence",
       "status": "planned",
       "approved": false,
+      "dependsOn": [
+        "GRAFIK-34-PHYSICAL-SCHEDULE"
+      ],
       "dispatchText": "SLICE=GRAFIK-35-PHYSICAL-TAB project=grafik_to root=G:\\_Grafik_TO verify=off (send DONE to architect)\nDepends on GRAFIK-34. Authority: docs/spec/decisions.md D20.\nGoal: preview tab \"Физлица\" for manual grouping. Visible only when includePhysical is on.\n- Tree: parent (district, else city) -> settlements, each with persons count, units count, current mode (выезд / площадка) and planned dates.\n- Actions: select several settlements -> \"Объединить в один выезд\" (one outbound visit; Excel row lists all, e.g. \"ТО физлиц: п. Тайнак, п. Тундуш (Златоуст) — 9 чел., 12 ед.\"); \"Разделить\" (undo a merge); \"На площадку\" (force onsite); \"Сбросить ручные изменения\".\n- Any action re-runs scheduling and refreshes preview/Excel.\n- Persist manual decisions in localStorage keyed by an export fingerprint (export date + row count + file name hash). Store settlement keys and modes ONLY, never names of persons/addresses. Different export loaded -> stored decisions ignored and cleared.\n- Accessible: keyboard operable, labelled controls.\nTests (fictional data): merge/split/onsite round-trip, persistence by fingerprint, cleared on other export, stored payload contains no person names.\nverify: npm run verify green. Commit, push main, Actions + Pages 200.\nReport EN <=10 lines: STATUS(done), commit, files, tests. No acks.\n",
       "acceptance": null,
       "verifyCommands": [
@@ -681,15 +684,12 @@
       "retro": null,
       "dispatchedBy": null,
       "dispatchedAt": null,
-      "updatedAt": "2026-11-25T19:29:00+05:00",
-      "dependsOn": [
-        "GRAFIK-34-PHYSICAL-SCHEDULE"
-      ]
+      "updatedAt": "2026-11-25T19:29:00+05:00"
     },
     {
       "id": "GRAFIK-32-OSM-SETTLEMENTS",
       "title": "OSM settlements reference for region 74 (build script + JSON + tests)",
-      "status": "dispatched",
+      "status": "accepted",
       "approved": true,
       "dependsOn": [],
       "dispatchText": "SLICE=GRAFIK-32-OSM-SETTLEMENTS project=grafik_to root=G:\\_Grafik_TO verify=off (send DONE to architect)\nContext: docs/spec/decisions.md D20-D21; docs/analysis/addr-reference-spike.md. Public repo: no real owner addresses anywhere.\nGoal: offline settlement reference for Chelyabinsk oblast built from OSM, with REAL measured numbers.\n1. scripts/build-settlements.mjs (Node 22, no new runtime deps): Overpass API, area ISO3166-2=RU-CHE; place=city|town|village|hamlet|locality (nodes, out tags+coords); admin_level=6 boundaries (municipal districts AND urban okrugs) with geometry. Assign each place to its municipality by own point-in-polygon (ray casting, handle multipolygons). Network is build-time only; npm script \"data:settlements\"; NOT part of verify.\n2. Output public/data/settlements-74.json: [{name,type,municipality,lat,lon}] coords 5 decimals, sorted, minified. Limit 600 KB raw. Commit the generated file.\n3. Attribution: public/data/LICENSE-OSM.txt (ODbL 1.0, (c) OpenStreetMap contributors) + one small footer line in index.html \"Справочник НП © участники OpenStreetMap (ODbL)\".\n4. tests/settlements-data.test.js: schema; count > 1000; all coords in bbox lat 51.9-56.4, lon 57.0-63.4; every record has municipality; spot checks: Сатка and Бердяуш in Саткинский район, Тайнак in Златоустовский округ (fix names if OSM differs, report it).\n5. Correct addr-reference-spike.md: GAR is open data (fias.nalog.ru), rejected because it has no coordinates; Бердяуш is Саткинский; replace estimates with measured counts by type, records without municipality, size raw/gzip.\nNo src/modules logic, no scheduler/UI change beyond the footer line.\nverify: npm run verify green. Commit, push main, Actions + Pages 200.\nReport EN <=10 lines: STATUS(done), commit, files, counts by type, unassigned count, size raw/gzip, tests. No acks.\n",
@@ -698,19 +698,22 @@
         "npm --prefix G:\\_Grafik_TO run verify"
       ],
       "owner": "orch1",
-      "commit": null,
-      "evidence": null,
+      "commit": "e340aca",
+      "evidence": "G:\\_Grafik_TO\\docs\\context\\evidence\\GRAFIK-32-OSM-SETTLEMENTS.json",
       "rejections": 0,
-      "retro": null,
+      "retro": "OSM ref 74 committed (3d9fe4d+fd90809+e340aca); dependency now declared, docx left uncommitted for GRAFIK-21",
       "dispatchedBy": "architect",
       "dispatchedAt": "2026-11-25T19:29:29+05:00",
-      "updatedAt": "2026-11-25T19:29:29+05:00"
+      "updatedAt": "2026-11-25T20:23:11+05:00"
     },
     {
       "id": "GRAFIK-36-ALL-REGIONS",
       "title": "OSM settlement references for all RF regions + regions.json",
       "status": "planned",
       "approved": false,
+      "dependsOn": [
+        "GRAFIK-32-OSM-SETTLEMENTS"
+      ],
       "dispatchText": "SLICE=GRAFIK-36-ALL-REGIONS project=grafik_to root=G:\\_Grafik_TO verify=off (send DONE to architect)\nDepends on GRAFIK-32 (scripts/build-settlements.mjs, public/data/settlements-74.json). Authority: docs/spec/decisions.md D21, D23.\nGoal: settlement references for ALL Russian federal subjects, one file per region, built offline from OSM.\n1. Extend scripts/build-settlements.mjs: --region <numeric code> | --all; region list = OSM admin_level=4 relations with ISO3166-2 \"RU-*\" (map ISO -> numeric region code via a small table in the script). Same place types and point-in-polygon municipality assignment as GRAFIK-32.\n2. Robust batch: skip regions whose file exists unless --force; retry with backoff on Overpass 429/504; pause between regions; resumable; log per region count/unassigned/bytes.\n3. Layout: public/data/settlements/<code>.json (move 74 there, remove settlements-74.json) + public/data/regions.json [{code,iso,name,file,count,bytes}] sorted by name. Per-file limit 1.5 MB raw; report any region over it.\n4. Run --all and commit the generated files. If some regions fail after retries, commit the rest and list failures in the report (not a blocker).\n5. docs/data-update.md (RU, short): how to rebuild one/all regions, quarterly cadence, ODbL attribution requirement.\n6. Tests: regions.json schema; every listed file exists and matches count; each file passes the GRAFIK-32 schema; region 74 spot checks still pass.\nNo src/modules logic, no UI change.\nverify: npm run verify green. Commit, push main, Actions + Pages 200.\nReport EN <=10 lines: STATUS(done), commit, regions built/failed, total MB raw, largest region, tests. No acks.\n",
       "acceptance": null,
       "verifyCommands": [
@@ -723,11 +726,8 @@
       "retro": null,
       "dispatchedBy": null,
       "dispatchedAt": null,
-      "updatedAt": "2026-11-25T19:53:07+05:00",
-      "dependsOn": [
-        "GRAFIK-32-OSM-SETTLEMENTS"
-      ]
+      "updatedAt": "2026-11-25T19:53:07+05:00"
     }
   ],
-  "updatedAt": "2026-11-25T19:53:07+05:00"
+  "updatedAt": "2026-11-25T20:23:11+05:00"
 }
