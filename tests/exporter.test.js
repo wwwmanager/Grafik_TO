@@ -288,7 +288,7 @@ describe('exportScheduleToXlsx', () => {
         nextTo: new Date(2026, 5, 10),
       }),
     ];
-    const groupSettings = { ...SETTINGS, travelMinutes: 30 };
+    const groupSettings = { ...SETTINGS, travelMinutes: 30, exportDate: new Date(2026, 10, 23) };
     const groupedResult = buildSchedule(group, groupSettings, CALENDAR);
     const workbook = await loadWorkbook(await exportScheduleToXlsx(groupedResult, groupSettings));
     const details = workbook.getWorksheet('Детализация');
@@ -299,7 +299,7 @@ describe('exportScheduleToXlsx', () => {
     const row = details.getRow(2);
     expect(row.getCell(9).value).toBe(30);
     expect(row.getCell(10).value).toBe(30);
-    expect(String(row.getCell(15).value)).toContain('Текущий год (10.06.2026)');
+    expect(String(row.getCell(15).value)).toContain('Просрочен (10.06.2026)');
   });
 
   it('vertically centres every cell on both main sheets (GRAFIK-24)', async () => {

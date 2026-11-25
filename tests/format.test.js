@@ -2,37 +2,62 @@ import { describe, expect, it } from 'vitest';
 
 import { formatUnitTargets, targetDateStatus } from '../src/modules/format.js';
 
-const CONTEXT = { currentYear: 2026, targetYear: 2027 };
+const EXPORT_DATE = new Date(2026, 10, 23); // 23.11.2026
 
-describe('targetDateStatus (GRAFIK-27)', () => {
-  it('labels a future target-year date as the target year', () => {
-    expect(targetDateStatus(new Date(2027, 0, 1), CONTEXT)).toBe('Целевой год (01.01.2027)');
+describe('targetDateStatus (GRAFIK-29)', () => {
+  it('labels a date before exportDate as overdue', () => {
+    expect(targetDateStatus(new Date(2026, 2, 15), { exportDate: EXPORT_DATE })).toBe('Просрочен (15.03.2026)');
   });
 
-  it('labels a past date as overdue', () => {
-    expect(targetDateStatus(new Date(2025, 0, 1), CONTEXT)).toBe('Просрочена (01.01.2025)');
+  it('labels the exportDate itself as on schedule', () => {
+    expect(targetDateStatus(new Date(2026, 10, 23), { exportDate: EXPORT_DATE })).toBe('По графику (23.11.2026)');
   });
 
-  it('labels a current-year date as the current year', () => {
-    expect(targetDateStatus(new Date(2026, 5, 15), CONTEXT)).toBe('Текущий год (15.06.2026)');
+  it('labels a future date as on schedule', () => {
+    expect(targetDateStatus(new Date(2027, 0, 1), { exportDate: EXPORT_DATE })).toBe('По графику (01.01.2027)');
+  });
+
+  it('labels a past year date as overdue', () => {
+    expect(targetDateStatus(new Date(2025, 0, 1), { exportDate: EXPORT_DATE })).toBe('Просрочен (01.01.2025)');
   });
 });
 
-describe('formatUnitTargets date status (GRAFIK-27)', () => {
+describe('formatUnitTargets date status (GRAFIK-29)', () => {
   const unit = (date, extra = {}) => [
     { plate: 'А001ММ77', brand: 'Lada', dates: [{ date, ...extra }] },
   ];
 
-  it('does not mark a 2027 date overdue even when the overdue flag is set', () => {
-    const text = formatUnitTargets(unit(new Date(2027, 0, 1), { overdue: true }), CONTEXT);
-    expect(text).toBe('1. А001ММ77 (Lada) — Целевой год (01.01.2027)');
-    expect(text).not.toContain('Просрочена');
+  it('marks a past date as overdue', () => {
+    const text = formatUnitTargets(unit(new Date(2025, 0, 1)), { exportDate: EXPORT_DATE });
+    expect(text).toContain('Просрочен (01.01.2025)');
   });
 
-  it('marks a past date overdue and a current-year date as current', () => {
-    const past = formatUnitTargets(unit(new Date(2025, 0, 1)), CONTEXT);
-    expect(past).toContain('Просрочена (01.01.2025)');
-    const current = formatUnitTargets(unit(new Date(2026, 5, 15)), CONTEXT);
-    expect(current).toContain('Текущий год (15.06.2026)');
+  it('marks exportDate as on schedule', () => {
+    const text = formatUnitTargets(unit(new Date(2026, 10, 23)), { exportDate: EXPORT_DATE });
+    expect(text).toContain('По графику (23.11.2026)');
+  });
+
+  it('marks a future date as on schedule', () => {
+    const text = formatUnitTargets(unit(new Date(2027, 0, 1)), { exportDate: EXPORT_DATE });
+    expect(text).toContain('По графику (01.01.2027)');
+  });
+
+  it('marks a date with no valid date as overdue (unknown)', () => {
+    const text = formatUnitTargets([{ plate: 'А001ММ77', brand: 'Lada', dates: [{ date: null }] }], { exportDate: EXPORT_DATE });
+    expect(text).toContain('Просрочен (дата неизвестна)');
+  });
+
+  it('marks a date with invalid date as overdue (unknown)', () => {
+    const text = formatUnitTargets([{ plate: 'А001ММ77', brand: 'Lada', dates: [{ date: 'invalid' }] }], { exportDate: EXPORT_DATE });
+    expect(text).toContain('Просрочен (дата неизвестна)');
+  });
+
+  it('handles multiple dates per unit', () => {
+    const text = formatUnitTargets([{ plate: 'А001ММ77', brand: 'Lada', dates: [
+      { date: new Date(2025, 0, 1) },
+      { date: new Date(2027, 0, 1) }
+    ] }], { exportDate: EXPORT_DATE });
+    expect(text).toContain('Просрочен (01.01.2025)');
+    expect(text).toContain('По графику (01.01.2027)');
   });
 });

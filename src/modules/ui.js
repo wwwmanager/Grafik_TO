@@ -184,13 +184,9 @@ export function schedulePreviewRows(result) {
 }
 
 export function detailPreviewRows(result, settings = {}) {
-  const dateContext = {
-    targetYear: result.year ?? settings.targetYear,
-    currentYear:
-      settings.exportDate instanceof Date && !Number.isNaN(settings.exportDate.getTime())
-        ? settings.exportDate.getFullYear()
-        : new Date().getFullYear(),
-  };
+  const exportDate = settings.exportDate instanceof Date && !Number.isNaN(settings.exportDate.getTime())
+    ? settings.exportDate
+    : new Date();
   return (result.visits || []).map((visit, index) => [
     index + 1,
     formatDate(visit.date),
@@ -202,7 +198,7 @@ export function detailPreviewRows(result, settings = {}) {
     visit.inspectionMin ?? visit.durationMin,
     visit.travelMin ?? 0,
     formatVehicleList(visit.records),
-    formatUnitTargets(visit.unitsDetail, dateContext),
+    formatUnitTargets(visit.unitsDetail, { exportDate }),
   ]);
 }
 

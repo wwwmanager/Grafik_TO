@@ -208,13 +208,9 @@ function buildDetailsSheet(workbook, result, settings = {}) {
     { header: 'Перегруз', width: 10 },
     { header: 'Единицы и целевая дата ТО', width: 48 },
   ];
-  const dateContext = {
-    targetYear: result.year ?? settings.targetYear,
-    currentYear:
-      settings.exportDate instanceof Date && !Number.isNaN(settings.exportDate.getTime())
-        ? settings.exportDate.getFullYear()
-        : new Date().getFullYear(),
-  };
+  const exportDate = settings.exportDate instanceof Date && !Number.isNaN(settings.exportDate.getTime())
+    ? settings.exportDate
+    : new Date();
   result.visits.forEach((visit, index) => {
     const row = sheet.addRow([
       index + 1,
@@ -231,7 +227,7 @@ function buildDetailsSheet(workbook, result, settings = {}) {
       (visit.sources || []).join('; '),
       visit.overdue ? 'да' : '',
       visit.overload ? 'да' : '',
-      formatUnitTargets(visit.unitsDetail, dateContext),
+      formatUnitTargets(visit.unitsDetail, { exportDate }),
     ]);
     row.getCell(11).alignment = { vertical: 'top', wrapText: true };
     row.getCell(15).alignment = { vertical: 'top', wrapText: true };
