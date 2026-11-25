@@ -767,7 +767,27 @@
       "dispatchedBy": "architect",
       "dispatchedAt": "2026-11-25T21:10:50+05:00",
       "updatedAt": "2026-11-25T21:20:59+05:00"
+    },
+    {
+      "id": "GRAFIK-40-REGION-COVERAGE",
+      "title": "Region coverage: fix mislabeled Moscow oblast, cover 85 subjects",
+      "status": "dispatched",
+      "approved": true,
+      "dependsOn": [],
+      "dispatchText": "SLICE GRAFIK-40-REGION-COVERAGE (supersedes GRAFIK-36, which is closed as rejected after 2 rounds)\n\nGOAL: correct region coverage. Repo G:\\_Grafik_TO. Do not push.\n\nDEFECTS IN f7f0b19 (verified by L0):\n1) settlements/39.json (RU-MO Московская область) contains Mari El data: municipalities Волжский, Горномарийский, городской округ Йошкар-Ола - i.e. the same 17 munis as 38.json (RU-ME). A wrong region is served under a valid code - worse than a missing one.\n2) 15 subjects missing, not 4: Владимирская, Волгоградская, Вологодская, Воронежская, Калмыкия, Калужская, Крым, Москва, Мордовия, Чукотский, Севастополь, ДНР, ЛНР, Запорожская, Херсонская. The claim \"ALL Russian federal subjects\" is false.\n\nWORK:\n1) Fix REGIONS table: one row per subject with official code, ISO, RU name, and a boundary query that actually matches that subject (check the OSM relation name/admin_level before using it; do not reuse a relation id across rows). Build all 85 classic subjects.\n2) New territories (ДНР, ЛНР, Запорожская, Херсонская) and Крым/Севастополь: build if OSM has area data, otherwise exclude with a one-line documented reason in docs/data-update.md.\n3) Add a content-sanity test that would have caught defect 1: for every region file, no two files may share more than 50% of their (name|municipality) pairs, and each file's municipality names must be unique to that region's own query. Zero counts must fail the build, not be documented away.\n4) Keep 74 = Челябинская = 1267 records and its spot checks; keep 1:1 index/files, unique code/iso/name.\n5) Do not remove or weaken existing tests without stating the exact removed assertions and why. Report test count explicitly.\n\nACCEPTANCE (report as evidence): index rows, files on disk, missing subjects list with reason, per-file count, dup-content check result, npm run verify raw output.\n",
+      "acceptance": null,
+      "verifyCommands": [
+        "npm --prefix G:\\_Grafik_TO run verify"
+      ],
+      "owner": "orch1",
+      "commit": null,
+      "evidence": null,
+      "rejections": 0,
+      "retro": null,
+      "dispatchedBy": "architect",
+      "dispatchedAt": "2026-11-26T03:47:03+05:00",
+      "updatedAt": "2026-11-26T03:47:03+05:00"
     }
   ],
-  "updatedAt": "2026-11-26T00:43:17+05:00"
+  "updatedAt": "2026-11-26T03:47:03+05:00"
 }
