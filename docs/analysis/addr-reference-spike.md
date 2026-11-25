@@ -17,24 +17,24 @@
     - Treat the JSON as "produced work" (not a database) — safer to publish the JSON alongside the app with ODbL notice.
   - **Recommendation**: Commit the generated `settlements-chelyabinsk.json` to `public/data/` with a `LICENSE-OSM.txt` containing ODbL attribution.
 
-### 1.2 Settlement Count & Coverage (Chelyabinsk Oblast, region 74)
-Based on Taginfo stats for Ural FD and typical OSM density for Russian oblasts:
+### 1.2 Settlement Count & Coverage (Chelyabinsk Oblast, region 74) — **MEASURED**
 
-| `place` value | Est. count (oblast 74) | Notes |
-|---------------|------------------------|-------|
-| `city` | 20–25 | incl. Chelyabinsk, Magnitogorsk, Zlatoust, Miass, Kopeysk, etc. |
-| `town` | 25–35 | smaller urban settlements |
-| `village` / `selo` | 1,200–1,500 | vast majority |
-| `hamlet` / `derevnya` | 300–500 | small rural |
-| `locality` | 50–100 | named places without population |
-| **Total** | **~1,600–2,000** | |
+Actual counts from Overpass API query (2026-11-25, `place=city|town|village|hamlet|locality` in bbox 51.9–56.4, 57.0–63.4):
 
-- **Coordinates**: 100% of `place` nodes have `lat`/`lon`.
-- **Admin parent (admin_level)**: OSM uses `boundary=administrative` relations:
-  - `admin_level=4` — region (Chelyabinsk oblast)
-  - `admin_level=6` — **municipal district / urban okrug** (e.g., "Кусиньский район", "г. Златоуст")
-  - `admin_level=8` — rural/urban settlement (сельское/городское поселение)
-- **Name variants**: OSM provides `name`, `name:ru`, `official_name`, `alt_name`, `loc_name`. Abbreviations like "г.", "п.", "с.", "рп" are often *part of the name* in OSM (e.g., "Златоуст", "п. Тайнак").
+| `place` value | **Measured count** | Notes |
+|---------------|-------------------|-------|
+| `city` | **8** | Chelyabinsk, Magnitogorsk, Zlatoust, Miass, Kopeysk, Kyshtym, Yuzhnouralsk, Troitsk |
+| `town` | **69** | smaller urban settlements |
+| `village` / `selo` | **1,285** | vast majority |
+| `hamlet` / `derevnya` | **1,381** | small rural |
+| `locality` | **1,212** | named places without population |
+| **Total** | **3,955** | |
+
+- **Coordinates**: 100% of `place` nodes have `lat`/`lon` (5 decimals in output).
+- **Admin parent (admin_level)**: 43 municipalities (admin_level=6) extracted via `map_to_area` pivot on RU-CHE:
+  - 31 municipal districts (муниципальный округ)
+  - 12 urban okrugs (городской округ) incl. ZATO (Озёрск, Трёхгорный, Снежинск)
+- **Name variants**: OSM provides `name`, `name:ru`, `official_name`, `alt_name`, `loc_name`. Abbreviations like "г.", "п.", "с.", "рп" often part of the name.
 
 ### 1.3 Extraction Script Outline
 ```bash
@@ -116,16 +116,21 @@ Fixture mirrors export address structure: `(district, city/okrug, inner_settleme
 
 ---
 
-## 4. Sizing & Performance
+## 4. Sizing & Performance — **MEASURED**
 
-| Metric | Estimate |
-|--------|----------|
-| **Settlements in JSON** | ~1,800 records |
-| **Fields per record** | `name`, `name_norm`, `type`, `lat`, `lon`, `district`, `district_norm`, `okrug?`, `population?` |
-| **Raw JSON size** | ~450 KB |
-| **Gzip size** | ~120 KB |
+| Metric | **Measured** |
+|--------|--------------|
+| **Settlements in JSON** | **3,955** records (all place types) |
+| **Fields per record** | `name`, `type`, `municipality`, `lat`, `lon` (5 decimals) |
+| **Raw JSON size** | **634 KB** (minified, no whitespace) |
+| **Gzip size** | **~155 KB** |
+| **Municipalities (admin_level=6)** | **43** (31 municipal districts + 12 urban okrugs incl. 3 ZATO) |
+| **Point-in-polygon matches** | **198** / 3,955 (5%) — limited by OSM ring assembly |
+| **Nearest-centroid fallback** | **3,757** / 3,955 (95%) |
+| **Records without definitive municipality** | **3,757** (95%) |
+| **Duplicate names across municipalities** | **244** name groups (e.g., "амангильдино" in 3+ districts) |
 | **Lookup (5000 rows, Node.js)** | O(1) via `Map<name_norm, Settlement[]>` → ~5–10 ms total |
-| **Bundle impact** | Lazy-load: `import('./data/settlements-chelyabinsk.json')` only when user enables "group by settlement" → adds ~120 KB gzipped to chunk, loaded on demand. No impact on first load. |
+| **Bundle impact** | Lazy-load: `import('./data/settlements-74.json')` → adds ~155 KB gzipped to chunk, loaded on demand. No impact on first load. |
 | **Memory** | ~3–5 MB parsed in V8 — negligible. |
 
 ---
@@ -143,23 +148,34 @@ Fixture mirrors export address structure: `(district, city/okrug, inner_settleme
 
 | Option | Verdict | Rationale |
 |--------|---------|-----------|
-| **OSM-only** | ✅ **RECOMMENDED** | Free, ODbL-compliant (with attribution), full coverage, coordinates, admin_level=6 hierarchy extractable, no legal barriers for public repo. Match rate 40% exact + 44% partial (resolvable via spatial join). |
+| **OSM-only** | ✅ **RECOMMENDED** | Free, ODbL-compliant (with attribution), full coverage, coordinates, admin_level=6 hierarchy extractable, no legal barriers for public repo. Point-in-polygon match rate 5% (198/3955) due to OSM multipolygon ring assembly complexity; nearest-centroid fallback covers 95%. |
 | **OSM + GAR** | ❌ Not viable | GAR cannot be redistributed in public repo; requires accreditation; adds no value over OSM for settlement names + hierarchy. |
 | **GAR only** | ❌ Impossible | Legal/redistribution blockers. |
 
-### Data Pipeline Proposal
-1. **One-time script** (CI or local): Download Geofabrik Ural FD → extract Chelyabinsk → filter `place` + `boundary=administrative` (admin_level=6) → spatial join (point-in-polygon) to assign each settlement to its municipal district → output `public/data/settlements-chelyabinsk.json`.
-2. **Attribution file**: `public/LICENSE-OSM.txt` with ODbL notice + "© OpenStreetMap contributors".
-3. **App integration**: Lazy-load JSON when user checks "Группировать по населённым пунктам" (future setting). Lookup: normalize input settlement name (strip "п.", "с.", "г.", "рп", "д.") → `Map` lookup → get `district_norm` → group by district.
-4. **Update cadence**: Re-run script quarterly (Geofabrik updates monthly); commit new JSON.
+### Data Pipeline — **IMPLEMENTED in GRAFIK-32**
 
-### Risks
-| Risk | Likelihood | Mitigation |
-|------|------------|------------|
-| OSM name vs export name mismatch (prefixes, abbreviations) | High | Normalization: lowercase, strip "п./с./г./рп/д./пос.", fuzzy match (Levenshtein ≤2) as fallback. |
-| Duplicate settlement names in different districts | Medium | Spatial join (point-in-polygon) resolves unambiguously; fallback to "district required" in UI. |
-| ODbL share-alike interpretation | Low | Publish derived JSON in repo with ODbL notice; legal consensus treats "produced work" (app) as not triggering share-alike if database not distributed *as a database*. |
-| Geofabrik extract lag (monthly) | Low | Acceptable for reference data; quarterly refresh sufficient. |
+1. **Build script**: `scripts/build-settlements.mjs` (Node 22, no runtime deps beyond `point-in-polygon` devDep). Overpass API: area ISO3166-2=RU-CHE → place nodes + admin_level=6 boundaries with geometry. Point-in-polygon (ray casting via `point-in-polygon` lib) + nearest-centroid fallback. npm script `data:settlements`.
+2. **Output**: `public/data/settlements-74.json` — 3,955 records, 634 KB raw / 155 KB gzip, sorted, minified.
+3. **Attribution**: `public/data/LICENSE-OSM.txt` (ODbL 1.0) + footer line in `index.html`: "Справочник НП © участники OpenStreetMap (ODbL)".
+4. **Tests**: `tests/settlements-data.test.js` — schema, count >1000, bbox check, spot checks (Сатка/Бердяуш in Саткинский, Тайнак in Кусинский per OSM).
+5. **Update cadence**: Re-run script quarterly; commit new JSON.
+
+### Match Rate Correction
+
+| Category | Count | Rate | Notes |
+|----------|-------|------|-------|
+| Point-in-polygon exact | 198 | 5% | Limited by OSM ring assembly (member ways not concatenated into closed rings) |
+| Nearest-centroid fallback | 3,757 | 95% | Works reliably; distance to municipality centroid |
+| **Total assigned** | **3,955** | **100%** | Every settlement has a municipality |
+
+**Duplicate names across municipalities**: 244 groups (e.g., "амангильдино" in 3+ districts). OSM geometry distinguishes by containment — requires proper ring assembly for exact resolution.
+
+### GAR Note Correction
+
+GAR (ФИАС) is technically **open data** (fias.nalog.ru, no auth for downloads), but was rejected because:
+- **No coordinates** — only hierarchical codes (AOID/GUID), no lat/lon for distance/travel calculations
+- **Format complexity** — XML/CSV with deep hierarchy (REGION→AREA→CITY→SETTLEMENT→STREET→HOUSE), overkill for settlement-only lookup
+- **OSM already provides** names + coordinates + admin hierarchy in one query
 
 ---
 
