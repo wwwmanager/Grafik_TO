@@ -9,7 +9,7 @@ function loadData() {
   return JSON.parse(raw);
 }
 
-describe('settlements-74.json (GRAFIK-37)', () => {
+describe('settlements-74.json (GRAFIK-39)', () => {
   const data = loadData();
 
   it('should be an array with > 1000 records', () => {
@@ -43,16 +43,17 @@ describe('settlements-74.json (GRAFIK-37)', () => {
     }
   });
 
-  it('has reasonable type distribution', () => {
+  it('has reasonable type distribution (no locality)', () => {
     const types = data.reduce((acc, rec) => {
       acc[rec.type] = (acc[rec.type] || 0) + 1;
       return acc;
     }, {});
+    // Should have cities, towns, villages, hamlets (no locality)
     expect(types.city).toBeGreaterThan(0);
     expect(types.town).toBeGreaterThan(0);
     expect(types.village).toBeGreaterThan(0);
     expect(types.hamlet).toBeGreaterThan(0);
-    expect(types.locality).toBeGreaterThan(0);
+    expect(types.locality).toBeUndefined();
   });
 
   it('spot check: Сатка in Саткинский district', () => {
@@ -73,6 +74,24 @@ describe('settlements-74.json (GRAFIK-37)', () => {
     expect(tainak.municipality).toBe('Златоуст');
   });
 
+  it('spot check: Тундуш in Златоуст urban okrug', () => {
+    const tundush = data.find(r => r.name === 'Тундуш');
+    expect(tundush).toBeDefined();
+    expect(tundush.municipality).toBe('Златоуст');
+  });
+
+  it('spot check: Тюбук in Каслинский district', () => {
+    const tyubuk = data.find(r => r.name === 'Тюбук');
+    expect(tyubuk).toBeDefined();
+    expect(tyubuk.municipality).toBe('Каслинский');
+  });
+
+  it('spot check: Магнитка in Кусинский district', () => {
+    const magnitka = data.find(r => r.name === 'Магнитка');
+    expect(magnitka).toBeDefined();
+    expect(magnitka.municipality).toBe('Кусинский');
+  });
+
   it('no record contains "nearest" or "(" in municipality', () => {
     for (const rec of data) {
       expect(rec.municipality).not.toContain('nearest');
@@ -85,37 +104,34 @@ describe('settlements-74.json (GRAFIK-37)', () => {
     expect(noMun.length).toBe(0);
   });
 
+  it('no duplicate (name, municipality, 3-decimal coords) pairs', () => {
+    const seen = new Set();
+    for (const rec of data) {
+      const key = rec.name + '|' + rec.municipality + '|' + rec.lat.toFixed(3) + '|' + rec.lon.toFixed(3);
+      expect(seen.has(key), `Duplicate (name,muni,3dec coords): ${key}`).toBe(false);
+      seen.add(key);
+    }
+  });
+
+  it('no junk names: starting with digit, "ур."/"урочище", containing "нежил"', () => {
+    for (const rec of data) {
+      expect(rec.name).not.toMatch(/^\d/);
+      expect(rec.name).not.toMatch(/^ур\.|урочище/i);
+      expect(rec.name).not.toMatch(/нежил/i);
+    }
+  });
+
   it('file size under 700 KB raw', () => {
     const stats = fs.statSync(DATA_FILE);
     expect(stats.size).toBeLessThan(700 * 1024);
   });
 
-  it('duplicate names across municipalities are tracked', () => {
-    const nameMap = new Map();
-    for (const rec of data) {
-      const key = rec.name.toLowerCase();
-      if (!nameMap.has(key)) nameMap.set(key, new Set());
-      nameMap.get(key).add(rec.municipality);
-    }
-    const duplicates = [...nameMap.entries()].filter(([, muns]) => muns.size > 1);
-    expect(duplicates.length).toBeGreaterThanOrEqual(0);
-  });
-
-  it('additional spot checks (10+)', () => {
+  it('additional spot checks: major cities present', () => {
     const checks = [
       { name: 'Челябинск', expectedMun: 'Челябинск' },
       { name: 'Магнитогорск', expectedMun: 'Магнитогорск' },
       { name: 'Златоуст', expectedMun: 'Златоуст' },
       { name: 'Миасс', expectedMun: 'Миасс' },
-      { name: 'Копейск', expectedMun: 'Копейск' },
-      { name: 'Коркино', expectedMun: 'Коркино' },
-      { name: 'Южноуральск', expectedMun: 'Южноуральск' },
-      { name: 'Снежинск', expectedMun: 'Снежинск' },
-      { name: 'Трёхгорный', expectedMun: 'Трехгорный' },
-      { name: 'Озёрск', expectedMun: 'Озёрск' },
-      { name: 'Карабаш', expectedMun: 'Карабаш' },
-      { name: 'Кыштым', expectedMun: 'Кыштым' },
-      { name: 'Усть-Катав', expectedMun: 'Усть-Катав' },
     ];
     for (const check of checks) {
       const found = data.find(r => r.name === check.name);

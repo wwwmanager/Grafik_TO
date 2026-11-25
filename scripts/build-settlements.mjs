@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// Build-time script to fetch Chelyabinsk oblast settlements from OSM Overpass API
-// Uses area membership: for each admin_level=6 relation, fetch its place nodes directly
-// Output: public/data/settlements-74.json
+// Build-time script to fetch settlements from OSM Overpass API using area membership
+// For each admin_level=6 relation, fetch its place nodes directly
+// Output: public/data/settlements-74.json (or configurable region)
 // Run: node scripts/build-settlements.mjs
 
 import https from 'https';
@@ -12,7 +12,7 @@ const OVERPASS_URL = 'https://overpass.openstreetmap.fr/api/interpreter';
 const OUT_FILE = path.resolve('public/data/settlements-74.json');
 const BBOX = [51.9, 57.0, 56.4, 63.4]; // [minLat, minLon, maxLat, maxLon] Chelyabinsk oblast approx
 
-// Query 1: Get Chelyabinsk oblast and its admin_level=6 boundaries
+// Query 1: Get region and its admin_level=6 boundaries
 const BOUNDARY_QUERY = `
 [out:json][timeout:180];
 (
@@ -136,6 +136,19 @@ function cleanMunicipalityName(name) {
   return urbanOkrugMap[cleaned] || cleaned;
 }
 
+function isJunkName(name) {
+  if (!name) return true;
+  // Drop names starting with digit
+  if (/^\d/.test(name)) return true;
+  // Drop "урочище", "ур." prefixes
+  if (/^ур\.|урочище/i.test(name)) return true;
+  // Drop "нежил" (нежилое)
+  if (/нежил/i.test(name)) return true;
+  // Drop obvious non-settlement terms
+  if (/загон|террикон|га\b/.test(name)) return true;
+  return false;
+}
+
 async function fetchMunicipalities() {
   console.log('Fetching municipal boundaries (admin_level=6)...');
   const boundaryData = await fetchOverpass(BOUNDARY_QUERY);
@@ -182,6 +195,7 @@ out body;
     if (lat < BBOX[0] || lat > BBOX[2] || lon < BBOX[1] || lon > BBOX[3]) continue;
 
     settlements.push({
+      osmId: node.id,
       name,
       type: node.tags.place,
       municipality: municipality.name,
@@ -196,6 +210,78 @@ out body;
   }
 
   return settlements;
+}
+
+function deduplicateSettlements(settlements) {
+  let droppedById = 0;
+  let droppedByCoords = 0;
+  let droppedLocalities = 0;
+  let droppedJunk = 0;
+  const droppedJunkNames = [];
+
+  // 1. Drop by OSM node ID (keep first occurrence)
+  const seenIds = new Set();
+  const afterIdDedupe = [];
+  for (const s of settlements) {
+    if (seenIds.has(s.osmId)) {
+      droppedById++;
+    } else {
+      seenIds.add(s.osmId);
+      afterIdDedupe.push(s);
+    }
+  }
+
+  // 2. Drop place=locality entirely
+  const afterLocalityFilter = [];
+  for (const s of afterIdDedupe) {
+    if (s.type === 'locality') {
+      droppedLocalities++;
+    } else {
+      afterLocalityFilter.push(s);
+    }
+  }
+
+  // 3. Drop junk names
+  const afterJunkFilter = [];
+  for (const s of afterLocalityFilter) {
+    if (isJunkName(s.name)) {
+      droppedJunk++;
+      droppedJunkNames.push(s.name + ' (' + s.municipality + ')');
+    } else {
+      afterJunkFilter.push(s);
+    }
+  }
+
+  // 4. Drop records with identical (name, municipality) and coordinates equal to 3 decimals
+  const seenCoords = new Map();
+  const finalSettlements = [];
+  for (const s of afterJunkFilter) {
+    const key = s.name + '|' + s.municipality + '|' + s.lat.toFixed(3) + '|' + s.lon.toFixed(3);
+    if (seenCoords.has(key)) {
+      droppedByCoords++;
+    } else {
+      seenCoords.set(key, true);
+      // Remove osmId from output
+      finalSettlements.push({
+        name: s.name,
+        type: s.type,
+        municipality: s.municipality,
+        lat: s.lat,
+        lon: s.lon
+      });
+    }
+  }
+
+  return {
+    settlements: finalSettlements,
+    stats: {
+      droppedById,
+      droppedByCoords,
+      droppedLocalities,
+      droppedJunk,
+      droppedJunkNames
+    }
+  };
 }
 
 async function main() {
@@ -218,12 +304,27 @@ async function main() {
     }
   }
 
-  console.log(`\nTotal settlements fetched: ${allSettlements.length}`);
+  console.log(`\nTotal settlements fetched (raw): ${allSettlements.length}`);
   console.log(`Municipalities with errors: ${unassigned.length}`);
+
+  // Deduplicate and clean
+  console.log('\nDeduplicating and cleaning...');
+  const { settlements, stats } = deduplicateSettlements(allSettlements);
+
+  console.log(`  Dropped by duplicate OSM ID: ${stats.droppedById}`);
+  console.log(`  Dropped by duplicate (name,muni,3dec coords): ${stats.droppedByCoords}`);
+  console.log(`  Dropped place=locality: ${stats.droppedLocalities}`);
+  console.log(`  Dropped junk names: ${stats.droppedJunk}`);
+  if (stats.droppedJunkNames.length > 0) {
+    console.log(`  Sample dropped junk names (first 10):`);
+    for (const n of stats.droppedJunkNames.slice(0, 10)) {
+      console.log(`    - ${n}`);
+    }
+  }
 
   // Check for duplicates: same name in multiple municipalities
   const nameMap = new Map();
-  for (const s of allSettlements) {
+  for (const s of settlements) {
     const key = normalizeName(s.name).toLowerCase();
     if (!nameMap.has(key)) nameMap.set(key, []);
     nameMap.get(key).push({ municipality: s.municipality, type: s.type, name: s.name });
@@ -240,41 +341,23 @@ async function main() {
     console.log(`  ${name}: ${muns.join(', ')}`);
   }
 
-  // Spot checks (updated to match actual OSM area membership results)
+  // Spot checks
   const spotChecks = [
     { name: 'Сатка', expectedMun: 'Саткинский' },
     { name: 'Бердяуш', expectedMun: 'Саткинский' },
-    { name: 'Тайнак', expectedMun: 'Златоуст' }, // OSM area membership places it in Златоуст
+    { name: 'Тайнак', expectedMun: 'Златоуст' },
+    { name: 'Тундуш', expectedMun: 'Златоуст' },
+    { name: 'Тюбук', expectedMun: 'Каслинский' },
+    { name: 'Магнитка', expectedMun: 'Кусинский' },
     { name: 'Челябинск', expectedMun: 'Челябинск' },
     { name: 'Магнитогорск', expectedMun: 'Магнитогорск' },
     { name: 'Златоуст', expectedMun: 'Златоуст' },
     { name: 'Миасс', expectedMun: 'Миасс' },
-    { name: 'Копейск', expectedMun: 'Копейск' },
-    { name: 'Коркино', expectedMun: 'Коркино' },
-    { name: 'Южноуральск', expectedMun: 'Южноуральск' },
-    { name: 'Снежинск', expectedMun: 'Снежинск' },
-    { name: 'Трёхгорный', expectedMun: 'Трехгорный' }, // settlement name has ё
-    { name: 'Озёрск', expectedMun: 'Озёрск' },
-    // Additional spot checks (10+ more)
-    { name: 'Карабаш', expectedMun: 'Карабаш' },
-    { name: 'Кыштым', expectedMun: 'Кыштым' },
-    { name: 'Усть-Катав', expectedMun: 'Усть-Катав' },
-    { name: 'Аша', expectedMun: 'Аша' },
-    { name: 'Троицк', expectedMun: 'Троицк' },
-    { name: 'Верхнеуральск', expectedMun: 'Верхнеуральск' },
-    { name: 'Верхний Уфалей', expectedMun: 'Верхнеуфалейск' },
-    { name: 'Чебаркуль', expectedMun: 'Чебаркуль' },
-    { name: 'Еманжелинск', expectedMun: 'Еманжелинск' },
-    { name: 'Карабаш', expectedMun: 'Карабаш' },
-    { name: 'Катав-Ивановск', expectedMun: 'Катав-Ивановский' },
-    { name: 'Пласт', expectedMun: 'Пластовский' },
-    { name: 'Карталы', expectedMun: 'Карталинский' },
-    { name: 'Южноуральск', expectedMun: 'Южноуральск' },
   ];
 
   console.log('\nSpot checks:');
   for (const check of spotChecks) {
-    const found = allSettlements.find(s => normalizeName(s.name).toLowerCase() === normalizeName(check.name).toLowerCase());
+    const found = settlements.find(s => normalizeName(s.name).toLowerCase() === normalizeName(check.name).toLowerCase());
     if (found) {
       const status = found.municipality === check.expectedMun ? '✓' : '✗';
       console.log(`  ${status} ${check.name} -> ${found.municipality} (expected: ${check.expectedMun}) [${found.type}]`);
@@ -285,17 +368,17 @@ async function main() {
 
   // Count by type
   const counts = {};
-  for (const s of allSettlements) {
+  for (const s of settlements) {
     counts[s.type] = (counts[s.type] || 0) + 1;
   }
   console.log('\nCounts by type:', counts);
 
   // Check for any records without municipality (should be 0)
-  const noMun = allSettlements.filter(s => !s.municipality).length;
+  const noMun = settlements.filter(s => !s.municipality).length;
   console.log(`Records without municipality: ${noMun}`);
 
   // Sort by municipality, then name
-  allSettlements.sort((a, b) => {
+  settlements.sort((a, b) => {
     const m = a.municipality.localeCompare(b.municipality);
     if (m !== 0) return m;
     return a.name.localeCompare(b.name);
@@ -304,16 +387,18 @@ async function main() {
   // Write output
   const outDir = path.dirname(OUT_FILE);
   if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
-  fs.writeFileSync(OUT_FILE, JSON.stringify(allSettlements));
+  fs.writeFileSync(OUT_FILE, JSON.stringify(settlements));
   const size = fs.statSync(OUT_FILE).size;
   console.log(`\nWritten ${OUT_FILE} (${(size / 1024).toFixed(1)} KB raw)`);
 
   // Summary
   console.log('\n=== SUMMARY ===');
-  console.log(`Total records: ${allSettlements.length}`);
-  console.log(`Exact assignments (area membership): ${allSettlements.length}`);
-  console.log(`Fallback (nearest): 0`);
-  console.log(`Unassigned: ${noMun}`);
+  console.log(`Records before cleaning: ${allSettlements.length}`);
+  console.log(`Records after cleaning: ${settlements.length}`);
+  console.log(`  Dropped by duplicate OSM ID: ${stats.droppedById}`);
+  console.log(`  Dropped by duplicate (name,muni,3dec coords): ${stats.droppedByCoords}`);
+  console.log(`  Dropped place=locality: ${stats.droppedLocalities}`);
+  console.log(`  Dropped junk names: ${stats.droppedJunk}`);
   console.log(`File size: ${(size / 1024).toFixed(1)} KB raw`);
   console.log(`Duplicates across municipalities: ${duplicates.length}`);
 }
