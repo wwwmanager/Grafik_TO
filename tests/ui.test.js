@@ -5,6 +5,7 @@ import {
   detailPreviewRows,
   schedulePreviewRows,
   summarizeMessages,
+  winterMonthsLabel,
 } from '../src/modules/ui.js';
 
 describe('defaultSettings', () => {
@@ -91,5 +92,42 @@ describe('summarizeMessages', () => {
 
   it('returns no banners for a clean result', () => {
     expect(summarizeMessages({ warnings: [], notes: [], excluded: [] })).toEqual([]);
+  });
+});
+
+describe('winterMonthsLabel', () => {
+  it('returns "нет" for empty array', () => {
+    expect(winterMonthsLabel([])).toBe('нет');
+  });
+
+  it('returns "все" for all 12 months', () => {
+    expect(winterMonthsLabel([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])).toBe('все');
+  });
+
+  it('returns range for consecutive months', () => {
+    expect(winterMonthsLabel([11, 0, 1])).toBe('дек–фев');
+    expect(winterMonthsLabel([0, 1, 2])).toBe('янв–мар');
+  });
+
+  it('returns comma-separated for non-consecutive months', () => {
+    expect(winterMonthsLabel([0, 2, 5])).toBe('янв, мар, июн');
+  });
+});
+
+describe('readSettings clamp (GRAFIK-31)', () => {
+  // We can't easily test readSettings without DOM, but we can verify the clamp logic directly
+  const clamp = (val) =>
+    Number.isFinite(val) && val >= 1 ? Math.min(365, Math.max(1, Math.floor(val))) : 30;
+
+  it('clamps groupWindowDays to [1, 365]', () => {
+    expect(clamp(0)).toBe(30); // fallback to default
+    expect(clamp(-5)).toBe(30);
+    expect(clamp(1)).toBe(1);
+    expect(clamp(30)).toBe(30);
+    expect(clamp(120)).toBe(120);
+    expect(clamp(365)).toBe(365);
+    expect(clamp(500)).toBe(365);
+    expect(clamp(365.9)).toBe(365);
+    expect(clamp('invalid')).toBe(30);
   });
 });

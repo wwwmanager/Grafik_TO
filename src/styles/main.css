@@ -82,17 +82,82 @@ body {
   align-items: end;
 }
 
-.settings-advanced > summary {
+.field-hint {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+/* GRAFIK-31: settings blocks with live summary in <summary> */
+.settings-block {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.settings-block[open] {
+  border-color: var(--color-accent);
+}
+
+.settings-block > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
   font-weight: 600;
   cursor: pointer;
+  list-style: none;
+  user-select: none;
 }
 
-.settings-advanced[open] > summary {
-  margin-bottom: var(--space-3);
+.settings-block > summary::-webkit-details-marker {
+  display: none;
 }
 
-.settings-advanced > :not(summary) {
-  margin-top: var(--space-3);
+.settings-block > summary::before {
+  content: '';
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-right: 2px solid var(--color-text-muted);
+  border-bottom: 2px solid var(--color-text-muted);
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+  margin-right: var(--space-2);
+}
+
+.settings-block[open] > summary::before {
+  transform: rotate(45deg);
+}
+
+.settings-block-hint {
+  font-weight: 400;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.settings-block-content {
+  display: grid;
+  gap: var(--space-3);
+  padding: 0 var(--space-4) var(--space-4);
+}
+
+.settings-always {
+  border: none;
+  padding: 0;
+  background: transparent;
+}
+
+.settings-always > .panel-title {
+  display: none;
 }
 
 .settings-actions {

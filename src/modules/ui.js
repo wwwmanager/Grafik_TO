@@ -48,6 +48,7 @@ export function defaultSettings(now = new Date()) {
 
 // D11/D14: persist the new fields across reloads (localStorage may be absent in tests).
 const STORAGE_KEY = 'grafik-to-settings-v1';
+const BLOCKS_STORAGE_KEY = 'grafik-to-blocks-v1';
 
 export function loadPersistedSettings() {
   try {
@@ -79,6 +80,28 @@ export function loadPersistedSettings() {
     return result;
   } catch {
     return {};
+  }
+}
+
+function loadPersistedBlocks() {
+  try {
+    const storage = globalThis.localStorage;
+    if (!storage) return {};
+    const raw = storage.getItem(BLOCKS_STORAGE_KEY);
+    if (!raw) return {};
+    return JSON.parse(raw) || {};
+  } catch {
+    return {};
+  }
+}
+
+function persistBlocks(blocks) {
+  try {
+    const storage = globalThis.localStorage;
+    if (!storage) return;
+    storage.setItem(BLOCKS_STORAGE_KEY, JSON.stringify(blocks));
+  } catch {
+    // Ignore quota/private-mode errors.
   }
 }
 
@@ -151,6 +174,85 @@ function placeholderPanel(text) {
 function setStatus(root, text) {
   const status = root.getElementById('status-line');
   if (status) status.textContent = text;
+}
+
+function updateBlockHints(root, settings) {
+  const hints = {
+    filter: `${settings.toDepthYears} г., окно ${settings.groupWindowDays} дн.`,
+    workday: `${settings.workStart}–${settings.workEnd}, ${settings.perHour} маш/ч`,
+    winter: `${winterMonthsLabel(settings.winterMonths)}, ${settings.winterLoadPercent} %`,
+    physical: `порог ${settings.physicalThreshold}, режим ${settings.smallPhysicalMode}`,
+  };
+  for (const [key, text] of Object.entries(hints)) {
+    const hintEl = root.getElementById(`hint-${key}`);
+    if (hintEl) hintEl.textContent = text;
+  }
+}
+
+export function winterMonthsLabel(months) {
+  const names = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+  if (!months || months.length === 0) return 'нет';
+  if (months.length === 12) return 'все';
+  const sorted = [...months].sort((a, b) => a - b);
+  // Check for wrap-around consecutive case (e.g., Dec, Jan, Feb = 11, 0, 1)
+  // Try to find a rotation that makes it consecutive
+  for (let shift = 0; shift < sorted.length; shift++) {
+    const rotated = [...sorted.slice(shift), ...sorted.slice(0, shift).map((m) => m + 12)];
+    let consecutive = true;
+    for (let i = 1; i < rotated.length; i++) {
+      if (rotated[i] - rotated[i - 1] !== 1) {
+        consecutive = false;
+        break;
+      }
+    }
+    if (consecutive) {
+      const first = rotated[0] % 12;
+      const last = rotated[rotated.length - 1] % 12;
+      return `${names[first]}–${names[last]}`;
+    }
+  }
+  const first = sorted[0];
+  const last = sorted[sorted.length - 1];
+  if (last - first === sorted.length - 1) {
+    return `${names[first]}–${names[last]}`;
+  }
+  return sorted.map((m) => names[m]).join(', ');
+}
+
+function setupBlockListeners(root) {
+  const blocks = root.querySelectorAll('.settings-block');
+  const persisted = loadPersistedBlocks();
+
+  // Restore open state
+  for (const block of blocks) {
+    const key = block.dataset.storageKey;
+    if (key && persisted[key] === true) {
+      block.open = true;
+    }
+    block.addEventListener('toggle', () => {
+      const k = block.dataset.storageKey;
+      if (k) {
+        const updated = { ...persisted, [k]: block.open };
+        persistBlocks(updated);
+      }
+    });
+  }
+
+  // Update hints on input change
+  const inputs = root.querySelectorAll(
+    '#toDepthYears, #groupWindowDays, #workStart, #workEnd, #perHour, #travelMinutes, ' +
+    'input[name="winterMonth"], #winterLoadPercent, #physicalThreshold, input[name="smallPhysical"], #groupSmallOwners'
+  );
+  for (const input of inputs) {
+    input.addEventListener('change', () => {
+      const current = readSettings(root, defaultSettings());
+      updateBlockHints(root, current);
+    });
+    input.addEventListener('input', () => {
+      const current = readSettings(root, defaultSettings());
+      updateBlockHints(root, current);
+    });
+  }
 }
 
 function renderMessages(root, messages) {
@@ -299,13 +401,17 @@ function readSettings(root, base) {
   const winterPercentRaw = value('winterLoadPercent');
   const winterPercent = Number(winterPercentRaw);
   const perHourRaw = Number(value('perHour'));
+  const groupWindowRaw = Number(value('groupWindowDays'));
   return {
     ...base,
     targetYear: Number(value('targetYear')) || base.targetYear,
     acceptingDays,
     vacations,
     toDepthYears: Number(value('toDepthYears')) || base.toDepthYears,
-    groupWindowDays: Number(value('groupWindowDays')) || base.groupWindowDays,
+    groupWindowDays:
+      Number.isFinite(groupWindowRaw) && groupWindowRaw >= 1
+        ? Math.min(365, Math.max(1, Math.floor(groupWindowRaw)))
+        : base.groupWindowDays,
     smallPhysicalMode: physical ? physical.value : base.smallPhysicalMode,
     physicalThreshold:
       Number.isFinite(thresholdRaw) && thresholdRaw >= 0
@@ -493,6 +599,10 @@ export function initUi(root = document) {
   };
   els.lunchEnabled?.addEventListener('change', syncLunch);
   syncLunch();
+
+  // GRAFIK-31: update live hints in block summaries and persist open state
+  updateBlockHints(root, state.settings);
+  setupBlockListeners(root);
 
   els.chooseFileButton?.addEventListener('click', () => els.fileInput?.click());
   els.reloadFileButton?.addEventListener('click', () => els.fileInput?.click());

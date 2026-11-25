@@ -18,8 +18,8 @@
     <main class="app-main">
       <aside id="settings-panel" class="panel settings-panel" aria-label="Параметры">
         <form id="settings-form" class="settings-form">
-          <section class="settings-section">
-            <h2 class="panel-title">Основные параметры</h2>
+          <section class="settings-section settings-always">
+            <h2 class="panel-title">Всегда видимые</h2>
 
             <label class="field">
               <span>Целевой год</span>
@@ -42,99 +42,133 @@
                 + Добавить период отпуска
               </button>
             </div>
-
-            <div class="field-grid">
-              <label class="field">
-                <span>Глубина давности ТО, лет</span>
-                <input id="toDepthYears" type="number" min="1" max="10" value="3" />
-              </label>
-
-              <label class="field">
-                <span>Окно группировки, дней</span>
-                <input id="groupWindowDays" type="number" min="1" max="120" value="30" />
-              </label>
-
-              <label class="field">
-                <span>Порог физлиц, ед. техники</span>
-                <input id="physicalThreshold" type="number" min="0" max="100" value="3" />
-              </label>
-            </div>
-
-            <div class="field">
-              <span>Зимние месяцы (для просроченных и «Без ТО»)</span>
-              <div id="winterMonths" class="month-grid" role="group" aria-label="Зимние месяцы">
-                <label class="month-cell"><input type="checkbox" name="winterMonth" value="0" checked /> Янв</label>
-                <label class="month-cell"><input type="checkbox" name="winterMonth" value="1" checked /> Фев</label>
-                <label class="month-cell"><input type="checkbox" name="winterMonth" value="2" /> Мар</label>
-                <label class="month-cell"><input type="checkbox" name="winterMonth" value="3" /> Апр</label>
-                <label class="month-cell"><input type="checkbox" name="winterMonth" value="4" /> Май</label>
-                <label class="month-cell"><input type="checkbox" name="winterMonth" value="5" /> Июн</label>
-                <label class="month-cell"><input type="checkbox" name="winterMonth" value="6" /> Июл</label>
-                <label class="month-cell"><input type="checkbox" name="winterMonth" value="7" /> Авг</label>
-                <label class="month-cell"><input type="checkbox" name="winterMonth" value="8" /> Сен</label>
-                <label class="month-cell"><input type="checkbox" name="winterMonth" value="9" /> Окт</label>
-                <label class="month-cell"><input type="checkbox" name="winterMonth" value="10" /> Ноя</label>
-                <label class="month-cell"><input type="checkbox" name="winterMonth" value="11" checked /> Дек</label>
-              </div>
-            </div>
           </section>
 
-          <details class="settings-section settings-advanced">
-            <summary>Дополнительные настройки</summary>
-
-            <div class="field-row">
-              <label class="field">
-                <span>Рабочий день с</span>
-                <input id="workStart" type="time" value="09:00" />
-              </label>
-              <label class="field">
-                <span>по</span>
-                <input id="workEnd" type="time" value="18:00" />
-              </label>
+          <details class="settings-block" id="block-filter" data-storage-key="open-filter">
+            <summary class="settings-block-summary">
+              Отбор и группировка
+              <span class="settings-block-hint" id="hint-filter"></span>
+            </summary>
+            <div class="settings-block-content">
+              <div class="field-grid">
+                <label class="field">
+                  <span>Глубина давности ТО, лет</span>
+                  <input id="toDepthYears" type="number" min="1" max="10" value="3" />
+                </label>
+                <label class="field">
+                  <span>Окно группировки, дней</span>
+                  <input id="groupWindowDays" type="number" min="1" max="365" value="30" />
+                </label>
+              </div>
+              <p class="field-hint">Объединяет в один визит технику одного владельца с датами в пределах окна.</p>
             </div>
+          </details>
 
-            <div class="field">
-              <label><input id="lunchEnabled" type="checkbox" checked /> Учитывать обед</label>
+          <details class="settings-block" id="block-workday" data-storage-key="open-workday">
+            <summary class="settings-block-summary">
+              Рабочий день
+              <span class="settings-block-hint" id="hint-workday"></span>
+            </summary>
+            <div class="settings-block-content">
               <div class="field-row">
-                <input id="lunchStart" type="time" value="12:00" aria-label="Обед с" />
-                <span>—</span>
-                <input id="lunchEnd" type="time" value="13:00" aria-label="Обед по" />
+                <label class="field">
+                  <span>Рабочий день с</span>
+                  <input id="workStart" type="time" value="09:00" />
+                </label>
+                <label class="field">
+                  <span>по</span>
+                  <input id="workEnd" type="time" value="18:00" />
+                </label>
+              </div>
+
+              <div class="field">
+                <label><input id="lunchEnabled" type="checkbox" checked /> Учитывать обед</label>
+                <div class="field-row">
+                  <input id="lunchStart" type="time" value="12:00" aria-label="Обед с" />
+                  <span>—</span>
+                  <input id="lunchEnd" type="time" value="13:00" aria-label="Обед по" />
+                </div>
+              </div>
+
+              <div class="field-row">
+                <label class="field">
+                  <span>Машин в час</span>
+                  <input id="perHour" type="number" min="1" max="100" value="12" />
+                </label>
+                <label class="field">
+                  <span>Переезд между локациями, мин</span>
+                  <input id="travelMinutes" type="number" min="0" max="240" value="60" />
+                </label>
               </div>
             </div>
+          </details>
 
-            <div class="field-row">
+          <details class="settings-block" id="block-winter" data-storage-key="open-winter">
+            <summary class="settings-block-summary">
+              Зима
+              <span class="settings-block-hint" id="hint-winter"></span>
+            </summary>
+            <div class="settings-block-content">
+              <div class="field">
+                <span class="field-label">Зимние месяцы (для просроченных и «Без ТО»)</span>
+                <div id="winterMonths" class="month-grid" role="group" aria-label="Зимние месяцы">
+                  <label class="month-cell"><input type="checkbox" name="winterMonth" value="0" checked /> Янв</label>
+                  <label class="month-cell"><input type="checkbox" name="winterMonth" value="1" checked /> Фев</label>
+                  <label class="month-cell"><input type="checkbox" name="winterMonth" value="2" /> Мар</label>
+                  <label class="month-cell"><input type="checkbox" name="winterMonth" value="3" /> Апр</label>
+                  <label class="month-cell"><input type="checkbox" name="winterMonth" value="4" /> Май</label>
+                  <label class="month-cell"><input type="checkbox" name="winterMonth" value="5" /> Июн</label>
+                  <label class="month-cell"><input type="checkbox" name="winterMonth" value="6" /> Июл</label>
+                  <label class="month-cell"><input type="checkbox" name="winterMonth" value="7" /> Авг</label>
+                  <label class="month-cell"><input type="checkbox" name="winterMonth" value="8" /> Сен</label>
+                  <label class="month-cell"><input type="checkbox" name="winterMonth" value="9" /> Окт</label>
+                  <label class="month-cell"><input type="checkbox" name="winterMonth" value="10" /> Ноя</label>
+                  <label class="month-cell"><input type="checkbox" name="winterMonth" value="11" checked /> Дек</label>
+                </div>
+              </div>
+
               <label class="field">
-                <span>Машин в час</span>
-                <input id="perHour" type="number" min="1" max="100" value="12" />
-              </label>
-              <label class="field">
-                <span>Переезд между локациями, мин</span>
-                <input id="travelMinutes" type="number" min="0" max="240" value="60" />
+                <span>Загрузка зимних месяцев, % (0–100)</span>
+                <input id="winterLoadPercent" type="number" min="0" max="100" value="30" />
               </label>
             </div>
+          </details>
 
-            <div class="field">
-              <label>
-                <input id="groupSmallOwners" type="checkbox" checked />
-                Группировать малых владельцев (≤ порога ед.) по последней дате ТО
+          <details class="settings-block" id="block-physical" data-storage-key="open-physical">
+            <summary class="settings-block-summary">
+              Физлица и малые владельцы
+              <span class="settings-block-hint" id="hint-physical"></span>
+            </summary>
+            <div class="settings-block-content">
+              <div class="field-grid">
+                <label class="field">
+                  <span>Порог физлиц, ед. техники</span>
+                  <input id="physicalThreshold" type="number" min="0" max="100" value="3" />
+                </label>
+              </div>
+
+              <fieldset class="field">
+                <legend>Физлица с числом единиц не более порога</legend>
+                <label><input type="radio" name="smallPhysical" value="A" checked /> А — исключить</label>
+                <label><input type="radio" name="smallPhysical" value="B" /> Б — приём в приёмные дни</label>
+              </fieldset>
+
+              <div class="field">
+                <label>
+                  <input id="groupSmallOwners" type="checkbox" checked />
+                  Группировать малых владельцев (≤ порога ед.) по последней дате ТО
+                </label>
+              </div>
+
+              <label class="field">
+                <span>Адрес инспекции</span>
+                <input id="inspectionAddress" type="text" placeholder="г. Москва, ул. ..." />
               </label>
+
+              <p class="field-hint" style="margin-top: var(--space-3); color: var(--color-text-muted);">
+                Место для будущих настроек поселений.
+              </p>
             </div>
-
-            <fieldset class="field">
-              <legend>Физлица с числом единиц не более порога</legend>
-              <label><input type="radio" name="smallPhysical" value="A" checked /> А — исключить</label>
-              <label><input type="radio" name="smallPhysical" value="B" /> Б — приём в приёмные дни</label>
-            </fieldset>
-
-            <label class="field">
-              <span>Загрузка зимних месяцев, % (0–100)</span>
-              <input id="winterLoadPercent" type="number" min="0" max="100" value="30" />
-            </label>
-
-            <label class="field">
-              <span>Адрес инспекции</span>
-              <input id="inspectionAddress" type="text" placeholder="г. Москва, ул. ..." />
-            </label>
           </details>
 
           <div class="settings-actions">
