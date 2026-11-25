@@ -543,7 +543,7 @@
     {
       "id": "GRAFIK-28-GAP-AUDIT",
       "title": "Read-only gap audit: functional, UI, Excel, quality",
-      "status": "dispatched",
+      "status": "accepted",
       "approved": true,
       "dependsOn": [],
       "dispatchText": "SLICE=GRAFIK-28-GAP-AUDIT project=grafik_to root=G:\\_Grafik_TO verify=off (send DONE to architect)\nGoal: READ-ONLY gap audit of the whole app. No code changes. Output one report file, commit it, push.\nSources of truth: docs/spec/TZ.md, docs/spec/decisions.md (D1-D14 override TZ), docs/manual.md, docs/context/slices.json (GRAFIK-01..27 history).\nSplit for L3 in parallel (read-only), then merge:\n1) Functional: every TZ/decisions requirement -> implemented? (cite file:function or \"missing\"). Edge cases: empty/invalid xlsx, huge files, duplicate units, A4 twice/year, vacations overlapping, no working days in window, capacity overflow, phys persons, '*' dates, calendar API offline.\n2) UI/UX: run `npm --prefix G:\\_Grafik_TO run dev` or build preview; check flow upload->settings->generate->preview->download: validation messages, empty/error states, loading indicator, settings persistence between sessions, reset to defaults, keyboard/a11y, mobile width, consistency of labels with manual.\n3) Output/Excel: 4 sheets readability, print setup (orientation, fit to width, repeat header row), freeze panes, filters, totals.\n4) Quality: test coverage gaps by module, dead code, error handling, performance on 5000+ rows.\nReport file: docs/analysis/gap-audit.md (RU, plain language for the owner): table ID | area | finding | impact (high/med/low) | proposed fix | effort (S/M/L). Group into ready-to-dispatch slice candidates.\nverify: npm run verify still green (no code touched). Commit only the report.\nFinal report to architect, EN <=10 lines: commit, path, counts by impact, top-5 high findings one line each. No acks.\n",
@@ -552,13 +552,13 @@
         "npm --prefix G:\\_Grafik_TO run verify"
       ],
       "owner": "orch1",
-      "commit": null,
-      "evidence": null,
+      "commit": "cec40ca",
+      "evidence": "G:\\_Grafik_TO\\docs\\context\\evidence\\GRAFIK-28-GAP-AUDIT.json",
       "rejections": 0,
-      "retro": null,
+      "retro": "docs-only; spike figures are estimates (no scripts/fixture run), to be measured in ADDR-01",
       "dispatchedBy": "architect",
       "dispatchedAt": "2026-11-25T18:10:35+05:00",
-      "updatedAt": "2026-11-25T18:10:35+05:00"
+      "updatedAt": "2026-11-25T19:16:01+05:00"
     },
     {
       "id": "GRAFIK-29-STATUS-TWO",
@@ -621,5 +621,5 @@
       "updatedAt": "2026-11-25T18:56:09+05:00"
     }
   ],
-  "updatedAt": "2026-11-25T18:56:09+05:00"
+  "updatedAt": "2026-11-25T19:16:01+05:00"
 }
