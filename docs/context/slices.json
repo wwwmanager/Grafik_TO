@@ -709,7 +709,7 @@
     {
       "id": "GRAFIK-36-ALL-REGIONS",
       "title": "OSM settlement references for all RF regions + regions.json",
-      "status": "dispatched",
+      "status": "rejected",
       "approved": true,
       "dependsOn": [
         "GRAFIK-32-OSM-SETTLEMENTS"
@@ -721,12 +721,12 @@
       ],
       "owner": "orch1",
       "commit": null,
-      "evidence": null,
-      "rejections": 0,
+      "evidence": "converge round 1: code scheme scrambled (74 orphaned, Chelyabinsk=12), 5 duplicate subjects, 4 zero-count regions incl Moscow",
+      "rejections": 1,
       "retro": null,
       "dispatchedBy": "architect",
       "dispatchedAt": "2026-11-25T21:21:25+05:00",
-      "updatedAt": "2026-11-25T21:21:25+05:00"
+      "updatedAt": "2026-11-26T00:43:17+05:00"
     },
     {
       "id": "GRAFIK-37-BOUNDARY-FIX",
@@ -769,5 +769,5 @@
       "updatedAt": "2026-11-25T21:20:59+05:00"
     }
   ],
-  "updatedAt": "2026-11-25T23:27:01+05:00"
+  "updatedAt": "2026-11-26T00:43:17+05:00"
 }
