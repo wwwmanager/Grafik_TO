@@ -579,7 +579,47 @@
       "dispatchedBy": "architect",
       "dispatchedAt": "2026-11-25T18:21:03+05:00",
       "updatedAt": "2026-11-25T18:34:10+05:00"
+    },
+    {
+      "id": "GRAFIK-30-ADDR-SPIKE",
+      "title": "Spike: offline settlement reference OSM vs GAR (region 74)",
+      "status": "dispatched",
+      "approved": true,
+      "dependsOn": [],
+      "dispatchText": "SLICE=GRAFIK-30-ADDR-SPIKE project=grafik_to root=G:\\_Grafik_TO verify=off (send DONE to architect)\nGoal: RESEARCH spike, no app code. Decide the offline settlement reference for grouping individual owners by settlement (Chelyabinsk obl, region 74). Owner leans to OSM-only; prove or refute that GAR is unnecessary.\nHard rules: data must be bundled/offline (no runtime calls, privacy D8). Repo is PUBLIC: no real owner addresses; settlement names only, no streets/houses.\nQuestions (cite primary-source URLs for every claim):\n1) OSM: place=city/town/village/hamlet/locality in region 74. Count, coords coverage, admin parent (admin_level 6 municipal district/urban okrug), name variants. Extraction path (Overpass query or Geofabrik extract), licence ODbL attribution + share-alike impact on a bundled JSON.\n2) GAR (FNS): legal access, format, update cadence, size of region-74 settlements-only subset, admin vs municipal hierarchy.\n3) Match test: build fixture of ~25 settlement tuples (district,city,inner) mirroring export structure, e.g. (,ЗЛАТОУСТ Г,ТАЙНАК П), (,ЗЛАТОУСТ Г,ТУНДУШ П), (,УСТЬ-КАТАВ Г,МАЛЫЙ БЕРДЯШ П), (КУСИНСКИЙ Р-Н,МАГНИТКА РП,), (КИЗИЛЬСКИЙ Р-Н,,КАМЕННЫЙ П), (КАСЛИНСКИЙ Р-Н,ТЮБУК С,), (,ТРЕХГОРНЫЙ Г,), variants ' П. ТАЙНАК'. Report match rate OSM-only vs GAR, ambiguities (duplicate names in different districts).\n4) Sizing: bundled JSON size (raw/gzip), lookup time for 5000 rows in node, effect on bundle/first load (lazy load per region?).\n5) Distance: straight-line km between settlements -> travel minutes; is it good enough vs fixed 60 min? Road distance offline = out of scope unless trivial.\nOutput: docs/analysis/addr-reference-spike.md (RU, plain, for owner): recommendation (OSM-only | OSM+GAR | GAR), data pipeline script proposal, attribution text, risks, proposed slice cuts. Optional throwaway scripts under docs/analysis/spike/ (no secrets, no large dumps committed; keep any data file <500 KB).\nNote: GRAFIK-28 audit may run in parallel on this repo; do not touch src/.\nverify: npm run verify still green. Commit report only, push.\nFinal report EN <=10 lines: commit, path, recommendation, counts, match rates, sizes. No acks.\n",
+      "acceptance": null,
+      "verifyCommands": [
+        "npm --prefix G:\\_Grafik_TO run verify"
+      ],
+      "owner": "orch1",
+      "commit": null,
+      "evidence": null,
+      "rejections": 0,
+      "retro": null,
+      "dispatchedBy": "architect",
+      "dispatchedAt": "2026-11-25T18:39:37+05:00",
+      "updatedAt": "2026-11-25T18:39:37+05:00"
+    },
+    {
+      "id": "GRAFIK-31-SETTINGS-LAYOUT",
+      "title": "Settings panel regroup into 4 accordions + window clamp 365",
+      "status": "accepted",
+      "approved": true,
+      "dependsOn": [],
+      "dispatchText": "SLICE=GRAFIK-31-SETTINGS-LAYOUT project=grafik_to root=G:\\_Grafik_TO verify=off (send DONE to architect)\nGoal: regroup the settings panel. NO scheduling logic change (same inputs, ids, defaults, saved-settings keys).\nAlways visible: Целевой год, Приёмные дни, Отпуск инспектора; sticky \"Сформировать график\" stays.\nBelow: four <details> blocks, each <summary> shows live current values (update on input change):\n1 \"Отбор и группировка\" (e.g. \"3 г., окно 30 дн.\"): toDepthYears, groupWindowDays + hint text \"Объединяет в один визит технику одного владельца с датами в пределах окна\".\n2 \"Рабочий день\" (\"9:00–18:00, 12 маш/ч\"): workStart/End, lunch, perHour, travelMinutes.\n3 \"Зима\" (\"дек–фев, 30 %\"): winterMonths grid + winterLoadPercent together.\n4 \"Физлица и малые владельцы\" (\"порог 3, режим А\"): physicalThreshold, smallPhysical A/B, groupSmallOwners, inspectionAddress. Leave room for future settlement-visit settings.\nRemove old \"Основные\"/\"Дополнительные\" split. Persist open/closed state per block in localStorage.\ngroupWindowDays: max=365; clamp value to [1,365] in settings read (ui.js) so typed values beyond max are corrected.\nFiles: index.html, src/styles/main.css, src/modules/ui.js, tests (ui summary text + clamp). Do not touch scheduler.js. Other slices (GRAFIK-28 audit, GRAFIK-30 spike) write only docs/analysis.\nverify: npm run verify green. Commit, push origin main, confirm Actions run + Pages 200.\nReport EN <=10 lines: STATUS(done) commit, files, tests, Actions run id. No acks.\n",
+      "acceptance": null,
+      "verifyCommands": [
+        "npm --prefix G:\\_Grafik_TO run verify"
+      ],
+      "owner": "orch1",
+      "commit": "6b33bb5",
+      "evidence": "G:\\_Grafik_TO\\docs\\context\\evidence\\GRAFIK-31-SETTINGS-LAYOUT.json",
+      "rejections": 0,
+      "retro": "UI regroup only; summaries + clamp tested; no scheduler change",
+      "dispatchedBy": "architect",
+      "dispatchedAt": "2026-11-25T18:44:49+05:00",
+      "updatedAt": "2026-11-25T18:56:09+05:00"
     }
   ],
-  "updatedAt": "2026-11-25T18:34:10+05:00"
+  "updatedAt": "2026-11-25T18:56:09+05:00"
 }
