@@ -147,10 +147,10 @@ describe('settlements data (GRAFIK-36)', () => {
   it('major cities present in their regions (where data exists)', () => {
     const cityChecks = [
       { region: 77, name: 'Ярославль' },
-      { region: 64, name: 'Екатеринбург' },
-      { region: 46, name: 'Новосибирск' },
-      { region: 65, name: 'Казань' },
-      { region: 65, name: 'Набережные Челны' },
+      { region: 63, name: 'Екатеринбург' },
+      { region: 45, name: 'Новосибирск' },
+      { region: 64, name: 'Казань' },
+      { region: 64, name: 'Набережные Челны' },
     ];
     for (const check of cityChecks) {
       const data = loadRegionData(check.region);
