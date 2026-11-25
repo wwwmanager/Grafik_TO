@@ -747,7 +747,27 @@
       "dispatchedBy": "architect",
       "dispatchedAt": "2026-11-25T20:30:24+05:00",
       "updatedAt": "2026-11-25T21:00:31+05:00"
+    },
+    {
+      "id": "GRAFIK-39-DATA-CLEANUP",
+      "title": "Drop duplicate rows and non-residential localities; rebuild 74",
+      "status": "accepted",
+      "approved": true,
+      "dependsOn": [],
+      "dispatchText": "SLICE=GRAFIK-39-DATA-CLEANUP project=grafik_to root=G:\\_Grafik_TO verify=off (send DONE to architect)\nClean the settlement data before it is built for all regions. Keep schema/path (public/data/settlements-74.json), sorted, minified.\n1. DEDUPE: keep the OSM node id while building; drop repeated ids first. Then drop records with identical (name, municipality) and coordinates equal to 3 decimals (duplicate mapping of one place). Report both counts. Currently 44 duplicate rows / 41 groups (Барабан x3, Усть-Катав x2, Тургояк x2 ...).\n2. EXCLUDE place=locality entirely (урочища, нежилые места): 897 of 2164 now, 388 obvious junk (\"38\", \"60га\", \"загон\", \"террикон\", \"ур. Борок\", \"(нежил.)\"). Addresses in the export always carry п./с./д./рп/г type, so localities are noise for matching. Also drop any record whose name contains \"нежил\".\n3. Report: records before/after, dropped ids/dupes, dropped localities, 10 sample dropped names so the architect can sanity-check nothing real was lost.\n4. Tests updated: no type \"locality\"; no duplicate (name, municipality); no name matching ^\\d, ^ур\\.|урочище, or containing нежил; keep existing spot checks (Сатка/Бердяуш -> Саткинский, Тайнак/Тундуш -> Златоуст, Тюбук -> Каслинский, Магнитка -> Кусинский) plus Златоуст/Челябинск/Магнитогорск/Миасс still present.\n5. Keep scripts/build-settlements.mjs generic for other regions (no Chelyabinsk-only hacks); this script is reused by GRAFIK-36.\nReport EN <=10 lines: STATUS(done|failed), commit, records before/after, dropped dupes, dropped localities, 10 samples, tests. No acks.\n",
+      "acceptance": null,
+      "verifyCommands": [
+        "npm --prefix G:\\_Grafik_TO run verify"
+      ],
+      "owner": "orch1",
+      "commit": "c9945b6",
+      "evidence": "G:\\_Grafik_TO\\docs\\context\\evidence\\GRAFIK-39-DATA-CLEANUP.json",
+      "rejections": 0,
+      "retro": "L0 manual verify: 1267 recs, city=4 town=46 village=575 hamlet=642, locality=0, dup(name+muni+3dec)=0, junk=0, spot checks intact",
+      "dispatchedBy": "architect",
+      "dispatchedAt": "2026-11-25T21:10:50+05:00",
+      "updatedAt": "2026-11-25T21:20:59+05:00"
     }
   ],
-  "updatedAt": "2026-11-25T21:00:31+05:00"
+  "updatedAt": "2026-11-25T21:20:59+05:00"
 }
