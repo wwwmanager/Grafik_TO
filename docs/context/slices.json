@@ -811,7 +811,7 @@
     {
       "id": "GRAFIK-42-SETTINGS-PANEL-UX",
       "title": "Settings panel: overflow, merged physical section, sticky action bar, summary a11y",
-      "status": "verified",
+      "status": "accepted",
       "approved": true,
       "dependsOn": [
         "GRAFIK-41-REGION-CODES"
@@ -825,10 +825,10 @@
       "commit": "598cf4c",
       "evidence": "npm run verify PASS (lint+262 tests+build green). Panel: flex column, .settings-scroll scrolls, .settings-actions non-scrolling opaque footer (CSS:59-85,201-211). No horizontal overflow: inputs 100%/max 100%/min 0 (CSS:499-516), text wraps (CSS:530-535), .weekday-grid flex-wrap (CSS:386-391), fieldset reset (CSS:373-378). Two physical accordions merged into ONE 'Физлица' section with subheadings 'Малые владельцы'/'Маршрутизация выездов' (index.html:140-166,173-182). Key migration: open-physical-schedule -> open-physical via migrateBlockState (ui.js:134-148, tests:15-35). Routing internals dimmed+disabled while includePhysical unchecked (ui.js:834-843, CSS:415-424). Shared .grid-2 utility (CSS:94-100). Summary title flex:1 (CSS:165-169), focus-visible ring (CSS:138-142), badges no ellipsis (CSS:172-181). Placeholder text removed. A11y: aria-expanded/aria-controls, labels. Tests: migration, no-data labels, count label, CSS guard (no fixed width >320px). Owner gate: visual 360px check NOT claimed as passed. Depends on e2a6c38 (GRAFIK-41 converge fix).",
       "rejections": 0,
-      "retro": null,
+      "retro": "Owner TZ implemented: no horizontal overflow (flex column + opaque footer, 100%/min-width 0, weekday flex-wrap, fieldset reset), two physical accordions merged with key migration, routing internals dimmed while disabled, shared .grid-2, summary flex:1 + focus-visible + short badges, placeholder removed, aria/labels. 262 tests. Visual 360px check remains owner gate.",
       "dispatchedBy": "architect",
       "dispatchedAt": "2026-11-26T23:28:18+05:00",
-      "updatedAt": "2026-11-26T23:48:59+05:00"
+      "updatedAt": "2026-11-26T23:51:06+05:00"
     },
     {
       "id": "GRAFIK-43-LAZY-SETTLEMENTS",
@@ -897,5 +897,5 @@
       "updatedAt": "2026-11-26T22:27:51+05:00"
     }
   ],
-  "updatedAt": "2026-11-26T23:50:34+05:00"
+  "updatedAt": "2026-11-26T23:51:06+05:00"
 }
