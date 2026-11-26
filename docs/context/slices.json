@@ -813,6 +813,9 @@
       "title": "Settings panel: overflow, merged physical section, sticky action bar, summary a11y",
       "status": "planned",
       "approved": false,
+      "dependsOn": [
+        "GRAFIK-41-REGION-CODES"
+      ],
       "dispatchText": "SLICE GRAFIK-42-SETTINGS-PANEL-UX (project grafik_to, repo G:\\_Grafik_TO; depends on GRAFIK-41)\n\nOwner-reported UI defects in the left settings panel. Goal: at a 360px-wide panel there is no\nhorizontal scroll and no clipped text/checkbox/select; content never shows under the sticky button.\n\nDO (all from the owner's TZ):\n1. Overflow. Ban horizontal overflow inside every card/accordion: all <select>, <input type=\"text\">,\n   .settings-* containers get width:100%; max-width:100%; min-width:0; box-sizing:border-box.\n   The two-column grid in «Физлица: маршрутизация выездов» is the main offender - convert wide fields\n   to one field per row. Weekday checkboxes (Пн-Вс) become display:flex; flex-wrap:wrap; gap:8px so Сб\n   and the fieldset border are not cut. Long footnote text: overflow-wrap:anywhere / white-space:normal.\n2. Sticky button. Make .settings-panel a flex column: scroll area overflow-y:auto; flex:1, and\n   .settings-actions a separate non-scrolling footer with opaque background and border-top so nothing\n   bleeds under «Сформировать график».\n3. Structure. (a) «Соседние регионы» is handled by GRAFIK-41 - do not regress it.\n   (b) Merge the two physical-person accordions («Физлица и малые владельцы» and «Физлица:\n   маршрутизация выездов») into ONE section; remove duplicated threshold/admission-days/platform-address\n   fields without losing persisted values (migrate old keys, add a test). (c) Hide/dim\n   (opacity .5 + disabled) routing internals while «Включать физлиц в график выездов» is unchecked.\n   (d) Reset <fieldset> to border:0; padding:0; margin:0 and use subheadings + gap instead.\n   (e) In «Рабочий день» put the two short numeric fields («Машин в час», «Переезд, мин») in a\n   deliberate 2-column grid, same rhythm as «Отбор и группировка». Introduce one shared .grid-2 utility\n   instead of ad-hoc layouts.\n4. Visuals. Remove the placeholder text «Место для будущих настроек поселений.». Accordion <summary>:\n   text-align:left; flex:1 for the title; kill the black focus outline, keep a subtle :focus-visible\n   ring; short right-side badges that do not ellipsis (выкл/вкл, порог 4, 3 г. / 30 дн.). The × in the\n   vacation-delete button: display:inline-flex; align-items:center; justify-content:center; padding:0.\n5. A11y floor (my addition, cheap): summary carries aria-expanded/aria-controls, every input has a\n   <label for> or aria-label, the search box in the region list has a placeholder + aria-label.\n6. Tests: settings-key migration test (old two-section keys -> merged keys, no value loss), no-data\n   path still renders, plus a static guard test that scans the settings CSS for fixed widths > 320px.\n   Visual 360px check stays an owner gate - state it explicitly in the report; do not claim it passed.\n7. Keep `npm run verify` green (237+ tests). Update docs/spec/decisions.md (D26: merged physical\n   section + key migration) and docs/context/resume-grafik.md.\n\nRULES: stage only owned files; no push; no personal data; no changes to data files. Handoff to orch2.\n",
       "acceptance": null,
       "verifyCommands": [
@@ -825,11 +828,74 @@
       "retro": null,
       "dispatchedBy": null,
       "dispatchedAt": null,
-      "updatedAt": "2026-11-26T22:17:03+05:00",
+      "updatedAt": "2026-11-26T22:17:03+05:00"
+    },
+    {
+      "id": "GRAFIK-43-LAZY-SETTLEMENTS",
+      "title": "Lazy-load settlement dictionaries per selected region (LRU, fetch-count tests)",
+      "status": "planned",
+      "approved": false,
+      "dispatchText": "SLICE GRAFIK-43-LAZY-SETTLEMENTS (project grafik_to, repo G:\\_Grafik_TO; depends on GRAFIK-42)\n\nOwner-approved improvement: the app must not load all settlement dictionaries up front (81 files,\n14.66 MB). Today public/data/regions.json is one cached fetch, but per-region settlement data should be\npulled only when that region is actually used.\n\nDO:\n1. Keep public/data/regions.json as the only eager fetch (index: dataId, regionCode, name, count, bytes).\n2. Load public/data/settlements/<dataId>.json on demand: when a region is selected as inspection region\n   or ticked as a neighbouring region; cache per dataId in memory (Map) and de-duplicate concurrent\n   requests (single in-flight promise per region).\n3. Never load a region twice per session; expose a small loader module (e.g. src/modules/settlements-\n   loader.js) with loadRegion(dataId) and getCachedRegion(dataId) so tests can assert fetch counts.\n4. Failure path: a 404/parse error must NOT break the UI - keep the textual grouping fallback and the\n   existing hint «Гео-справочник для региона не загружен...»; retry is manual (no infinite retry loop).\n5. Unchecking a neighbouring region must not drop the cache (re-ticking is free), but the cache must not\n   grow unbounded - cap it (e.g. 6 regions) with LRU eviction.\n6. Tests: fetch-call counting with a stubbed fetch (assert 0 settlement fetches before selection, exactly\n   1 per region afterwards, 1 for concurrent duplicates), 404 -> fallback hint, LRU eviction. Keep\n   `npm run verify` green.\n7. Note the change in docs/context/resume-grafik.md.\n\nRULES: no data regeneration/renaming; stage owned files only; no push; no personal data. Handoff to orch2.\n",
+      "acceptance": null,
+      "verifyCommands": [
+        "npm run verify"
+      ],
+      "owner": "orch1",
+      "commit": null,
+      "evidence": null,
+      "rejections": 0,
+      "retro": null,
+      "dispatchedBy": null,
+      "dispatchedAt": null,
+      "updatedAt": "2026-11-26T22:27:49+05:00",
       "dependsOn": [
-        "GRAFIK-41-REGION-CODES"
+        "GRAFIK-42-SETTINGS-PANEL-UX"
+      ]
+    },
+    {
+      "id": "GRAFIK-44-AUTO-BASE-SETTLEMENT",
+      "title": "Auto-pick base settlement from resolved addresses with deterministic tie-break",
+      "status": "planned",
+      "approved": false,
+      "dispatchText": "SLICE GRAFIK-44-AUTO-BASE-SETTLEMENT (project grafik_to, repo G:\\_Grafik_TO; depends on GRAFIK-43)\n\nOwner-approved improvement: the base settlement («Базовый населённый пункт») is currently defaulted to\n\"first in region\". It must be derived from the actual export: the settlement where most addresses are,\ntied to the inspection region.\n\nDO:\n1. After address resolution, aggregate resolved addresses by settlement key (per region) and compute the\n   base settlement as the mode (most addresses). Deterministic tie-break: higher address count, then\n   nearest to the geographic centroid of the region's resolved addresses, then settlement name.\n2. Only pick from settlements that resolved successfully and belong to the selected inspection region.\n   Never pick a settlement from a neighbouring region.\n3. The auto value must be visible and explainable in the UI: show it as `— автоматически (Тайнак П,\n   42 адреса из 118) —` in the base settlement select, and keep an explicit manual override that wins\n   over the auto value (stored value must survive a re-import when the settlement still exists).\n4. If nothing resolves, fall back to the previous behaviour (\"first in region\") and say so in the same\n   label; never throw.\n5. Keep it deterministic and pure: extract a function (e.g. pickBaseSettlement(resolved, regionDataId,\n   overrides) in src/modules/physical.js or address.js) and unit-test it: single settlement, clear mode,\n   exact tie (3 vs 3) resolved by the documented tie-break, empty list, override present.\n6. Record the rule in docs/spec/decisions.md (D27) so a later change is a conscious decision.\n7. Keep `npm run verify` green; update docs/context/resume-grafik.md.\n\nRULES: no data regeneration; stage owned files only; no push; no personal data in tests (synthetic\naddresses only). Handoff to orch2.\n",
+      "acceptance": null,
+      "verifyCommands": [
+        "npm run verify"
+      ],
+      "owner": "orch1",
+      "commit": null,
+      "evidence": null,
+      "rejections": 0,
+      "retro": null,
+      "dispatchedBy": null,
+      "dispatchedAt": null,
+      "updatedAt": "2026-11-26T22:27:50+05:00",
+      "dependsOn": [
+        "GRAFIK-43-LAZY-SETTLEMENTS"
+      ]
+    },
+    {
+      "id": "GRAFIK-45-UNRESOLVED-REPORT",
+      "title": "Unresolved-address report before schedule build (non-blocking, private)",
+      "status": "planned",
+      "approved": false,
+      "dispatchText": "SLICE GRAFIK-45-UNRESOLVED-REPORT (project grafik_to, repo G:\\_Grafik_TO; depends on GRAFIK-44)\n\nOwner-approved improvement: silently dropped addresses must be surfaced BEFORE the schedule is built.\n\nDO:\n1. After address resolution and before schedule computation, show a compact summary near the physical\n   block: «Распознано N из M адресов · не разобрано K».\n2. Provide an expandable list of the unresolved rows: source row number (or 1-based index in the imported\n   export) + the raw address string as it appears in the file, truncated to one line, with a copy button\n   that copies all unresolved lines to the clipboard. No personal data leaves the page.\n3. The report is informational and non-blocking: the schedule must still be built from the resolved rows,\n   exactly as today. Do not change routing/scheduling behaviour.\n4. If M > 0 and N = 0, show a clear warning banner explaining the likely cause (wrong inspection region\n   or missing geo-reference) instead of an empty schedule.\n5. Privacy: the list is rendered from the in-memory import only; never persist it to localStorage, never\n   include it in the Excel export, never log it.\n6. Tests: counts correct (all resolved / partially resolved / none), row indices match the import order,\n   copy payload excludes resolved rows, no localStorage write on render, no export change. Keep\n   `npm run verify` green.\n7. Update docs/context/resume-grafik.md.\n\nRULES: no data regeneration; stage owned files only; no push; no personal data in tests (synthetic\naddresses only). Handoff to orch2.\n",
+      "acceptance": null,
+      "verifyCommands": [
+        "npm run verify"
+      ],
+      "owner": "orch1",
+      "commit": null,
+      "evidence": null,
+      "rejections": 0,
+      "retro": null,
+      "dispatchedBy": null,
+      "dispatchedAt": null,
+      "updatedAt": "2026-11-26T22:27:51+05:00",
+      "dependsOn": [
+        "GRAFIK-44-AUTO-BASE-SETTLEMENT"
       ]
     }
   ],
-  "updatedAt": "2026-11-26T22:17:03+05:00"
+  "updatedAt": "2026-11-26T22:27:51+05:00"
 }
