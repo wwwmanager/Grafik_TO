@@ -1,0 +1,12 @@
+{
+  "slice": "GRAFIK-41-REGION-CODES",
+  "commit": "e2a6c38",
+  "ranAt": "2026-11-26T23:50:32+05:00",
+  "commands": [
+    {
+      "cmd": "npm run verify",
+      "exit": 0,
+      "tail": "\u001b[36mvite v8.3.8 \u001b[32mbuilding client environment for production...\u001b[36m\u001b[39m\ntransforming...\n✓ 18 modules transformed.\nrendering chunks...\ncomputing gzip size...\ndist/index.html                            19.57 kB │ gzip:   4.39 kB\ndist/assets/index-iD0uoW4D.css             10.34 kB │ gzip:   2.45 kB\ndist/assets/rolldown-runtime-COiEfhsA.js    1.11 kB │ gzip:   0.62 kB\ndist/assets/address-D4TsTJ6t.js             1.76 kB │ gzip:   0.93 kB\ndist/assets/physical-B7UL4a3o.js           14.31 kB │ gzip:   4.67 kB\ndist/assets/index-CxswHQe_.js              53.14 kB │ gzip:  17.06 kB\ndist/assets/parser-BlDffqck.js            365.94 kB │ gzip: 124.14 kB\ndist/assets/exporter-Cg5uG5b2.js          936.66 kB │ gzip: 259.35 kB\n\n\u001b[33m[plugin builtin:vite-reporter] \n(!) Some chunks are larger than 500 kB after minification. Consider:\n- Using dynamic import() to code-split the application\n- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting\n- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.\u001b[39m\n\u001b[32m✓ built in 1.12s\u001b[39m"
+    }
+  ]
+}

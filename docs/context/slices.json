@@ -791,7 +791,7 @@
     {
       "id": "GRAFIK-41-REGION-CODES",
       "title": "Region identity: official regionCode, dataId separation, always-selectable regions",
-      "status": "dispatched",
+      "status": "accepted",
       "approved": true,
       "dependsOn": [],
       "dispatchText": "SLICE GRAFIK-41-REGION-CODES (project grafik_to, repo G:\\_Grafik_TO)\n\nDEFECT (owner-verified, critical): `code` in scripts/build-settlements.mjs REGIONS and in\nsrc/modules/regions-table.js is an INTERNAL sequential index (1..89) that also names\npublic/data/settlements/<code>.json. The UI prints it as the official subject code, so it is wrong:\nЧелябинская (72 shown, official 74), Тюменская 66/72, Чувашия 74/21, Ярославская 77/76, ХМАО 71/86,\nЯНАО 76/89, Удмуртия 67/18, Мордовия 82/13. Second defect: the select option and neighbouring\ncheckboxes are `disabled` for every region without a local file, so most regions cannot be chosen.\n\nDO:\n1. Separate the two identities. Keep the internal key as `dataId` (rename from `code` everywhere:\n   tables, getAvailableRegions, ui.js, address.js, tests, settings persistence) and add `regionCode`\n   = official 2-digit region code (ФНС/ИНН numbering, same as the ОКТМО prefix and the codes the owner\n   listed) for ALL 89 entries. scripts/build-settlements.mjs stays the source; regenerate\n   src/modules/regions-table.js from it, never hand-drift. Crimea = 91, Sevastopol = 92 (ГИБДД uses 82\n   for Crimea - document that difference, do not silently pick one).\n2. Do NOT rename or regenerate public/data/settlements/*.json (81 files, 14.66 MB). dataId stays the\n   filename; no rebundling in this slice.\n3. Display `Челябинская область (74)` sorted alphabetically by name. Persisted settings keep the\n   dataId value, so no localStorage migration and no data loss. Record this in docs/spec/decisions.md\n   as D25 (internal dataId vs official regionCode) including the full 89-row map.\n4. Never disable a region. Any subject must be selectable. When it has no local geo-reference show an\n   inline hint: «Гео-справочник для региона не загружен — используется текстовая группировка по\n   адресам» - and make sure the textual grouping fallback really executes (physical.js must not throw\n   with hasData=false); cover it with a test.\n5. Option label when data exists: `Челябинская область (74) · НП: 1267`.\n6. Neighbouring regions: vertical list, one region per row, inside a scrollable box\n   (max-height 180px; overflow-y auto; 1px solid var(--color-border); var(--radius-sm); padding 6px)\n   plus a compact search input filtering by name or code. Do not touch general panel layout/CSS -\n   slice GRAFIK-42 owns that.\n7. Tests: all 89 regionCode values unique and 2-digit; spot-check pairs 01 02 12 13 16 18 21 23 24 31\n   34 36 37 50 52 54 59 61 63 66 72 74 75 76 77 78 79 83 86 87 89 91 92; assert no code path sets\n   option.disabled = true; assert the no-data hint renders. Suite currently 237 tests / 14 files - keep\n   it green.\n8. Update docs/context/resume-grafik.md.\n\nRULES: stage only owned files; no push; no personal data in repo or tests; run `npm run verify`\n(lint+test+build) and report commit, exact files, raw results. Hand off to orch2 only.\n",
@@ -800,18 +800,18 @@
         "npm run verify"
       ],
       "owner": "orch1",
-      "commit": null,
-      "evidence": null,
-      "rejections": 0,
-      "retro": null,
+      "commit": "e2a6c38",
+      "evidence": "G:\\_Grafik_TO\\docs\\context\\evidence\\GRAFIK-41-REGION-CODES.json",
+      "rejections": 1,
+      "retro": "Round 2 fixes invented codes: 93-96 replaced with null (85 real FNS codes, 4 nulls, label 'код не присвоен'), tests updated, dataId=filename intact. L0 spot check: 85 unique 2-digit codes, owner pairs correct, no disabled options.",
       "dispatchedBy": "architect",
       "dispatchedAt": "2026-11-26T22:16:59+05:00",
-      "updatedAt": "2026-11-26T22:16:59+05:00"
+      "updatedAt": "2026-11-26T23:50:34+05:00"
     },
     {
       "id": "GRAFIK-42-SETTINGS-PANEL-UX",
       "title": "Settings panel: overflow, merged physical section, sticky action bar, summary a11y",
-      "status": "dispatched",
+      "status": "verified",
       "approved": true,
       "dependsOn": [
         "GRAFIK-41-REGION-CODES"
@@ -822,13 +822,13 @@
         "npm run verify"
       ],
       "owner": "orch1",
-      "commit": null,
-      "evidence": null,
+      "commit": "598cf4c",
+      "evidence": "npm run verify PASS (lint+262 tests+build green). Panel: flex column, .settings-scroll scrolls, .settings-actions non-scrolling opaque footer (CSS:59-85,201-211). No horizontal overflow: inputs 100%/max 100%/min 0 (CSS:499-516), text wraps (CSS:530-535), .weekday-grid flex-wrap (CSS:386-391), fieldset reset (CSS:373-378). Two physical accordions merged into ONE 'Физлица' section with subheadings 'Малые владельцы'/'Маршрутизация выездов' (index.html:140-166,173-182). Key migration: open-physical-schedule -> open-physical via migrateBlockState (ui.js:134-148, tests:15-35). Routing internals dimmed+disabled while includePhysical unchecked (ui.js:834-843, CSS:415-424). Shared .grid-2 utility (CSS:94-100). Summary title flex:1 (CSS:165-169), focus-visible ring (CSS:138-142), badges no ellipsis (CSS:172-181). Placeholder text removed. A11y: aria-expanded/aria-controls, labels. Tests: migration, no-data labels, count label, CSS guard (no fixed width >320px). Owner gate: visual 360px check NOT claimed as passed. Depends on e2a6c38 (GRAFIK-41 converge fix).",
       "rejections": 0,
       "retro": null,
       "dispatchedBy": "architect",
       "dispatchedAt": "2026-11-26T23:28:18+05:00",
-      "updatedAt": "2026-11-26T23:28:18+05:00"
+      "updatedAt": "2026-11-26T23:48:59+05:00"
     },
     {
       "id": "GRAFIK-43-LAZY-SETTLEMENTS",
@@ -897,5 +897,5 @@
       "updatedAt": "2026-11-26T22:27:51+05:00"
     }
   ],
-  "updatedAt": "2026-11-26T23:28:18+05:00"
+  "updatedAt": "2026-11-26T23:50:34+05:00"
 }
