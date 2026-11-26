@@ -667,8 +667,8 @@
     {
       "id": "GRAFIK-35-PHYSICAL-TAB",
       "title": "Preview tab Физлица with manual merge + persistence",
-      "status": "planned",
-      "approved": false,
+      "status": "dispatched",
+      "approved": true,
       "dependsOn": [
         "GRAFIK-34-PHYSICAL-SCHEDULE"
       ],
@@ -682,9 +682,9 @@
       "evidence": null,
       "rejections": 0,
       "retro": null,
-      "dispatchedBy": null,
-      "dispatchedAt": null,
-      "updatedAt": "2026-11-25T19:29:00+05:00"
+      "dispatchedBy": "architect",
+      "dispatchedAt": "2026-11-26T19:50:54+05:00",
+      "updatedAt": "2026-11-26T19:50:54+05:00"
     },
     {
       "id": "GRAFIK-32-OSM-SETTLEMENTS",
@@ -789,5 +789,5 @@
       "updatedAt": "2026-11-26T18:13:51+05:00"
     }
   ],
-  "updatedAt": "2026-11-26T19:48:44+05:00"
+  "updatedAt": "2026-11-26T19:50:54+05:00"
 }
