@@ -877,7 +877,7 @@
     {
       "id": "GRAFIK-45-UNRESOLVED-REPORT",
       "title": "Unresolved-address report before schedule build (non-blocking, private)",
-      "status": "dispatched",
+      "status": "accepted",
       "approved": true,
       "dependsOn": [
         "GRAFIK-44-AUTO-BASE-SETTLEMENT"
@@ -888,13 +888,13 @@
         "npm run verify"
       ],
       "owner": "orch1",
-      "commit": null,
-      "evidence": null,
+      "commit": "28262a0",
+      "evidence": "npm run verify PASS (lint+323 tests+build green). buildUnresolvedReport(): one resolution pass -> { resolved, unresolved[{index (1-based import order), address}], total, resolvedCount, unresolvedCount, clipboardText }; renderUnresolvedReport() in physical block shows 'Распознано N из M адресов · не разобрано K', expandable one-line list + 'Скопировать неразобранные' (Clipboard API, unresolved lines only); M>0 with N=0 -> warning banner (wrong inspection region / missing geo reference); hides when M=0. Informational only: routing/scheduling untouched, no localStorage, not in Excel, no logging. Tests: 12 in tests/unresolved-report.test.js (all/partial/none counts, import-order indices incl. skipped empty addresses, copy payload excludes resolved rows, warning on N=0, hidden on M=0, clipboard click writes payload, no localStorage writes on render, records not mutated, exporter has no access, markup/UI wiring). check-deploy (raw): PASS index 200; PASS assets/index-2XqeZLfY.js 200 (62025 B); PASS assets/index-KWDeAohn.css 200 (10983 B); PASS dist refs; PASS deployed==dist; exit 0. Live index has #unresolved-report. No data regeneration: git diff --stat HEAD~1 -- public/data empty. Repro: npm run verify; npx vitest run tests/unresolved-report.test.js.",
       "rejections": 0,
-      "retro": null,
+      "retro": "Pre-build report 'Распознано N из M · не разобрано K', expandable list with 1-based import indices, copy unresolved only, warning banner when N=0, informational only (no localStorage/Excel/logging); 323 tests; deployed and check-deploy PASS.",
       "dispatchedBy": "architect",
       "dispatchedAt": "2026-11-27T00:23:25+05:00",
-      "updatedAt": "2026-11-27T00:23:25+05:00"
+      "updatedAt": "2026-11-27T00:28:26+05:00"
     },
     {
       "id": "GRAFIK-46-DEPLOY-CACHE-GUARD",
@@ -939,5 +939,5 @@
       "updatedAt": "2026-11-27T00:12:48+05:00"
     }
   ],
-  "updatedAt": "2026-11-27T00:23:25+05:00"
+  "updatedAt": "2026-11-27T00:28:26+05:00"
 }
