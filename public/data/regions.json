@@ -6,7 +6,7 @@
       "name": "Алтайский край",
       "file": "settlements/3.json",
       "count": 1558,
-      "bytes": 183566
+      "bytes": 183570
     },
     {
       "code": 4,
@@ -14,7 +14,7 @@
       "name": "Амурская область",
       "file": "settlements/4.json",
       "count": 600,
-      "bytes": 71170
+      "bytes": 71166
     },
     {
       "code": 5,
@@ -22,7 +22,7 @@
       "name": "Архангельская область",
       "file": "settlements/5.json",
       "count": 3738,
-      "bytes": 434316
+      "bytes": 438102
     },
     {
       "code": 6,
@@ -38,7 +38,7 @@
       "name": "Белгородская область",
       "file": "settlements/8.json",
       "count": 1529,
-      "bytes": 179550
+      "bytes": 179546
     },
     {
       "code": 9,
@@ -46,23 +46,55 @@
       "name": "Брянская область",
       "file": "settlements/9.json",
       "count": 2386,
-      "bytes": 270014
+      "bytes": 270018
     },
     {
-      "code": 78,
+      "code": 73,
+      "iso": "RU-VLA",
+      "name": "Владимирская область",
+      "file": "settlements/73.json",
+      "count": 2388,
+      "bytes": 282485
+    },
+    {
+      "code": 95,
+      "iso": "RU-VGG",
+      "name": "Волгоградская область",
+      "file": "settlements/95.json",
+      "count": 1344,
+      "bytes": 163269
+    },
+    {
+      "code": 75,
+      "iso": "RU-VLG",
+      "name": "Вологодская область",
+      "file": "settlements/75.json",
+      "count": 6112,
+      "bytes": 701749
+    },
+    {
+      "code": 76,
+      "iso": "RU-VOR",
+      "name": "Воронежская область",
+      "file": "settlements/76.json",
+      "count": 1644,
+      "bytes": 194444
+    },
+    {
+      "code": 12,
       "iso": "RU-YEV",
       "name": "Еврейская АО",
-      "file": "settlements/78.json",
+      "file": "settlements/12.json",
       "count": 109,
       "bytes": 12773
     },
     {
-      "code": 75,
+      "code": 78,
       "iso": "RU-ZAB",
       "name": "Забайкальский край",
-      "file": "settlements/75.json",
+      "file": "settlements/78.json",
       "count": 862,
-      "bytes": 102827
+      "bytes": 102783
     },
     {
       "code": 17,
@@ -78,7 +110,7 @@
       "name": "Иркутская область",
       "file": "settlements/16.json",
       "count": 1398,
-      "bytes": 159598
+      "bytes": 159590
     },
     {
       "code": 19,
@@ -86,7 +118,7 @@
       "name": "Кабардино-Балкарская Республика",
       "file": "settlements/19.json",
       "count": 175,
-      "bytes": 20468
+      "bytes": 20304
     },
     {
       "code": 23,
@@ -95,6 +127,14 @@
       "file": "settlements/23.json",
       "count": 1081,
       "bytes": 124624
+    },
+    {
+      "code": 79,
+      "iso": "RU-KLU",
+      "name": "Калужская область",
+      "file": "settlements/79.json",
+      "count": 3023,
+      "bytes": 347965
     },
     {
       "code": 18,
@@ -110,7 +150,7 @@
       "name": "Карачаево-Черкесская Республика",
       "file": "settlements/20.json",
       "count": 149,
-      "bytes": 17762
+      "bytes": 17758
     },
     {
       "code": 22,
@@ -126,7 +166,7 @@
       "name": "Кировская область",
       "file": "settlements/27.json",
       "count": 4006,
-      "bytes": 457063
+      "bytes": 457047
     },
     {
       "code": 31,
@@ -134,7 +174,7 @@
       "name": "Костромская область",
       "file": "settlements/31.json",
       "count": 2636,
-      "bytes": 299958
+      "bytes": 299962
     },
     {
       "code": 21,
@@ -142,7 +182,7 @@
       "name": "Краснодарский край",
       "file": "settlements/21.json",
       "count": 1701,
-      "bytes": 207518
+      "bytes": 206838
     },
     {
       "code": 34,
@@ -150,7 +190,7 @@
       "name": "Красноярский край",
       "file": "settlements/34.json",
       "count": 1680,
-      "bytes": 205812
+      "bytes": 205808
     },
     {
       "code": 24,
@@ -158,7 +198,7 @@
       "name": "Курганская область",
       "file": "settlements/24.json",
       "count": 1160,
-      "bytes": 134662
+      "bytes": 134658
     },
     {
       "code": 33,
@@ -166,15 +206,15 @@
       "name": "Курская область",
       "file": "settlements/33.json",
       "count": 2558,
-      "bytes": 295391
+      "bytes": 295388
     },
     {
       "code": 35,
       "iso": "RU-LEN",
       "name": "Ленинградская область",
       "file": "settlements/35.json",
-      "count": 2833,
-      "bytes": 323123
+      "count": 3000,
+      "bytes": 339356
     },
     {
       "code": 36,
@@ -193,12 +233,12 @@
       "bytes": 7164
     },
     {
-      "code": 39,
-      "iso": "RU-MO",
-      "name": "Московская область",
-      "file": "settlements/39.json",
-      "count": 1536,
-      "bytes": 180413
+      "code": 40,
+      "iso": "RU-MOW",
+      "name": "Москва",
+      "file": "settlements/40.json",
+      "count": 316,
+      "bytes": 33918
     },
     {
       "code": 41,
@@ -222,7 +262,7 @@
       "name": "Нижегородская область",
       "file": "settlements/44.json",
       "count": 4294,
-      "bytes": 519739
+      "bytes": 519751
     },
     {
       "code": 43,
@@ -230,7 +270,7 @@
       "name": "Новгородская область",
       "file": "settlements/43.json",
       "count": 3421,
-      "bytes": 384406
+      "bytes": 384402
     },
     {
       "code": 45,
@@ -254,7 +294,7 @@
       "name": "Оренбургская область",
       "file": "settlements/47.json",
       "count": 1652,
-      "bytes": 195532
+      "bytes": 195536
     },
     {
       "code": 48,
@@ -262,7 +302,7 @@
       "name": "Орловская область",
       "file": "settlements/48.json",
       "count": 2634,
-      "bytes": 303883
+      "bytes": 303887
     },
     {
       "code": 50,
@@ -270,7 +310,7 @@
       "name": "Пензенская область",
       "file": "settlements/50.json",
       "count": 1364,
-      "bytes": 158249
+      "bytes": 158245
     },
     {
       "code": 49,
@@ -278,7 +318,7 @@
       "name": "Пермский край",
       "file": "settlements/49.json",
       "count": 3395,
-      "bytes": 385010
+      "bytes": 385006
     },
     {
       "code": 51,
@@ -294,15 +334,15 @@
       "name": "Псковская область",
       "file": "settlements/52.json",
       "count": 6939,
-      "bytes": 786912
+      "bytes": 786908
     },
     {
       "code": 1,
       "iso": "RU-AD",
       "name": "Республика Адыгея",
       "file": "settlements/1.json",
-      "count": 175,
-      "bytes": 21144
+      "count": 231,
+      "bytes": 27604
     },
     {
       "code": 2,
@@ -318,7 +358,7 @@
       "name": "Республика Башкортостан",
       "file": "settlements/7.json",
       "count": 4487,
-      "bytes": 529954
+      "bytes": 529958
     },
     {
       "code": 10,
@@ -345,6 +385,14 @@
       "bytes": 5064
     },
     {
+      "code": 29,
+      "iso": "RU-KL",
+      "name": "Республика Калмыкия",
+      "file": "settlements/29.json",
+      "count": 211,
+      "bytes": 24436
+    },
+    {
       "code": 32,
       "iso": "RU-KR",
       "name": "Республика Карелия",
@@ -358,7 +406,7 @@
       "name": "Республика Коми",
       "file": "settlements/30.json",
       "count": 555,
-      "bytes": 65525
+      "bytes": 65529
     },
     {
       "code": 38,
@@ -366,7 +414,7 @@
       "name": "Республика Марий Эл",
       "file": "settlements/38.json",
       "count": 1536,
-      "bytes": 180245
+      "bytes": 180417
     },
     {
       "code": 55,
@@ -414,7 +462,7 @@
       "name": "Ростовская область",
       "file": "settlements/53.json",
       "count": 2252,
-      "bytes": 269463
+      "bytes": 269467
     },
     {
       "code": 54,
@@ -422,7 +470,7 @@
       "name": "Рязанская область",
       "file": "settlements/54.json",
       "count": 2515,
-      "bytes": 288725
+      "bytes": 288721
     },
     {
       "code": 57,
@@ -430,15 +478,15 @@
       "name": "Самарская область",
       "file": "settlements/57.json",
       "count": 1267,
-      "bytes": 151977
+      "bytes": 151849
     },
     {
       "code": 61,
       "iso": "RU-SPE",
       "name": "Санкт-Петербург",
       "file": "settlements/61.json",
-      "count": 139,
-      "bytes": 16716
+      "count": 31,
+      "bytes": 3790
     },
     {
       "code": 58,
@@ -446,7 +494,7 @@
       "name": "Саратовская область",
       "file": "settlements/58.json",
       "count": 1602,
-      "bytes": 190730
+      "bytes": 190726
     },
     {
       "code": 56,
@@ -462,7 +510,7 @@
       "name": "Свердловская область",
       "file": "settlements/63.json",
       "count": 1796,
-      "bytes": 222638
+      "bytes": 222622
     },
     {
       "code": 60,
@@ -478,7 +526,7 @@
       "name": "Ставропольский край",
       "file": "settlements/62.json",
       "count": 756,
-      "bytes": 92369
+      "bytes": 91563
     },
     {
       "code": 65,
@@ -486,7 +534,7 @@
       "name": "Тамбовская область",
       "file": "settlements/65.json",
       "count": 1454,
-      "bytes": 173493
+      "bytes": 173205
     },
     {
       "code": 68,
@@ -494,7 +542,7 @@
       "name": "Тверская область",
       "file": "settlements/68.json",
       "count": 6727,
-      "bytes": 767275
+      "bytes": 767271
     },
     {
       "code": 66,
@@ -502,7 +550,7 @@
       "name": "Томская область",
       "file": "settlements/66.json",
       "count": 553,
-      "bytes": 63414
+      "bytes": 63418
     },
     {
       "code": 67,
@@ -510,7 +558,7 @@
       "name": "Тульская область",
       "file": "settlements/67.json",
       "count": 3156,
-      "bytes": 370486
+      "bytes": 370490
     },
     {
       "code": 70,
@@ -518,7 +566,7 @@
       "name": "Тюменская область",
       "file": "settlements/70.json",
       "count": 1226,
-      "bytes": 139284
+      "bytes": 139292
     },
     {
       "code": 71,
@@ -577,10 +625,18 @@
       "bytes": 199387
     },
     {
-      "code": 76,
+      "code": 83,
+      "iso": "RU-CHU",
+      "name": "Чукотский АО",
+      "file": "settlements/83.json",
+      "count": 30,
+      "bytes": 3698
+    },
+    {
+      "code": 84,
       "iso": "RU-YAN",
       "name": "Ямало-Ненецкий АО",
-      "file": "settlements/76.json",
+      "file": "settlements/84.json",
       "count": 85,
       "bytes": 12897
     },
@@ -590,8 +646,8 @@
       "name": "Ярославская область",
       "file": "settlements/77.json",
       "count": 5540,
-      "bytes": 638298
+      "bytes": 638302
     }
   ],
-  "generatedAt": "2026-11-25T22:36:41.483Z"
+  "generatedAt": "2026-11-26T12:54:39.713Z"
 }

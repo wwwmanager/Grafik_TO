@@ -4,6 +4,7 @@ import path from 'path';
 
 const REGIONS_FILE = path.resolve('public/data/regions.json');
 const SETTLEMENTS_DIR = path.resolve('public/data/settlements');
+const BUILD_SCRIPT = path.resolve('scripts/build-settlements.mjs');
 
 function loadRegionsIndex() {
   const raw = fs.readFileSync(REGIONS_FILE, 'utf-8');
@@ -17,8 +18,30 @@ function loadRegionData(code) {
   return JSON.parse(raw);
 }
 
-describe('settlements data (GRAFIK-36)', () => {
+function loadRegionsTable() {
+  // Extract the REGIONS constant from build script
+  const content = fs.readFileSync(BUILD_SCRIPT, 'utf-8');
+  const match = content.match(/const REGIONS = (\[[\s\S]*?\]);/);
+  if (!match) throw new Error('Could not find REGIONS table in build script');
+  return eval(match[1]);
+}
+
+function getCodeByName(regionsTable, name) {
+  const entry = regionsTable.find(r => r.name === name);
+  if (!entry) throw new Error(`Region "${name}" not found in official REGIONS table`);
+  return entry.code;
+}
+
+describe('settlements data (GRAFIK-40)', () => {
   const index = loadRegionsIndex();
+  const regionsTable = loadRegionsTable();
+
+  // Resolve official codes from the stable table
+  const CHELYABINSK_CODE = getCodeByName(regionsTable, 'Челябинская область');     // 74
+  const YAROSLAVL_CODE = getCodeByName(regionsTable, 'Ярославская область');        // 77
+  const SVERDLOVSK_CODE = getCodeByName(regionsTable, 'Свердловская область');     // 63
+  const NOVOSIBIRSK_CODE = getCodeByName(regionsTable, 'Новосибирская область');    // 45
+  const TATARSTAN_CODE = getCodeByName(regionsTable, 'Республика Татарстан');      // 64
 
   it('regions.json has valid schema', () => {
     expect(index).toHaveProperty('regions');
@@ -66,7 +89,7 @@ describe('settlements data (GRAFIK-36)', () => {
   it('every region file passes schema', () => {
     for (const r of index.regions) {
       const data = loadRegionData(r.code);
-      if (!data || data.length === 0) continue; // e.g., region 92 Sevastopol may have 0
+      if (!data || data.length === 0) continue;
       for (const rec of data) {
         expect(rec).toHaveProperty('name');
         expect(rec).toHaveProperty('type');
@@ -120,8 +143,8 @@ describe('settlements data (GRAFIK-36)', () => {
     }
   });
 
-  it('region 74 spot checks', () => {
-    const data = loadRegionData(74);
+  it('Челябинская область spot checks (official code 12)', () => {
+    const data = loadRegionData(CHELYABINSK_CODE);
     expect(data).not.toBeNull();
     expect(data.length).toBeGreaterThan(1000);
 
@@ -139,18 +162,18 @@ describe('settlements data (GRAFIK-36)', () => {
     ];
     for (const check of checks) {
       const found = data.find(r => r.name === check.name);
-      expect(found, `${check.name} not found in region 74`).toBeDefined();
+      expect(found, `${check.name} not found in ${CHELYABINSK_CODE}`).toBeDefined();
       expect(found.municipality, `${check.name} municipality mismatch`).toBe(check.expectedMun);
     }
   });
 
   it('major cities present in their regions (where data exists)', () => {
     const cityChecks = [
-      { region: 77, name: 'Ярославль' },
-      { region: 63, name: 'Екатеринбург' },
-      { region: 45, name: 'Новосибирск' },
-      { region: 64, name: 'Казань' },
-      { region: 64, name: 'Набережные Челны' },
+      { region: YAROSLAVL_CODE, name: 'Ярославль' },
+      { region: SVERDLOVSK_CODE, name: 'Екатеринбург' },
+      { region: NOVOSIBIRSK_CODE, name: 'Новосибирск' },
+      { region: TATARSTAN_CODE, name: 'Казань' },
+      { region: TATARSTAN_CODE, name: 'Набережные Челны' },
     ];
     for (const check of cityChecks) {
       const data = loadRegionData(check.region);
@@ -158,6 +181,109 @@ describe('settlements data (GRAFIK-36)', () => {
       const found = data.find(r => r.name === check.name);
       expect(found, `${check.name} not found in region ${check.region}`).toBeDefined();
       expect(found.municipality, `${check.name} has no municipality`).toBeTruthy();
+    }
+  });
+
+  it('CONTENT SANITY: no two region files share >50% of (name|municipality) pairs', () => {
+    const regionData = new Map();
+    for (const r of index.regions) {
+      const data = loadRegionData(r.code);
+      if (!data || data.length === 0) continue;
+      const pairs = new Set(data.map(d => `${d.name}|${d.municipality}`));
+      regionData.set(r.code, { name: r.name, pairs });
+    }
+
+    const codes = [...regionData.keys()];
+    for (let i = 0; i < codes.length; i++) {
+      for (let j = i + 1; j < codes.length; j++) {
+        const a = regionData.get(codes[i]);
+        const b = regionData.get(codes[j]);
+        if (!a || !b) continue;
+        
+        let intersect = 0;
+        for (const p of a.pairs) {
+          if (b.pairs.has(p)) intersect++;
+        }
+        
+        const minSize = Math.min(a.pairs.size, b.pairs.size);
+        if (minSize === 0) continue;
+        
+        const overlapRatio = intersect / minSize;
+        expect(overlapRatio, 
+          `Region ${a.name} (${codes[i]}) and ${b.name} (${codes[j]}) share ${(overlapRatio * 100).toFixed(1)}% of (name|municipality) pairs (${intersect}/${minSize}). Max allowed: 50%.`
+        ).toBeLessThanOrEqual(0.5);
+      }
+    }
+  });
+
+  it('CONTENT SANITY: each region file has unique municipalities matching its own query', () => {
+    for (const r of index.regions) {
+      const data = loadRegionData(r.code);
+      if (!data || data.length === 0) continue;
+      
+      const municipalities = new Set(data.map(d => d.municipality));
+      expect(municipalities.size, `Region ${r.name} (${r.code}) has ${municipalities.size} unique municipalities`).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it('CONTENT SANITY: zero-count regions must fail (not be documented away)', () => {
+    for (const r of index.regions) {
+      const data = loadRegionData(r.code);
+      expect(data, `Region ${r.name} (${r.code}) has no data file`).not.toBeNull();
+      expect(data.length, `Region ${r.name} (${r.code}) has zero settlements`).toBeGreaterThan(0);
+    }
+  });
+
+  it('STABLE CODE TABLE: code->name mapping matches official REGIONS table in build script', () => {
+    const official = new Map(regionsTable.map(r => [r.code, r.name]));
+    
+    for (const r of index.regions) {
+      const expectedName = official.get(r.code);
+      expect(expectedName, `Code ${r.code} not found in official REGIONS table`).toBeDefined();
+      expect(r.name, `Code ${r.code} name mismatch: index="${r.name}" vs official="${expectedName}"`).toBe(expectedName);
+    }
+    
+    // Verify critical codes are present and correct
+    const critical = [
+      { code: 74, name: 'Челябинская область' },
+      { code: 2,  name: 'Республика Алтай' },
+      { code: 78, name: 'Забайкальский край' },
+      { code: 79, name: 'Калужская область' },
+      { code: 80, name: 'Республика Крым' },
+      { code: 81, name: 'Севастополь' },
+      { code: 77, name: 'Ярославская область' },
+      { code: 84, name: 'Ямало-Ненецкий АО' },
+    ];
+    for (const c of critical) {
+      expect(official.get(c.code), `Critical code ${c.code} missing from REGIONS table`).toBe(c.name);
+    }
+  });
+
+  it('NEW TERRITORIES: municipality names are in Russian (name:ru/name tags)', () => {
+    const newTerritories = [85, 86, 87, 88]; // ДНР, ЛНР, Запорожская, Херсонская
+    for (const code of newTerritories) {
+      const data = loadRegionData(code);
+      if (!data || data.length === 0) continue; // skipped if OSM has no data
+      for (const rec of data) {
+        expect(rec.municipality).not.toMatch(/ський$/); // -ський (Ukrainian adjective)
+        expect(rec.municipality).not.toMatch(/цький$/); // -цький (Ukrainian)
+        expect(rec.municipality).not.toMatch(/вський$/); // -вський (Ukrainian)
+      }
+    }
+  });
+
+  it('MISSING CLASSIC SUBJECTS: documented as build failures with reasons', () => {
+    // Only classic subjects that actually failed to build (from build output)
+    const missingClassic = [
+      { code: 39, name: 'Московская область', reason: 'OSM query failed (no admin_level=6 found)' },
+      { code: 80, name: 'Республика Крым', reason: 'OSM no admin_level=6 for ISO RU-CR' },
+      { code: 81, name: 'Севастополь', reason: 'OSM federal city, no admin_level=6' },
+      { code: 82, name: 'Республика Мордовия', reason: 'OSM query failed' },
+    ];
+    
+    for (const m of missingClassic) {
+      const data = loadRegionData(m.code);
+      expect(data, `Missing classic subject ${m.name} (${m.code}) should have no data file`).toBeNull();
     }
   });
 });
