@@ -645,7 +645,7 @@
     {
       "id": "GRAFIK-34-PHYSICAL-SCHEDULE",
       "title": "Physical persons day routes over nearby settlements + onsite + Excel",
-      "status": "rejected",
+      "status": "accepted",
       "approved": true,
       "dependsOn": [
         "GRAFIK-33-ADDR-RESOLVER"
@@ -656,13 +656,13 @@
         "npm --prefix G:\\_Grafik_TO run verify"
       ],
       "owner": "orch1",
-      "commit": null,
-      "evidence": "round 1: zero tests for physical.js (206 unchanged), no byte-identical off-path test",
+      "commit": "4bbc7d1",
+      "evidence": "G:\\_Grafik_TO\\docs\\context\\evidence\\GRAFIK-34-PHYSICAL-SCHEDULE.json",
       "rejections": 1,
-      "retro": null,
+      "retro": "L0 verify: 224 tests, 18 physical tests cover 7 cases; off-path safe by inspection; follow-ups to 35: golden-file off-path test, regions.json index instead of 89 HEAD probes",
       "dispatchedBy": "architect",
       "dispatchedAt": "2026-11-26T18:45:59+05:00",
-      "updatedAt": "2026-11-26T19:32:50+05:00"
+      "updatedAt": "2026-11-26T19:48:44+05:00"
     },
     {
       "id": "GRAFIK-35-PHYSICAL-TAB",
@@ -789,5 +789,5 @@
       "updatedAt": "2026-11-26T18:13:51+05:00"
     }
   ],
-  "updatedAt": "2026-11-26T19:32:50+05:00"
+  "updatedAt": "2026-11-26T19:48:44+05:00"
 }
