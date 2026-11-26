@@ -138,71 +138,98 @@ export async function loadSettlements(dataIds) {
   return results;
 }
 
-// Build lookup map from settlements data
-function buildLookupMap(settlements) {
-  const map = new Map();
-  for (const s of settlements) {
-    const normName = normalizeName(s.name);
-    const normMuni = normalizeName(s.municipality);
-    const key = `${normName}|${normMuni}`;
-    if (!map.has(key)) map.set(key, []);
-    map.get(key).push(s);
+// GRAFIK-47: the normalized lookup is built once per settlement list, never
+// once per address (that was 150 x 1267 x 2 normalizations on the real export).
+const settlementIndexCache = new WeakMap();
+
+export function createSettlementIndex(settlements) {
+  const pairs = [];
+  const pairByKey = new Map();
+  const byName = new Map();
+  const byMunicipality = new Map();
+  for (const settlement of settlements) {
+    const name = normalizeName(settlement.name);
+    const municipality = normalizeName(settlement.municipality);
+    const key = `${name}|${municipality}`;
+    let pair = pairByKey.get(key);
+    if (!pair) {
+      pair = { key, name, municipality, list: [] };
+      pairByKey.set(key, pair);
+      pairs.push(pair);
+      if (!byName.has(name)) byName.set(name, []);
+      byName.get(name).push(pair);
+      if (!byMunicipality.has(municipality)) byMunicipality.set(municipality, []);
+      byMunicipality.get(municipality).push(pair);
+    }
+    pair.list.push(settlement);
   }
-  return map;
+  return { settlements, pairs, pairByKey, byName, byMunicipality };
 }
 
-// Resolve a parsed address to a settlement reference
+export function getSettlementIndex(settlements) {
+  if (Array.isArray(settlements)) {
+    let index = settlementIndexCache.get(settlements);
+    if (!index) {
+      index = createSettlementIndex(settlements);
+      settlementIndexCache.set(settlements, index);
+    }
+    return index;
+  }
+  if (settlements && settlements.byName && Array.isArray(settlements.pairs)) {
+    return settlements;
+  }
+  return createSettlementIndex([]);
+}
+
+// Resolve a parsed address to a settlement reference. Accepts either the raw
+// settlements array (index cached per array) or a prebuilt index.
 export function resolveSettlement(parsed, settlements) {
-  const lookup = buildLookupMap(settlements);
-  
+  const index = getSettlementIndex(settlements);
+
   // Try exact match at finest level first
   const candidates = [];
-  
+  const pushPair = (pair) => {
+    for (const settlement of pair.list) {
+      candidates.push({ ...settlement, match: 'exact', key: pair.key });
+    }
+  };
+
   // Inner settlement match
   if (parsed.inner) {
     const normInner = normalizeName(parsed.inner);
     const normCity = normalizeName(parsed.city);
     const normDistrict = normalizeName(parsed.district);
-    
-    for (const [key, list] of lookup) {
-      const [name, muni] = key.split('|');
-      if (name === normInner) {
-        // Prefer matching municipality (district/city)
-        if (normDistrict && muni === normDistrict) {
-          return { ...list[0], match: 'exact', key: `${name}|${muni}` };
-        }
-        if (normCity && muni === normCity) {
-          return { ...list[0], match: 'exact', key: `${name}|${muni}` };
-        }
-        candidates.push(...list.map(s => ({ ...s, match: 'exact', key })));
+
+    for (const pair of index.byName.get(normInner) || []) {
+      // Prefer matching municipality (district/city)
+      if (normDistrict && pair.municipality === normDistrict) {
+        return { ...pair.list[0], match: 'exact', key: pair.key };
       }
+      if (normCity && pair.municipality === normCity) {
+        return { ...pair.list[0], match: 'exact', key: pair.key };
+      }
+      pushPair(pair);
     }
   }
-  
+
   // City/village match
   if (parsed.city) {
     const normCity = normalizeName(parsed.city);
     const normDistrict = normalizeName(parsed.district);
-    
-    for (const [key, list] of lookup) {
-      const [name, muni] = key.split('|');
-      if (name === normCity) {
-        if (normDistrict && muni === normDistrict) {
-          return { ...list[0], match: 'exact', key: `${name}|${muni}` };
-        }
-        candidates.push(...list.map(s => ({ ...s, match: 'exact', key })));
+
+    for (const pair of index.byName.get(normCity) || []) {
+      if (normDistrict && pair.municipality === normDistrict) {
+        return { ...pair.list[0], match: 'exact', key: pair.key };
       }
+      pushPair(pair);
     }
   }
-  
+
   // District match (only for urban okrugs without city, or when no city/inner specified)
   if (parsed.district && !parsed.city && !parsed.inner) {
     const normDistrict = normalizeName(parsed.district);
-    for (const [key, list] of lookup) {
-      const [, muni] = key.split('|');
-      if (muni === normDistrict) {
-        candidates.push(...list.map(s => ({ ...s, match: 'exact', key })));
-      }
+    for (const pair of index.byMunicipality.get(normDistrict) || []) {
+      pushPair(pair);
     }
   }
   
@@ -238,14 +265,13 @@ export function resolveSettlement(parsed, settlements) {
     let bestDist = Infinity;
     let matchCount = 0;
     
-    for (const [key, list] of lookup) {
-      const [name] = key.split('|');
-      const dist = levenshtein(normSearch, name);
+    for (const pair of index.pairs) {
+      const dist = levenshtein(normSearch, pair.name);
       if (dist <= 2) {
         matchCount++;
         if (dist < bestDist) {
           bestDist = dist;
-          bestMatch = list[0];
+          bestMatch = pair.list[0];
         }
       }
     }

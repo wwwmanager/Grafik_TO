@@ -214,7 +214,14 @@ export function buildPhysicalTree(outboundVisits, onsiteVisits, decisions = {}) 
 }
 
 // Rebuild schedule with manual decisions applied
-export async function rebuildScheduleWithDecisions(records, settings, calendar, targetYear, decisions) {
+export async function rebuildScheduleWithDecisions(
+  records,
+  settings,
+  calendar,
+  targetYear,
+  decisions,
+  options = {},
+) {
   // Apply decisions to settings by modifying the physical records' effective grouping
   // For now, we rebuild the physical schedule and then apply post-processing
   // based on decisions (merge/onsite)
@@ -230,7 +237,7 @@ export async function rebuildScheduleWithDecisions(records, settings, calendar, 
     }
     throw error;
   }
-  const physical = await buildPhysicalSchedule(records, settings, calendar, targetYear);
+  const physical = await buildPhysicalSchedule(records, settings, calendar, targetYear, options);
   
   // Apply merge decisions: combine settlements marked for merge
   // Apply onsite decisions: force settlements to onsite

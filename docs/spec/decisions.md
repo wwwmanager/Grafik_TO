@@ -130,3 +130,28 @@ D27 Защита от устаревшего кэша (GRAFIK-46): после д
        любом не-200/отсутствии файла, WARN при расхождении живого HTML с локальной сборкой.
     Перезагрузка не более одной на вкладку-сессию; при недоступном sessionStorage reload не делается
     (только баннер), чтобы не получить цикл. Логика покрыта тестами на фейковом DOM (node-окружение).
+
+D28 Производительность маршрутов физлиц (GRAFIK-47): замер на реальном справочнике Челябинской
+    (public/data/settlements/74.json, 1267 записей) и синтетическом экспорте из 150 адресов:
+    resolve=12583 ms, group=0.3 ms, stops=0.5 ms, schedule=24.9 ms, итого 12608.6 ms — виноват
+    resolveSettlement, который на КАЖДЫЙ адрес пересобирал нормализованный lookup (150 x 1267 x 2
+    normalizeName). После: resolve=107.6 ms, stops=99.4 ms, schedule=105.3 ms, итого 312.5 ms.
+    Решения:
+    1) address.js: createSettlementIndex() строит один раз пары name|municipality, byName и
+       byMunicipality с предвычисленной нормализацией; getSettlementIndex() кэширует индекс в WeakMap
+       по массиву поселений; resolveSettlement(parsed, settlements|index) принимает и индекс.
+       Порядок кандидатов сохранён (порядок пар вставки), fuzzy-скан идёт по index.pairs — поведение
+       прежнее (тесты address.test.js и golden GRAFIK-35 зелёные).
+    2) physical.js: selectRegionDataIds() грузит только регион экспорта/настройки (не все 89 файлов
+       ~14.7 MB); запросы радиуса — через uniform grid (createRadiusGrid/queryRadiusGrid) с
+       консервативным боксом и точной haversine-фильтрацией, кандидаты сортируются по исходному
+       индексу, поэтому маршруты и tie-break идентичны полному скану (эквивалентность проверяется
+       тестом против эталонного скана в tests/route-perf.test.js); расстояния от базы считаются один
+       раз за месяц.
+    3) Жёсткий дедлайн 15 с: createBuildRuntime/PhysicalBuildTimeoutError (code
+       PHYSICAL_BUILD_TIMEOUT, сообщение с «Повторить»), withDeadline() для fetch-загрузки
+       справочников, проверки по записям/маршрутам/месяцам, onProgress (phase, processed, total,
+       elapsedMs) с троттлингом 200 ms и yield в event loop раз в 50 ms; ui.analyze показывает
+       «поселения X/Y» / «месяцы X/12» и при таймауте — retry-сообщение.
+    4) Данные справочников не менялись; 17 пар name|municipality в 74.json имеют разные координаты
+       (village vs hamlet) — это реальные данные OSM, уникальность проверяется полным ключом.

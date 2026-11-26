@@ -372,6 +372,16 @@ function messagesContainer(root) {
   return root.getElementById('messages');
 }
 
+// GRAFIK-47: the build reports processed/total so a long Челябинская export
+// shows progress instead of looking frozen.
+function physicalProgressText(progress) {
+  if (!progress) return 'Построение маршрутов физлиц…';
+  const { phase, processed, total } = progress;
+  if (phase === 'months') return `Построение маршрутов физлиц… месяцы ${processed}/${total}`;
+  if (phase === 'routes') return `Построение маршрутов физлиц… маршруты ${processed}/${total}`;
+  return `Построение маршрутов физлиц… поселения ${processed}/${total}`;
+}
+
 // GRAFIK-46: an inline message with «Повторить» instead of a spinner that
 // never ends. Used for chunk-load failures and other retryable work.
 function showRetryableError(root, message, retry) {
@@ -668,7 +678,17 @@ async function analyze(state, els, root) {
     state.physicalDecisions = decisions;
     
     // Build physical schedule with decisions applied
-    const physical = await rebuildScheduleWithDecisions(state.records, settings, calendar, settings.targetYear, decisions);
+    const physical = await rebuildScheduleWithDecisions(
+      state.records,
+      settings,
+      calendar,
+      settings.targetYear,
+      decisions,
+      {
+        deadlineMs: 15000,
+        onProgress: (progress) => setStatus(root, physicalProgressText(progress)),
+      },
+    );
     
     const physicalVisits = [
       ...physical.outboundVisits.map(v => ({
@@ -752,7 +772,7 @@ async function analyze(state, els, root) {
       } else {
         showRetryableError(
           root,
-          error?.importMessage || 'Не удалось построить маршруты физлиц.',
+          error?.importMessage || error?.message || 'Не удалось построить маршруты физлиц.',
           () => analyze(state, els, root),
         );
       }
