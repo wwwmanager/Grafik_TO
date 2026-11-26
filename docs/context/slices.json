@@ -667,7 +667,7 @@
     {
       "id": "GRAFIK-35-PHYSICAL-TAB",
       "title": "Preview tab Физлица with manual merge + persistence",
-      "status": "dispatched",
+      "status": "accepted",
       "approved": true,
       "dependsOn": [
         "GRAFIK-34-PHYSICAL-SCHEDULE"
@@ -678,13 +678,13 @@
         "npm --prefix G:\\_Grafik_TO run verify"
       ],
       "owner": "orch1",
-      "commit": null,
-      "evidence": null,
+      "commit": "88fdcbd",
+      "evidence": "G:\\_Grafik_TO\\docs\\context\\evidence\\GRAFIK-35-PHYSICAL-TAB.json",
       "rejections": 0,
-      "retro": null,
+      "retro": "L0 verify: 237 tests/14 files green, golden-file off-path tests real (byte compare), decisions store only settlement keys+mode (no personal data), regions index single cached fetch. Cleaned junk artifacts committed with the slice (2d6e21f).",
       "dispatchedBy": "architect",
       "dispatchedAt": "2026-11-26T19:50:54+05:00",
-      "updatedAt": "2026-11-26T19:50:54+05:00"
+      "updatedAt": "2026-11-26T20:18:45+05:00"
     },
     {
       "id": "GRAFIK-32-OSM-SETTLEMENTS",
@@ -789,5 +789,5 @@
       "updatedAt": "2026-11-26T18:13:51+05:00"
     }
   ],
-  "updatedAt": "2026-11-26T19:50:54+05:00"
+  "updatedAt": "2026-11-26T20:18:45+05:00"
 }
