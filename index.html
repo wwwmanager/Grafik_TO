@@ -171,6 +171,106 @@
             </div>
           </details>
 
+          <details class="settings-block" id="block-region" data-storage-key="open-region">
+            <summary class="settings-block-summary">
+              Регион инспекции и соседние регионы
+              <span class="settings-block-hint" id="hint-region"></span>
+            </summary>
+            <div class="settings-block-content">
+              <label class="field">
+                <span>Регион инспекции</span>
+                <select id="inspectionRegion">
+                  <option value="">— не выбран —</option>
+                </select>
+              </label>
+
+              <div class="field">
+                <span class="field-label">Соседние регионы (для адресного справочника)</span>
+                <div id="neighboringRegions" class="region-checkboxes" role="group" aria-label="Соседние регионы"></div>
+              </div>
+
+              <p class="field-hint" style="margin-top: var(--space-3); color: var(--color-text-muted);">
+                Регионы без данных поселений отмечены как недоступные. Адресный справочник загружается только для выбранных регионов.
+              </p>
+            </div>
+          </details>
+
+          <details class="settings-block" id="block-physical-schedule" data-storage-key="open-physical-schedule">
+            <summary class="settings-block-summary">
+              Физлица: маршрутизация выездов
+              <span class="settings-block-hint" id="hint-physicalSchedule"></span>
+            </summary>
+            <div class="settings-block-content">
+              <div class="field">
+                <label>
+                  <input id="includePhysical" type="checkbox" />
+                  Включать физлиц в график выездов
+                </label>
+              </div>
+
+              <div class="field-grid">
+                <label class="field">
+                  <span>Область применения</span>
+                  <select id="physicalScope">
+                    <option value="threshold">Только до порога (≤ мин. ед. для выезда)</option>
+                    <option value="all">Все физлица</option>
+                  </select>
+                </label>
+
+                <label class="field">
+                  <span>Мин. единиц техники для выезда</span>
+                  <input id="minUnitsForVisit" type="number" min="1" max="100" value="5" />
+                </label>
+
+                <label class="field">
+                  <span>Радиус маршрута, км</span>
+                  <input id="maxRadiusKm" type="number" min="1" max="200" value="40" />
+                </label>
+
+                <label class="field">
+                  <span>Средняя скорость, км/ч</span>
+                  <input id="avgSpeedKmh" type="number" min="10" max="100" value="50" />
+                </label>
+              </div>
+
+              <div class="field">
+                <span class="field-label">Базовый населённый пункт (начало маршрутов)</span>
+                <select id="baseSettlement">
+                  <option value="">— автоматически (первый из региона) —</option>
+                </select>
+              </div>
+
+              <fieldset class="field">
+                <legend>Приёмные дни для физлиц на площадке</legend>
+                <label><input id="onsiteAsAcceptingDays" type="checkbox" checked /> Как приёмные дни инспекции</label>
+                <div class="field-row" style="margin-top: var(--space-2);">
+                  <label><input type="checkbox" name="onsiteDay" value="0" /> Вс</label>
+                  <label><input type="checkbox" name="onsiteDay" value="1" /> Пн</label>
+                  <label><input type="checkbox" name="onsiteDay" value="2" /> Вт</label>
+                  <label><input type="checkbox" name="onsiteDay" value="3" /> Ср</label>
+                  <label><input type="checkbox" name="onsiteDay" value="4" /> Чт</label>
+                  <label><input type="checkbox" name="onsiteDay" value="5" /> Пт</label>
+                  <label><input type="checkbox" name="onsiteDay" value="6" /> Сб</label>
+                </div>
+              </fieldset>
+
+              <fieldset class="field">
+                <legend>Место проведения ТО физлиц на площадке</legend>
+                <label><input type="radio" name="onsiteLocation" value="inspection" checked /> У инспекции (адрес инспекции)</label>
+                <label><input type="radio" name="onsiteLocation" value="own" /> Своя площадка</label>
+              </fieldset>
+
+              <label class="field" id="onsiteAddressField" style="display: none;">
+                <span>Адрес своей площадки</span>
+                <input id="onsiteAddress" type="text" placeholder="г. Москва, ул. ..." />
+              </label>
+
+              <p class="field-hint" style="margin-top: var(--space-3); color: var(--color-text-muted);">
+                Выезды с суммарной техникой ≥ мин. ед. идут в выездные дни (не приёмные). Остальные — на площадке в приёмные дни.
+              </p>
+            </div>
+          </details>
+
           <div class="settings-actions">
             <button type="button" id="analyzeButton" class="button button-primary" disabled>
               Сформировать график

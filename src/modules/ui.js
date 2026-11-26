@@ -43,6 +43,20 @@ export function defaultSettings(now = new Date()) {
     travelMinutes: 60,
     winterMonths: [11, 0, 1],
     winterLoadPercent: 30,
+    // Physical schedule (GRAFIK-34)
+    includePhysical: false,
+    physicalScope: 'threshold', // 'threshold' | 'all'
+    minUnitsForVisit: 5,
+    baseSettlement: null,
+    maxRadiusKm: 40,
+    avgSpeedKmh: 50,
+    onsiteDays: [],
+    onsiteAsAcceptingDays: true,
+    onsiteLocation: 'inspection', // 'inspection' | 'own'
+    onsiteAddress: '',
+    // Region selection for address resolver (GRAFIK-33/34)
+    inspectionRegion: null,
+    neighboringRegions: [],
   };
 }
 
@@ -76,6 +90,28 @@ export function loadPersistedSettings() {
           to: typeof period?.to === 'string' ? period.to : '',
         }))
         .filter((period) => period.from || period.to);
+    }
+    // Physical settings (GRAFIK-34)
+    if (typeof data.includePhysical === 'boolean') result.includePhysical = data.includePhysical;
+    if (typeof data.physicalScope === 'string') result.physicalScope = data.physicalScope;
+    const minUnits = Number(data.minUnitsForVisit);
+    if (Number.isFinite(minUnits) && minUnits >= 1) result.minUnitsForVisit = minUnits;
+    if (data.baseSettlement) result.baseSettlement = data.baseSettlement;
+    const maxRadius = Number(data.maxRadiusKm);
+    if (Number.isFinite(maxRadius) && maxRadius >= 1) result.maxRadiusKm = maxRadius;
+    const avgSpeed = Number(data.avgSpeedKmh);
+    if (Number.isFinite(avgSpeed) && avgSpeed >= 1) result.avgSpeedKmh = avgSpeed;
+    if (Array.isArray(data.onsiteDays)) {
+      result.onsiteDays = data.onsiteDays.map(d => Number(d)).filter(d => Number.isInteger(d) && d >= 0 && d <= 6);
+    }
+    if (typeof data.onsiteAsAcceptingDays === 'boolean') result.onsiteAsAcceptingDays = data.onsiteAsAcceptingDays;
+    if (typeof data.onsiteLocation === 'string') result.onsiteLocation = data.onsiteLocation;
+    if (typeof data.onsiteAddress === 'string') result.onsiteAddress = data.onsiteAddress;
+    // Region selection
+    const inspectionRegion = Number(data.inspectionRegion);
+    if (Number.isFinite(inspectionRegion)) result.inspectionRegion = inspectionRegion;
+    if (Array.isArray(data.neighboringRegions)) {
+      result.neighboringRegions = data.neighboringRegions.map(r => Number(r)).filter(r => Number.isFinite(r));
     }
     return result;
   } catch {
@@ -117,6 +153,18 @@ function persistSettings(settings) {
         winterMonths: settings.winterMonths,
         winterLoadPercent: settings.winterLoadPercent,
         vacations: settings.vacations,
+        includePhysical: settings.includePhysical,
+        physicalScope: settings.physicalScope,
+        minUnitsForVisit: settings.minUnitsForVisit,
+        baseSettlement: settings.baseSettlement,
+        maxRadiusKm: settings.maxRadiusKm,
+        avgSpeedKmh: settings.avgSpeedKmh,
+        onsiteDays: settings.onsiteDays,
+        onsiteAsAcceptingDays: settings.onsiteAsAcceptingDays,
+        onsiteLocation: settings.onsiteLocation,
+        onsiteAddress: settings.onsiteAddress,
+        inspectionRegion: settings.inspectionRegion,
+        neighboringRegions: settings.neighboringRegions,
       }),
     );
   } catch {
@@ -182,6 +230,9 @@ function updateBlockHints(root, settings) {
     workday: `${settings.workStart}–${settings.workEnd}, ${settings.perHour} маш/ч`,
     winter: `${winterMonthsLabel(settings.winterMonths)}, ${settings.winterLoadPercent} %`,
     physical: `порог ${settings.physicalThreshold}, режим ${settings.smallPhysicalMode}`,
+    physicalSchedule: settings.includePhysical
+      ? `физлица: ${settings.physicalScope === 'threshold' ? 'до порога' : 'все'}, радиус ${settings.maxRadiusKm} км, мин. ${settings.minUnitsForVisit} ед.`
+      : 'выкл.',
   };
   for (const [key, text] of Object.entries(hints)) {
     const hintEl = root.getElementById(`hint-${key}`);
@@ -241,7 +292,10 @@ function setupBlockListeners(root) {
   // Update hints on input change
   const inputs = root.querySelectorAll(
     '#toDepthYears, #groupWindowDays, #workStart, #workEnd, #perHour, #travelMinutes, ' +
-    'input[name="winterMonth"], #winterLoadPercent, #physicalThreshold, input[name="smallPhysical"], #groupSmallOwners'
+    'input[name="winterMonth"], #winterLoadPercent, #physicalThreshold, input[name="smallPhysical"], #groupSmallOwners, ' +
+    '#includePhysical, input[name="physicalScope"], #minUnitsForVisit, #maxRadiusKm, #avgSpeedKmh, ' +
+    'input[name="onsiteDay"], #onsiteAsAcceptingDays, input[name="onsiteLocation"], #onsiteAddress, ' +
+    '#inspectionRegion, input[name="neighboringRegion"]'
   );
   for (const input of inputs) {
     input.addEventListener('change', () => {
@@ -402,6 +456,29 @@ function readSettings(root, base) {
   const winterPercent = Number(winterPercentRaw);
   const perHourRaw = Number(value('perHour'));
   const groupWindowRaw = Number(value('groupWindowDays'));
+  
+  // Physical settings (GRAFIK-34)
+  const includePhysical = checked('includePhysical');
+  const physicalScope = root.querySelector('input[name="physicalScope"]:checked')?.value || base.physicalScope;
+  const minUnitsRaw = Number(value('minUnitsForVisit'));
+  const baseSettlementInput = root.getElementById('baseSettlement');
+  const baseSettlement = baseSettlementInput ? baseSettlementInput.value : base.baseSettlement;
+  const maxRadiusRaw = Number(value('maxRadiusKm'));
+  const avgSpeedRaw = Number(value('avgSpeedKmh'));
+  const onsiteDays = [...root.querySelectorAll('input[name="onsiteDay"]:checked')].map(
+    (input) => Number(input.value),
+  );
+  const onsiteAsAcceptingDays = checked('onsiteAsAcceptingDays');
+  const onsiteLocation = root.querySelector('input[name="onsiteLocation"]:checked')?.value || base.onsiteLocation;
+  const onsiteAddress = value('onsiteAddress').trim();
+  
+  // Region selection (GRAFIK-33/34)
+  const inspectionRegionRaw = Number(value('inspectionRegion'));
+  const inspectionRegion = Number.isFinite(inspectionRegionRaw) ? inspectionRegionRaw : base.inspectionRegion;
+  const neighboringRegions = [...root.querySelectorAll('input[name="neighboringRegion"]:checked')].map(
+    (input) => Number(input.value),
+  );
+
   return {
     ...base,
     targetYear: Number(value('targetYear')) || base.targetYear,
@@ -438,6 +515,20 @@ function readSettings(root, base) {
       winterPercentRaw === ''
         ? base.winterLoadPercent
         : Math.min(100, Math.max(0, Number.isFinite(winterPercent) ? winterPercent : base.winterLoadPercent)),
+    // Physical settings
+    includePhysical,
+    physicalScope,
+    minUnitsForVisit: Number.isFinite(minUnitsRaw) && minUnitsRaw >= 1 ? minUnitsRaw : base.minUnitsForVisit,
+    baseSettlement,
+    maxRadiusKm: Number.isFinite(maxRadiusRaw) && maxRadiusRaw >= 1 ? maxRadiusRaw : base.maxRadiusKm,
+    avgSpeedKmh: Number.isFinite(avgSpeedRaw) && avgSpeedRaw >= 1 ? avgSpeedRaw : base.avgSpeedKmh,
+    onsiteDays,
+    onsiteAsAcceptingDays,
+    onsiteLocation,
+    onsiteAddress,
+    // Region selection
+    inspectionRegion,
+    neighboringRegions,
   };
 }
 
@@ -486,7 +577,67 @@ async function analyze(state, els, root) {
   } catch {
     // Keep the null calendar; the scheduler then falls back to weekends.
   }
-  const result = buildSchedule(state.records, settings, calendar);
+  let result = buildSchedule(state.records, settings, calendar);
+  
+  // GRAFIK-34: Build physical schedule if enabled
+  if (settings.includePhysical) {
+    setStatus(root, 'Построение маршрутов физлиц…');
+    const { buildPhysicalSchedule } = await import('./physical.js');
+    const physical = await buildPhysicalSchedule(state.records, settings, calendar, settings.targetYear);
+    
+    const physicalVisits = [
+      ...physical.outboundVisits.map(v => ({
+        ...v,
+        owner: v.routeName,
+        locationKey: v.routeName,
+        locationLabel: v.routeName,
+        overdue: false,
+        overload: false,
+        isPhysical: true,
+        isOutbound: true,
+      })),
+      ...physical.onsiteVisits.map(v => ({
+        ...v,
+        owner: `ТО физлиц на площадке: ${v.location === 'inspection' ? 'инспекция' : v.address}`,
+        locationKey: v.location === 'inspection' ? 'инспекция' : v.address,
+        locationLabel: v.location === 'inspection' ? 'инспекция' : v.address,
+        overdue: false,
+        overload: false,
+        isPhysical: true,
+        isOutbound: false,
+      })),
+    ];
+    
+    const allVisits = [...result.visits, ...physicalVisits].sort((a, b) => a.date - b.date || a.startMin - b.startMin);
+    const allNotes = [...result.notes, ...physical.notes];
+    
+    const months = Array.from({ length: 12 }, (_, month) => ({
+      month: month + 1,
+      visits: 0,
+      machines: 0,
+    }));
+    for (const visit of allVisits) {
+      const entry = months[visit.date.getMonth()];
+      entry.visits += 1;
+      entry.machines += visit.units;
+    }
+    
+    const machines = allVisits.reduce((sum, visit) => sum + visit.units, 0);
+    const overloaded = allVisits.filter((visit) => visit.overload).length;
+    
+    result = {
+      ...result,
+      visits: allVisits,
+      notes: allNotes,
+      summary: {
+        visits: allVisits.length,
+        machines,
+        overloaded,
+        months,
+      },
+    };
+  }
+  
   state.result = result;
   state.settings = settings;
   renderResults(root, result, settings);
@@ -585,6 +736,147 @@ export function initUi(root = document) {
     for (const checkbox of winterCheckboxes) {
       checkbox.checked = selected.has(Number(checkbox.value));
     }
+  }
+
+  // Region selection (GRAFIK-33/34)
+  const inspectionRegionSelect = root.getElementById('inspectionRegion');
+  const neighboringRegionsContainer = root.getElementById('neighboringRegions');
+  const baseSettlementSelect = root.getElementById('baseSettlement');
+  
+  // Load regions and populate selects
+  async function loadRegionsForUI() {
+    try {
+      const { getAvailableRegions } = await import('./physical.js');
+      
+      const availableRegions = await getAvailableRegions();
+      
+      // Populate inspection region select
+      if (inspectionRegionSelect) {
+        inspectionRegionSelect.innerHTML = '<option value="">— не выбран —</option>';
+        for (const region of availableRegions) {
+          const option = document.createElement('option');
+          option.value = String(region.code);
+          option.textContent = `${region.name} (${region.code})${region.hasData ? '' : ' — нет данных'}`
+          option.disabled = !region.hasData;
+          inspectionRegionSelect.appendChild(option);
+        }
+        if (state.settings.inspectionRegion) {
+          inspectionRegionSelect.value = String(state.settings.inspectionRegion);
+        }
+      }
+      
+      // Populate neighboring regions checkboxes
+      if (neighboringRegionsContainer) {
+        neighboringRegionsContainer.innerHTML = '';
+        for (const region of availableRegions) {
+          const label = document.createElement('label');
+          label.className = 'region-checkbox';
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.name = 'neighboringRegion';
+          checkbox.value = String(region.code);
+          checkbox.disabled = !region.hasData;
+          if (state.settings.neighboringRegions?.includes(region.code)) {
+            checkbox.checked = true;
+          }
+          label.appendChild(checkbox);
+          label.appendChild(document.createTextNode(` ${region.name} (${region.code})${region.hasData ? '' : ' — нет данных'}`));
+          neighboringRegionsContainer.appendChild(label);
+        }
+      }
+      
+      // Populate base settlement select (will be filled when region is selected)
+      if (baseSettlementSelect && inspectionRegionSelect) {
+        async function updateBaseSettlements() {
+          const regionCode = Number(inspectionRegionSelect.value);
+          if (!regionCode) {
+            baseSettlementSelect.innerHTML = '<option value="">— автоматически (первый из региона) —</option>';
+            return;
+          }
+          const { loadSettlements } = await import('./address.js');
+          const settlements = await loadSettlements([regionCode]);
+          baseSettlementSelect.innerHTML = '<option value="">— автоматически (первый из региона) —</option>';
+          for (const s of settlements) {
+            const option = document.createElement('option');
+            option.value = JSON.stringify({ name: s.name, lat: s.lat, lon: s.lon, municipality: s.municipality });
+            option.textContent = `${s.name} (${s.municipality})`;
+            baseSettlementSelect.appendChild(option);
+          }
+          if (state.settings.baseSettlement) {
+            baseSettlementSelect.value = JSON.stringify(state.settings.baseSettlement);
+          }
+        }
+        inspectionRegionSelect.addEventListener('change', updateBaseSettlements);
+        await updateBaseSettlements();
+      }
+    } catch (e) {
+      console.warn('Failed to load regions for UI:', e);
+    }
+  }
+  loadRegionsForUI();
+
+  // Physical schedule settings (GRAFIK-34)
+  const includePhysicalCheckbox = root.getElementById('includePhysical');
+  if (includePhysicalCheckbox) includePhysicalCheckbox.checked = state.settings.includePhysical;
+  
+  const physicalScopeSelect = root.getElementById('physicalScope');
+  if (physicalScopeSelect) physicalScopeSelect.value = state.settings.physicalScope;
+  
+  const minUnitsInput = root.getElementById('minUnitsForVisit');
+  if (minUnitsInput) minUnitsInput.value = String(state.settings.minUnitsForVisit);
+  
+  const maxRadiusInput = root.getElementById('maxRadiusKm');
+  if (maxRadiusInput) maxRadiusInput.value = String(state.settings.maxRadiusKm);
+  
+  const avgSpeedInput = root.getElementById('avgSpeedKmh');
+  if (avgSpeedInput) avgSpeedInput.value = String(state.settings.avgSpeedKmh);
+  
+  const onsiteAsAcceptingCheckbox = root.getElementById('onsiteAsAcceptingDays');
+  if (onsiteAsAcceptingCheckbox) onsiteAsAcceptingCheckbox.checked = state.settings.onsiteAsAcceptingDays;
+  
+  const onsiteDayCheckboxes = root.querySelectorAll('input[name="onsiteDay"]');
+  const onsiteDaysSet = new Set(state.settings.onsiteDays.map(Number));
+  for (const checkbox of onsiteDayCheckboxes) {
+    checkbox.checked = onsiteDaysSet.has(Number(checkbox.value));
+  }
+  
+  const onsiteLocationRadio = root.querySelector(`input[name="onsiteLocation"][value="${state.settings.onsiteLocation}"]`);
+  if (onsiteLocationRadio) onsiteLocationRadio.checked = true;
+  
+  const onsiteAddressInput = root.getElementById('onsiteAddress');
+  const onsiteAddressField = root.getElementById('onsiteAddressField');
+  if (onsiteAddressInput) onsiteAddressInput.value = state.settings.onsiteAddress;
+  if (onsiteAddressField) onsiteAddressField.style.display = state.settings.onsiteLocation === 'own' ? 'block' : 'none';
+  
+  // Toggle onsite address field visibility
+  const onsiteLocationRadios = root.querySelectorAll('input[name="onsiteLocation"]');
+  for (const radio of onsiteLocationRadios) {
+    radio.addEventListener('change', () => {
+      if (onsiteAddressField) onsiteAddressField.style.display = radio.value === 'own' ? 'block' : 'none';
+    });
+  }
+  
+  // Sync onsite days with accepting days
+  const acceptingDayCheckboxes = root.querySelectorAll('input[name="acceptingDay"]');
+  if (onsiteAsAcceptingCheckbox) {
+    onsiteAsAcceptingCheckbox.addEventListener('change', () => {
+      if (onsiteAsAcceptingCheckbox.checked) {
+        for (const checkbox of onsiteDayCheckboxes) {
+          const acceptingCheckbox = root.querySelector(`input[name="acceptingDay"][value="${checkbox.value}"]`);
+          if (acceptingCheckbox) checkbox.checked = acceptingCheckbox.checked;
+        }
+      }
+    });
+  }
+  
+  // Sync accepting days to onsite days when onsiteAsAcceptingDays is checked
+  for (const checkbox of acceptingDayCheckboxes) {
+    checkbox.addEventListener('change', () => {
+      if (onsiteAsAcceptingCheckbox?.checked) {
+        const onsiteCheckbox = root.querySelector(`input[name="onsiteDay"][value="${checkbox.value}"]`);
+        if (onsiteCheckbox) onsiteCheckbox.checked = checkbox.checked;
+      }
+    });
   }
 
   const vacations = Array.isArray(state.settings.vacations) ? state.settings.vacations : [];

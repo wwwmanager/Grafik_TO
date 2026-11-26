@@ -174,7 +174,16 @@ function buildScheduleSheet(workbook, result) {
     { header: 'Время проведения', width: 16 },
   ];
   result.visits.forEach((visit, index) => {
-    sheet.addRow([index + 1, visit.owner, formatDate(visit.date), formatTimeLabel(visit.startMin)]);
+    let ownerName = visit.owner;
+    if (visit.isPhysical) {
+      if (visit.isOutbound) {
+        ownerName = `ТО физлиц: ${visit.routeName || visit.owner}`;
+      } else {
+        const location = visit.location === 'inspection' ? 'инспекция' : visit.address;
+        ownerName = `ТО физлиц на площадке: ${location}`;
+      }
+    }
+    sheet.addRow([index + 1, ownerName, formatDate(visit.date), formatTimeLabel(visit.startMin)]);
   });
   if (result.notes && result.notes.length > 0) {
     sheet.addRow([]);
@@ -212,25 +221,78 @@ function buildDetailsSheet(workbook, result, settings = {}) {
     ? settings.exportDate
     : new Date();
   result.visits.forEach((visit, index) => {
-    const row = sheet.addRow([
-      index + 1,
-      formatDate(visit.date),
-      formatTimeRange(visit.startMin, visit.endMin),
-      visit.owner,
-      visit.inn,
-      visit.address,
-      visit.locationKey,
-      visit.units,
-      visit.inspectionMin ?? visit.durationMin,
-      visit.travelMin ?? 0,
-      formatVehicleList(visit.records),
-      (visit.sources || []).join('; '),
-      visit.overdue ? 'да' : '',
-      visit.overload ? 'да' : '',
-      formatUnitTargets(visit.unitsDetail, { exportDate }),
-    ]);
-    row.getCell(11).alignment = { vertical: 'top', wrapText: true };
-    row.getCell(15).alignment = { vertical: 'top', wrapText: true };
+    if (visit.isPhysical) {
+      // For physical visits, expand each stop with its owners
+      if (visit.isOutbound && visit.stops) {
+        for (const stop of visit.stops) {
+          for (const record of stop.records) {
+            const row = sheet.addRow([
+              index + 1,
+              formatDate(visit.date),
+              formatTimeRange(visit.startMin, visit.endMin),
+              record.owner,
+              record.inn || '',
+              stop.name,
+              stop.municipality || '',
+              1,
+              visit.inspectionMin ?? visit.durationMin,
+              visit.travelMin ?? 0,
+              `${record.plate || ''} / ${record.brand || ''}`,
+              'Физлица: маршрут',
+              visit.overdue ? 'да' : '',
+              visit.overload ? 'да' : '',
+              '',
+            ]);
+            row.getCell(11).alignment = { vertical: 'top', wrapText: true };
+            row.getCell(15).alignment = { vertical: 'top', wrapText: true };
+          }
+        }
+      } else if (!visit.isOutbound && visit.stops) {
+        for (const stop of visit.stops) {
+          for (const record of stop.records) {
+            const row = sheet.addRow([
+              index + 1,
+              formatDate(visit.date),
+              formatTimeRange(visit.startMin, visit.endMin),
+              record.owner,
+              record.inn || '',
+              visit.address || 'инспекция',
+              '',
+              1,
+              visit.inspectionMin ?? visit.durationMin,
+              visit.travelMin ?? 0,
+              `${record.plate || ''} / ${record.brand || ''}`,
+              'Физлица: площадка',
+              visit.overdue ? 'да' : '',
+              visit.overload ? 'да' : '',
+              '',
+            ]);
+            row.getCell(11).alignment = { vertical: 'top', wrapText: true };
+            row.getCell(15).alignment = { vertical: 'top', wrapText: true };
+          }
+        }
+      }
+    } else {
+      const row = sheet.addRow([
+        index + 1,
+        formatDate(visit.date),
+        formatTimeRange(visit.startMin, visit.endMin),
+        visit.owner,
+        visit.inn,
+        visit.address,
+        visit.locationKey,
+        visit.units,
+        visit.inspectionMin ?? visit.durationMin,
+        visit.travelMin ?? 0,
+        formatVehicleList(visit.records),
+        (visit.sources || []).join('; '),
+        visit.overdue ? 'да' : '',
+        visit.overload ? 'да' : '',
+        formatUnitTargets(visit.unitsDetail, { exportDate }),
+      ]);
+      row.getCell(11).alignment = { vertical: 'top', wrapText: true };
+      row.getCell(15).alignment = { vertical: 'top', wrapText: true };
+    }
   });
   finalize(sheet);
 }

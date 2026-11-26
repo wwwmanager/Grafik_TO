@@ -815,12 +815,12 @@ export function buildSchedule(records, settings = {}, calendar = null) {
   const effective = { ...settings, targetYear };
 
   const { active, excluded: filterExcluded } = filterRecords(records, effective);
-  const physical = applyPhysicalRule(active, effective);
-  const excluded = [...filterExcluded, ...physical.excluded];
-  const notes = physical.notes;
+  const physicalRule = applyPhysicalRule(active, effective);
+  const excluded = [...filterExcluded, ...physicalRule.excluded];
+  const notes = physicalRule.notes;
 
   const items = [];
-  for (const record of physical.kept) {
+  for (const record of physicalRule.kept) {
     const targets = computeTargetDates(record, effective);
     for (const target of targets.dates) {
       items.push({
@@ -840,7 +840,7 @@ export function buildSchedule(records, settings = {}, calendar = null) {
   const groupSmall = settings.groupSmallOwners !== false;
   const limit = physicalThreshold(effective);
   const keptByOwner = new Map();
-  for (const record of physical.kept) {
+  for (const record of physicalRule.kept) {
     const key = ownerKey(record);
     if (!keptByOwner.has(key)) keptByOwner.set(key, []);
     keptByOwner.get(key).push(record);
