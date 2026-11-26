@@ -78,13 +78,14 @@ export async function getAvailableRegions() {
       const resp = await fetch(url);
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const index = await resp.json();
-      // index is array of { code, name, iso } - regions that HAVE settlement files
-      const hasDataSet = new Set(index.map(r => r.code));
+      // index is array of { dataId, regionCode, name, iso } - regions that HAVE settlement files
+      const hasDataSet = new Set(index.map(r => r.dataId));
       const available = REGIONS_TABLE.map(r => ({
-        code: r.code,
+        dataId: r.dataId,
+        regionCode: r.regionCode,
         name: r.name,
         iso: r.iso,
-        hasData: hasDataSet.has(r.code),
+        hasData: hasDataSet.has(r.dataId),
       }));
       _regionsIndexCache = available;
       return available;
@@ -92,7 +93,8 @@ export async function getAvailableRegions() {
       console.warn('Failed to load regions index:', e);
       // Fallback: all regions marked as no data
       const available = REGIONS_TABLE.map(r => ({
-        code: r.code,
+        dataId: r.dataId,
+        regionCode: r.regionCode,
         name: r.name,
         iso: r.iso,
         hasData: false,
@@ -111,9 +113,12 @@ export function clearRegionsIndexCache() {
   _regionsIndexPromise = null;
 }
 
-// Detect region from export records
+// Detect region from export records - returns dataId for internal use
 export function detectRegionFromExport(records) {
-  return detectRegion(records, REGIONS_TABLE);
+  const regionCode = detectRegion(records, REGIONS_TABLE);
+  if (!regionCode) return null;
+  const region = REGIONS_TABLE.find(r => r.regionCode === regionCode);
+  return region ? region.dataId : null;
 }
 
 // Build physical stops from eligible records
@@ -150,9 +155,9 @@ export async function buildPhysicalStops(records, settings, regionsData) {
   
   if (!eligibleRecords.length) return { stops: [], routes: [], onsiteVisits: [] };
   
-  // Load settlements for relevant regions
-  const regionCodes = [...new Set(regionsData.map(r => r.code))];
-  await loadSettlements(regionCodes);
+  // Load settlements for relevant regions (use dataId for internal)
+  const regionDataIds = [...new Set(regionsData.map(r => r.dataId))];
+  await loadSettlements(regionDataIds);
   
   // Group by settlement and month
   const stopMap = new Map(); // key: settlementKey|month -> { settlement, month, records, units, overdue }
@@ -524,17 +529,17 @@ export async function buildPhysicalSchedule(records, settings, calendar, targetY
   
   // Get available regions
   const regions = await getAvailableRegions();
-  // const _regionsWithData = regions.filter(r => r.hasData).map(r => r.code); // unused
+  // const _regionsWithData = regions.filter(r => r.hasData).map(r => r.dataId); // unused
   
   // Detect region from export if no base settlement
   let baseSettlement = physicalSettings.baseSettlement;
   if (!baseSettlement) {
-    const detectedCode = detectRegionFromExport(records);
-    if (detectedCode) {
-      const region = regions.find(r => r.code === detectedCode);
+    const detectedDataId = detectRegionFromExport(records);
+    if (detectedDataId) {
+      const region = regions.find(r => r.dataId === detectedDataId);
       if (region && region.hasData) {
         // Load first settlement as base
-        const settlements = await loadSettlements([detectedCode]);
+        const settlements = await loadSettlements([detectedDataId]);
         if (settlements.length > 0) {
           baseSettlement = settlements[0];
         }

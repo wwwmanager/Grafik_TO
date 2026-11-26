@@ -304,7 +304,7 @@ function setupBlockListeners(root) {
     'input[name="winterMonth"], #winterLoadPercent, #physicalThreshold, input[name="smallPhysical"], #groupSmallOwners, ' +
     '#includePhysical, input[name="physicalScope"], #minUnitsForVisit, #maxRadiusKm, #avgSpeedKmh, ' +
     'input[name="onsiteDay"], #onsiteAsAcceptingDays, input[name="onsiteLocation"], #onsiteAddress, ' +
-    '#inspectionRegion, input[name="neighboringRegion"]'
+    '#inspectionRegion, input[name="neighboringRegion"], #neighboringRegionsSearch'
   );
   for (const input of inputs) {
     input.addEventListener('change', () => {
@@ -844,11 +844,13 @@ export function initUi(root = document) {
     }
   }
 
-  // Region selection (GRAFIK-33/34)
+  // Region selection (GRAFIK-33/34/41)
   const inspectionRegionSelect = root.getElementById('inspectionRegion');
   const neighboringRegionsContainer = root.getElementById('neighboringRegions');
+  const neighboringRegionsSearch = root.getElementById('neighboringRegionsSearch');
   const baseSettlementSelect = root.getElementById('baseSettlement');
   let _regionsLoaded = false;
+  let _availableRegions = [];
   
   // Load regions and populate selects - called lazily when block-region or block-physical-schedule is opened
   async function loadRegionsForUI() {
@@ -857,15 +859,17 @@ export function initUi(root = document) {
       const { getAvailableRegions } = await import('./physical.js');
       
       const availableRegions = await getAvailableRegions();
+      _availableRegions = availableRegions;
       
-      // Populate inspection region select
+      // Populate inspection region select - sorted alphabetically by name
       if (inspectionRegionSelect) {
+        const sortedRegions = [...availableRegions].sort((a, b) => a.name.localeCompare(b.name, 'ru'));
         inspectionRegionSelect.innerHTML = '<option value="">— не выбран —</option>';
-        for (const region of availableRegions) {
+        for (const region of sortedRegions) {
           const option = document.createElement('option');
-          option.value = String(region.code);
-          option.textContent = `${region.name} (${region.code})${region.hasData ? '' : ' — нет данных'}`
-          option.disabled = !region.hasData;
+          option.value = String(region.dataId); // persist dataId
+          option.textContent = `${region.name} (${region.regionCode})${region.hasData ? '' : ' — гео-справочник не загружен'}`;
+          // Never disable - all regions selectable
           inspectionRegionSelect.appendChild(option);
         }
         if (state.settings.inspectionRegion) {
@@ -873,36 +877,32 @@ export function initUi(root = document) {
         }
       }
       
-      // Populate neighboring regions checkboxes
+      // Populate neighboring regions - vertical list in scrollable box with search
       if (neighboringRegionsContainer) {
-        neighboringRegionsContainer.innerHTML = '';
-        for (const region of availableRegions) {
-          const label = document.createElement('label');
-          label.className = 'region-checkbox';
-          const checkbox = document.createElement('input');
-          checkbox.type = 'checkbox';
-          checkbox.name = 'neighboringRegion';
-          checkbox.value = String(region.code);
-          checkbox.disabled = !region.hasData;
-          if (state.settings.neighboringRegions?.includes(region.code)) {
-            checkbox.checked = true;
-          }
-          label.appendChild(checkbox);
-          label.appendChild(document.createTextNode(` ${region.name} (${region.code})${region.hasData ? '' : ' — нет данных'}`));
-          neighboringRegionsContainer.appendChild(label);
-        }
+        renderNeighboringRegions(availableRegions);
+      }
+      
+      // Setup search filter for neighboring regions
+      if (neighboringRegionsSearch) {
+        neighboringRegionsSearch.addEventListener('input', () => {
+          const query = neighboringRegionsSearch.value.toLowerCase().trim();
+          const filtered = _availableRegions.filter(r => 
+            r.name.toLowerCase().includes(query) || String(r.regionCode).includes(query)
+          );
+          renderNeighboringRegions(filtered);
+        });
       }
       
       // Populate base settlement select (will be filled when region is selected)
       if (baseSettlementSelect && inspectionRegionSelect) {
         async function updateBaseSettlements() {
-          const regionCode = Number(inspectionRegionSelect.value);
-          if (!regionCode) {
+          const dataId = Number(inspectionRegionSelect.value);
+          if (!dataId) {
             baseSettlementSelect.innerHTML = '<option value="">— автоматически (первый из региона) —</option>';
             return;
           }
           const { loadSettlements } = await import('./address.js');
-          const settlements = await loadSettlements([regionCode]);
+          const settlements = await loadSettlements([dataId]);
           baseSettlementSelect.innerHTML = '<option value="">— автоматически (первый из региона) —</option>';
           for (const s of settlements) {
             const option = document.createElement('option');
@@ -920,6 +920,30 @@ export function initUi(root = document) {
       _regionsLoaded = true;
     } catch (e) {
       console.warn('Failed to load regions for UI:', e);
+    }
+  }
+  
+  function renderNeighboringRegions(regions) {
+    if (!neighboringRegionsContainer) return;
+    const sortedRegions = [...regions].sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+    neighboringRegionsContainer.innerHTML = '';
+    for (const region of sortedRegions) {
+      const label = document.createElement('label');
+      label.className = 'region-checkbox';
+      label.style.display = 'block';
+      label.style.marginBottom = '4px';
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.name = 'neighboringRegion';
+      checkbox.value = String(region.dataId); // persist dataId
+      // Never disable - all regions selectable
+      if (state.settings.neighboringRegions?.includes(region.dataId)) {
+        checkbox.checked = true;
+      }
+      label.appendChild(checkbox);
+      const hint = region.hasData ? '' : ' — гео-справочник не загружен, используется текстовая группировка по адресам';
+      label.appendChild(document.createTextNode(` ${region.name} (${region.regionCode})${hint}`));
+      neighboringRegionsContainer.appendChild(label);
     }
   }
   

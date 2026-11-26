@@ -70,6 +70,7 @@ export function buildGroupKey(parsed) {
 }
 
 // Detect region from records by majority vote against regions.json
+// Returns regionCode (official 2-digit code) for display; caller converts to dataId if needed
 export function detectRegion(records, regions) {
   if (!records || !records.length) return null;
   const counts = new Map();
@@ -80,7 +81,7 @@ export function detectRegion(records, regions) {
     for (const reg of regions) {
       const regNorm = normalizeName(reg.name, true);
       if (normRegion === regNorm || normRegion.includes(regNorm) || regNorm.includes(normRegion)) {
-        counts.set(reg.code, (counts.get(reg.code) || 0) + 1);
+        counts.set(reg.regionCode, (counts.get(reg.regionCode) || 0) + 1);
         break;
       }
     }
@@ -116,22 +117,22 @@ function levenshtein(a, b) {
 // Settlement cache
 const settlementCache = new Map();
 
-export async function loadSettlements(codes) {
+export async function loadSettlements(dataIds) {
   const results = [];
-  for (const code of codes) {
-    if (settlementCache.has(code)) {
-      results.push(...settlementCache.get(code));
+  for (const dataId of dataIds) {
+    if (settlementCache.has(dataId)) {
+      results.push(...settlementCache.get(dataId));
       continue;
     }
     try {
-      const url = `${import.meta.env.BASE_URL}data/settlements/${code}.json`;
+      const url = `${import.meta.env.BASE_URL}data/settlements/${dataId}.json`;
       const resp = await fetch(url);
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const data = await resp.json();
-      settlementCache.set(code, data);
+      settlementCache.set(dataId, data);
       results.push(...data);
     } catch (e) {
-      console.warn(`Failed to load settlements for region ${code}:`, e);
+      console.warn(`Failed to load settlements for region dataId ${dataId}:`, e);
     }
   }
   return results;
@@ -276,14 +277,14 @@ function inferTypeFromAddress(parsed) {
 
 // Settings block 4: Region selection UI helpers
 export function getRegionsForSelect() {
-  return REGIONS_TABLE.map(r => ({ code: r.code, name: r.name, iso: r.iso }));
+  return REGIONS_TABLE.map(r => ({ dataId: r.dataId, regionCode: r.regionCode, name: r.name, iso: r.iso }));
 }
 
-export function getDefaultRegionSettings(detectedCode) {
+export function getDefaultRegionSettings(detectedDataId) {
   return {
-    inspectionRegion: detectedCode || null,
+    inspectionRegion: detectedDataId || null, // stores dataId for persistence
     neighboringRegions: [],
-    hint: detectedCode ? null : 'Выберите регион инспекции'
+    hint: detectedDataId ? null : 'Выберите регион инспекции'
   };
 }
 

@@ -13,115 +13,120 @@ const OUT_DIR = path.resolve('public/data/settlements');
 const REGIONS_FILE = path.resolve('public/data/regions.json');
 const MAX_FILE_SIZE = 1.5 * 1024 * 1024; // 1.5 MB raw
 
-// OFFICIAL STABLE TABLE: code -> { iso, name, osm_name, bbox }
+// OFFICIAL STABLE TABLE: dataId -> { regionCode, iso, name, osm_name, bbox }
 // Source: OKATO/OKTMO subject codes + ISO 3166-2:RU
-// Codes are FIXED and must not be reassigned across rebuilds.
+// dataId: internal key used for settlement filenames (public/data/settlements/<dataId>.json)
+//         and localStorage persistence. These values are FIXED and must not be reassigned across rebuilds.
+//         They match the existing 81 settlement files (14.66 MB). Do not renumber.
+// regionCode: official 2-digit ФНС/ИНН code (ОКТМО prefix), used for display in UI.
 // 74 = Челябинская область (must be preserved per D23)
+// Crimea = 91, Sevastopol = 92 (ГИБДД uses 82 for Crimea — documented, not silently picked)
 const REGIONS = [
   // Classic 83 subjects + 2 federal cities (85 total)
-  { code: 1,  iso: 'RU-AD',  name: 'Республика Адыгея',           osm_name: 'Адыгея',                      bbox: [43.9, 38.5, 45.2, 40.8] },
-  { code: 2,  iso: 'RU-AL',  name: 'Республика Алтай',           osm_name: 'Алтай',                       bbox: [49.2, 84.5, 51.0, 89.5] },
-  { code: 3,  iso: 'RU-ALT', name: 'Алтайский край',             osm_name: 'Алтайский край',              bbox: [50.5, 78.5, 54.5, 87.0] },
-  { code: 4,  iso: 'RU-AMU', name: 'Амурская область',           osm_name: 'Амурская область',            bbox: [48.5, 119.0, 56.5, 135.0] },
-  { code: 5,  iso: 'RU-ARK', name: 'Архангельская область',      osm_name: 'Архангельская область',       bbox: [60.5, 36.0, 66.5, 55.0] },
-  { code: 6,  iso: 'RU-AST', name: 'Астраханская область',       osm_name: 'Астраханская область',        bbox: [45.5, 44.5, 48.5, 50.0] },
-  { code: 7,  iso: 'RU-BA',  name: 'Республика Башкортостан',    osm_name: 'Башкортостан',                bbox: [51.5, 52.0, 56.5, 61.0] },
-  { code: 8,  iso: 'RU-BEL', name: 'Белгородская область',       osm_name: 'Белгородская область',        bbox: [49.5, 35.0, 51.5, 40.0] },
-  { code: 9,  iso: 'RU-BRY', name: 'Брянская область',           osm_name: 'Брянская область',            bbox: [51.5, 30.5, 54.0, 35.5] },
-  { code: 10, iso: 'RU-BU',  name: 'Республика Бурятия',        osm_name: 'Бурятия',                     bbox: [49.5, 102.0, 56.0, 114.0] },
-  { code: 11, iso: 'RU-CE',  name: 'Чеченская Республика',       osm_name: 'Чечня',                       bbox: [42.0, 43.5, 44.5, 47.5] },
-  { code: 74, iso: 'RU-CHE', name: 'Челябинская область',        osm_name: 'Челябинская область',         bbox: [51.9, 57.0, 56.4, 63.4] },
-  { code: 13, iso: 'RU-CU',  name: 'Чувашская Республика',       osm_name: 'Чувашия',                     bbox: [54.0, 45.0, 56.5, 49.0] },
-  { code: 14, iso: 'RU-DA',  name: 'Республика Дагестан',       osm_name: 'Дагестан',                    bbox: [41.0, 44.5, 45.0, 51.0] },
-  { code: 15, iso: 'RU-IN',  name: 'Республика Ингушетия',      osm_name: 'Ингушетия',                   bbox: [42.5, 44.0, 43.5, 45.5] },
-  { code: 16, iso: 'RU-IRK', name: 'Иркутская область',          osm_name: 'Иркутская область',           bbox: [50.0, 99.0, 61.0, 120.0] },
-  { code: 17, iso: 'RU-IVA', name: 'Ивановская область',         osm_name: 'Ивановская область',          bbox: [55.5, 39.5, 58.0, 44.5] },
-  { code: 18, iso: 'RU-KAM', name: 'Камчатский край',            osm_name: 'Камчатский край',             bbox: [50.5, 155.0, 66.0, 172.0] },
-  { code: 19, iso: 'RU-KB',  name: 'Кабардино-Балкарская Республика', osm_name: 'Кабардино-Балкария',     bbox: [42.5, 41.5, 44.5, 45.0] },
-  { code: 20, iso: 'RU-KC',  name: 'Карачаево-Черкесская Республика', osm_name: 'Карачаево-Черкесия',     bbox: [42.5, 40.5, 45.0, 44.0] },
-  { code: 21, iso: 'RU-KDA', name: 'Краснодарский край',         osm_name: 'Краснодарский край',          bbox: [43.5, 36.0, 47.5, 41.5] },
-  { code: 22, iso: 'RU-KEM', name: 'Кемеровская область',        osm_name: 'Кемеровская область',         bbox: [52.0, 82.0, 56.5, 90.0] },
-  { code: 23, iso: 'RU-KGD', name: 'Калининградская область',    osm_name: 'Калининградская область',     bbox: [54.0, 19.5, 55.5, 23.0] },
-  { code: 24, iso: 'RU-KGN', name: 'Курганская область',         osm_name: 'Курганская область',          bbox: [53.5, 61.0, 56.5, 68.0] },
-  { code: 25, iso: 'RU-KHA', name: 'Хабаровский край',           osm_name: 'Хабаровский край',            bbox: [45.0, 128.0, 54.0, 148.0] },
-  { code: 26, iso: 'RU-KHM', name: 'Ханты-Мансийский АО — Югра', osm_name: 'Ханты-Мансийский автономный округ — Югра', bbox: [58.0, 58.0, 65.0, 88.0] },
-  { code: 27, iso: 'RU-KIR', name: 'Кировская область',          osm_name: 'Кировская область',           bbox: [56.0, 45.0, 61.0, 55.0] },
-  { code: 28, iso: 'RU-KK',  name: 'Республика Хакасия',        osm_name: 'Хакасия',                     bbox: [51.0, 86.0, 55.5, 95.0] },
-  { code: 29, iso: 'RU-KL',  name: 'Республика Калмыкия',       osm_name: 'Калмыкия',                    bbox: [45.0, 42.0, 47.5, 48.0] },
-  { code: 30, iso: 'RU-KO',  name: 'Республика Коми',           osm_name: 'Коми',                        bbox: [61.0, 45.0, 68.0, 60.0] },
-  { code: 31, iso: 'RU-KOS', name: 'Костромская область',        osm_name: 'Костромская область',         bbox: [56.5, 40.0, 59.5, 48.0] },
-  { code: 32, iso: 'RU-KR',  name: 'Республика Карелия',        osm_name: 'Карелия',                     bbox: [60.0, 29.0, 67.0, 38.0] },
-  { code: 33, iso: 'RU-KRS', name: 'Курская область',            osm_name: 'Курская область',             bbox: [50.5, 34.0, 52.5, 38.5] },
-  { code: 34, iso: 'RU-KYA', name: 'Красноярский край',          osm_name: 'Красноярский край',           bbox: [51.0, 85.0, 77.0, 115.0] },
-  { code: 35, iso: 'RU-LEN', name: 'Ленинградская область',      osm_name: 'Ленинградская область',       bbox: [58.0, 27.0, 61.0, 35.0] },
-  { code: 36, iso: 'RU-LIP', name: 'Липецкая область',           osm_name: 'Липецкая область',            bbox: [51.5, 36.0, 53.5, 41.5] },
-  { code: 37, iso: 'RU-MAG', name: 'Магаданская область',        osm_name: 'Магаданская область',         bbox: [58.5, 145.0, 66.0, 162.0] },
-  { code: 38, iso: 'RU-ME',  name: 'Республика Марий Эл',       osm_name: 'Марий Эл',                    bbox: [55.0, 45.5, 58.0, 50.0] },
-  { code: 39, iso: 'RU-MO',  name: 'Московская область',         osm_name: 'Московская область',          bbox: [54.0, 34.5, 57.0, 40.5] },
-  { code: 40, iso: 'RU-MOW', name: 'Москва',                     osm_name: 'Москва',                      bbox: [55.1, 36.5, 56.1, 38.5] },
-  { code: 41, iso: 'RU-MUR', name: 'Мурманская область',         osm_name: 'Мурманская область',          bbox: [66.0, 28.0, 70.0, 43.0] },
-  { code: 42, iso: 'RU-NEN', name: 'Ненецкий АО',                osm_name: 'Ненецкий автономный округ',     bbox: [66.0, 42.0, 70.0, 62.0] },
-  { code: 43, iso: 'RU-NGR', name: 'Новгородская область',       osm_name: 'Новгородская область',        bbox: [56.5, 29.0, 60.0, 36.0] },
-  { code: 44, iso: 'RU-NIZ', name: 'Нижегородская область',      osm_name: 'Нижегородская область',       bbox: [54.0, 41.0, 57.5, 48.0] },
-  { code: 45, iso: 'RU-NVS', name: 'Новосибирская область',      osm_name: 'Новосибирская область',       bbox: [53.0, 76.0, 56.5, 84.0] },
-  { code: 46, iso: 'RU-OMS', name: 'Омская область',             osm_name: 'Омская область',              bbox: [53.0, 70.0, 57.0, 78.0] },
-  { code: 47, iso: 'RU-ORE', name: 'Оренбургская область',       osm_name: 'Оренбургская область',        bbox: [49.0, 47.0, 54.5, 62.0] },
-  { code: 48, iso: 'RU-ORL', name: 'Орловская область',          osm_name: 'Орловская область',           bbox: [51.5, 34.0, 54.0, 39.0] },
-  { code: 49, iso: 'RU-PER', name: 'Пермский край',              osm_name: 'Пермский край',               bbox: [56.0, 50.0, 62.0, 60.0] },
-  { code: 50, iso: 'RU-PNZ', name: 'Пензенская область',         osm_name: 'Пензенская область',          bbox: [51.5, 41.5, 55.0, 47.5] },
-  { code: 51, iso: 'RU-PRI', name: 'Приморский край',            osm_name: 'Приморский край',             bbox: [42.0, 130.0, 48.5, 139.0] },
-  { code: 52, iso: 'RU-PSK', name: 'Псковская область',          osm_name: 'Псковская область',           bbox: [54.5, 27.0, 58.5, 34.0] },
-  { code: 53, iso: 'RU-ROS', name: 'Ростовская область',         osm_name: 'Ростовская область',          bbox: [45.5, 38.0, 50.5, 45.0] },
-  { code: 54, iso: 'RU-RYA', name: 'Рязанская область',          osm_name: 'Рязанская область',           bbox: [53.0, 38.0, 56.0, 43.5] },
-  { code: 55, iso: 'RU-SA',  name: 'Республика Саха (Якутия)',  osm_name: 'Саха (Якутия)',              bbox: [55.0, 105.0, 76.0, 170.0] },
-  { code: 56, iso: 'RU-SAK', name: 'Сахалинская область',        osm_name: 'Сахалинская область',         bbox: [46.0, 141.0, 55.0, 157.0] },
-  { code: 57, iso: 'RU-SAM', name: 'Самарская область',          osm_name: 'Самарская область',           bbox: [52.0, 47.0, 55.5, 53.0] },
-  { code: 58, iso: 'RU-SAR', name: 'Саратовская область',        osm_name: 'Саратовская область',         bbox: [50.0, 43.0, 54.5, 51.0] },
-  { code: 59, iso: 'RU-SE',  name: 'Республика Северная Осетия — Алания', osm_name: 'Северная Осетия — Алания', bbox: [42.0, 42.0, 44.5, 46.5] },
-  { code: 60, iso: 'RU-SMO', name: 'Смоленская область',         osm_name: 'Смоленская область',          bbox: [53.5, 30.0, 56.5, 36.0] },
-  { code: 61, iso: 'RU-SPE', name: 'Санкт-Петербург',            osm_name: 'Санкт-Петербург',             bbox: [59.5, 29.0, 60.5, 31.0] },
-  { code: 62, iso: 'RU-STA', name: 'Ставропольский край',        osm_name: 'Ставропольский край',         bbox: [43.0, 40.0, 47.0, 46.0] },
-  { code: 63, iso: 'RU-SVE', name: 'Свердловская область',       osm_name: 'Свердловская область',        bbox: [55.5, 56.0, 61.0, 67.0] },
-  { code: 64, iso: 'RU-TA',  name: 'Республика Татарстан',      osm_name: 'Татарстан',                   bbox: [54.0, 47.0, 56.5, 55.0] },
-  { code: 65, iso: 'RU-TAM', name: 'Тамбовская область',         osm_name: 'Тамбовская область',          bbox: [51.0, 39.0, 54.5, 44.5] },
-  { code: 66, iso: 'RU-TOM', name: 'Томская область',            osm_name: 'Томская область',             bbox: [54.0, 76.0, 61.0, 88.0] },
-  { code: 67, iso: 'RU-TUL', name: 'Тульская область',           osm_name: 'Тульская область',            bbox: [52.5, 35.0, 55.5, 40.0] },
-  { code: 68, iso: 'RU-TVE', name: 'Тверская область',           osm_name: 'Тверская область',            bbox: [55.0, 30.5, 58.5, 37.0] },
-  { code: 69, iso: 'RU-TY',  name: 'Республика Тыва',           osm_name: 'Тыва',                       bbox: [49.5, 88.0, 53.5, 99.0] },
-  { code: 70, iso: 'RU-TYU', name: 'Тюменская область',          osm_name: 'Тюменская область',           bbox: [55.0, 61.0, 60.0, 85.0] },
-  { code: 71, iso: 'RU-UD',  name: 'Удмуртская Республика',      osm_name: 'Удмуртия',                    bbox: [55.0, 49.0, 58.5, 57.0] },
-  { code: 72, iso: 'RU-ULY', name: 'Ульяновская область',        osm_name: 'Ульяновская область',         bbox: [52.5, 45.0, 55.5, 51.5] },
-  { code: 73, iso: 'RU-VLA', name: 'Владимирская область',       osm_name: 'Владимирская область',        bbox: [54.5, 38.5, 57.0, 43.0] },
-  { code: 95, iso: 'RU-VGG', name: 'Волгоградская область',     osm_name: 'Волгоградская область',      bbox: [47.5, 41.0, 51.0, 48.0] },
-  { code: 75, iso: 'RU-VLG', name: 'Вологодская область',       osm_name: 'Вологодская область',         bbox: [58.0, 35.0, 62.0, 44.0] },
-  { code: 76, iso: 'RU-VOR', name: 'Воронежская область',       osm_name: 'Воронежская область',         bbox: [49.0, 37.0, 53.0, 43.0] },
-  { code: 12, iso: 'RU-YEV', name: 'Еврейская АО',              osm_name: 'Еврейская автономная область',  bbox: [47.5, 130.0, 50.0, 136.0] },
-  { code: 77, iso: 'RU-YAR', name: 'Ярославская область',        osm_name: 'Ярославская область',           bbox: [56.5, 36.5, 59.5, 42.0] },
-  { code: 78, iso: 'RU-ZAB', name: 'Забайкальский край',        osm_name: 'Забайкальский край',          bbox: [48.0, 106.0, 57.0, 122.0] },
-  { code: 79, iso: 'RU-KLU', name: 'Калужская область',          osm_name: 'Калужская область',           bbox: [52.5, 33.5, 55.5, 38.5] },
-  { code: 80, iso: 'RU-CR',  name: 'Республика Крым',           osm_name: 'Крым',                        bbox: [44.0, 32.0, 46.5, 37.0] },
-  { code: 81, iso: 'RU-SEV', name: 'Севастополь',                osm_name: 'Севастополь',                 bbox: [44.0, 33.0, 45.0, 34.5] },
-  { code: 82, iso: 'RU-MOR', name: 'Республика Мордовия',       osm_name: 'Мордовия',                    bbox: [53.0, 41.5, 55.5, 47.0] },
-  { code: 83, iso: 'RU-CHU', name: 'Чукотский АО',              osm_name: 'Чукотский автономный округ',    bbox: [61.0, 162.0, 72.0, 180.0] },
-  { code: 84, iso: 'RU-YAN', name: 'Ямало-Ненецкий АО',          osm_name: 'Ямало-Ненецкий автономный округ', bbox: [62.0, 58.0, 71.0, 90.0] },
+  { dataId: 1,  regionCode: 1,  iso: 'RU-AD',  name: 'Республика Адыгея',           osm_name: 'Адыгея',                      bbox: [43.9, 38.5, 45.2, 40.8] },
+  { dataId: 2,  regionCode: 4,  iso: 'RU-AL',  name: 'Республика Алтай',           osm_name: 'Алтай',                       bbox: [49.2, 84.5, 51.0, 89.5] },
+  { dataId: 3,  regionCode: 22, iso: 'RU-ALT', name: 'Алтайский край',             osm_name: 'Алтайский край',              bbox: [50.5, 78.5, 54.5, 87.0] },
+  { dataId: 4,  regionCode: 28, iso: 'RU-AMU', name: 'Амурская область',           osm_name: 'Амурская область',            bbox: [48.5, 119.0, 56.5, 135.0] },
+  { dataId: 5,  regionCode: 29, iso: 'RU-ARK', name: 'Архангельская область',      osm_name: 'Архангельская область',       bbox: [60.5, 36.0, 66.5, 55.0] },
+  { dataId: 6,  regionCode: 30, iso: 'RU-AST', name: 'Астраханская область',       osm_name: 'Астраханская область',        bbox: [45.5, 44.5, 48.5, 50.0] },
+  { dataId: 7,  regionCode: 2,  iso: 'RU-BA',  name: 'Республика Башкортостан',    osm_name: 'Башкортостан',                bbox: [51.5, 52.0, 56.5, 61.0] },
+  { dataId: 8,  regionCode: 31, iso: 'RU-BEL', name: 'Белгородская область',       osm_name: 'Белгородская область',        bbox: [49.5, 35.0, 51.5, 40.0] },
+  { dataId: 9,  regionCode: 32, iso: 'RU-BRY', name: 'Брянская область',           osm_name: 'Брянская область',            bbox: [51.5, 30.5, 54.0, 35.5] },
+  { dataId: 10, regionCode: 3,  iso: 'RU-BU',  name: 'Республика Бурятия',        osm_name: 'Бурятия',                     bbox: [49.5, 102.0, 56.0, 114.0] },
+  { dataId: 11, regionCode: 20, iso: 'RU-CE',  name: 'Чеченская Республика',       osm_name: 'Чечня',                       bbox: [42.0, 43.5, 44.5, 47.5] },
+  { dataId: 74, regionCode: 74, iso: 'RU-CHE', name: 'Челябинская область',        osm_name: 'Челябинская область',         bbox: [51.9, 57.0, 56.4, 63.4] },
+  { dataId: 13, regionCode: 21, iso: 'RU-CU',  name: 'Чувашская Республика',       osm_name: 'Чувашия',                     bbox: [54.0, 45.0, 56.5, 49.0] },
+  { dataId: 14, regionCode: 5,  iso: 'RU-DA',  name: 'Республика Дагестан',       osm_name: 'Дагестан',                    bbox: [41.0, 44.5, 45.0, 51.0] },
+  { dataId: 15, regionCode: 6,  iso: 'RU-IN',  name: 'Республика Ингушетия',      osm_name: 'Ингушетия',                   bbox: [42.5, 44.0, 43.5, 45.5] },
+  { dataId: 16, regionCode: 38, iso: 'RU-IRK', name: 'Иркутская область',          osm_name: 'Иркутская область',           bbox: [50.0, 99.0, 61.0, 120.0] },
+  { dataId: 17, regionCode: 37, iso: 'RU-IVA', name: 'Ивановская область',         osm_name: 'Ивановская область',          bbox: [55.5, 39.5, 58.0, 44.5] },
+  { dataId: 18, regionCode: 41, iso: 'RU-KAM', name: 'Камчатский край',            osm_name: 'Камчатский край',             bbox: [50.5, 155.0, 66.0, 172.0] },
+  { dataId: 19, regionCode: 7,  iso: 'RU-KB',  name: 'Кабардино-Балкарская Республика', osm_name: 'Кабардино-Балкария',     bbox: [42.5, 41.5, 44.5, 45.0] },
+  { dataId: 20, regionCode: 9,  iso: 'RU-KC',  name: 'Карачаево-Черкесская Республика', osm_name: 'Карачаево-Черкесия',     bbox: [42.5, 40.5, 45.0, 44.0] },
+  { dataId: 21, regionCode: 23, iso: 'RU-KDA', name: 'Краснодарский край',         osm_name: 'Краснодарский край',          bbox: [43.5, 36.0, 47.5, 41.5] },
+  { dataId: 22, regionCode: 42, iso: 'RU-KEM', name: 'Кемеровская область',        osm_name: 'Кемеровская область',         bbox: [52.0, 82.0, 56.5, 90.0] },
+  { dataId: 23, regionCode: 39, iso: 'RU-KGD', name: 'Калининградская область',    osm_name: 'Калининградская область',     bbox: [54.0, 19.5, 55.5, 23.0] },
+  { dataId: 24, regionCode: 45, iso: 'RU-KGN', name: 'Курганская область',         osm_name: 'Курганская область',          bbox: [53.5, 61.0, 56.5, 68.0] },
+  { dataId: 25, regionCode: 27, iso: 'RU-KHA', name: 'Хабаровский край',           osm_name: 'Хабаровский край',            bbox: [45.0, 128.0, 54.0, 148.0] },
+  { dataId: 26, regionCode: 86, iso: 'RU-KHM', name: 'Ханты-Мансийский АО — Югра', osm_name: 'Ханты-Мансийский автономный округ — Югра', bbox: [58.0, 58.0, 65.0, 88.0] },
+  { dataId: 27, regionCode: 43, iso: 'RU-KIR', name: 'Кировская область',          osm_name: 'Кировская область',           bbox: [56.0, 45.0, 61.0, 55.0] },
+  { dataId: 28, regionCode: 19, iso: 'RU-KK',  name: 'Республика Хакасия',        osm_name: 'Хакасия',                     bbox: [51.0, 86.0, 55.5, 95.0] },
+  { dataId: 29, regionCode: 8,  iso: 'RU-KL',  name: 'Республика Калмыкия',       osm_name: 'Калмыкия',                    bbox: [45.0, 42.0, 47.5, 48.0] },
+  { dataId: 30, regionCode: 11, iso: 'RU-KO',  name: 'Республика Коми',           osm_name: 'Коми',                        bbox: [61.0, 45.0, 68.0, 60.0] },
+  { dataId: 31, regionCode: 44, iso: 'RU-KOS', name: 'Костромская область',        osm_name: 'Костромская область',         bbox: [56.5, 40.0, 59.5, 48.0] },
+  { dataId: 32, regionCode: 10, iso: 'RU-KR',  name: 'Республика Карелия',        osm_name: 'Карелия',                     bbox: [60.0, 29.0, 67.0, 38.0] },
+  { dataId: 33, regionCode: 46, iso: 'RU-KRS', name: 'Курская область',            osm_name: 'Курская область',             bbox: [50.5, 34.0, 52.5, 38.5] },
+  { dataId: 34, regionCode: 24, iso: 'RU-KYA', name: 'Красноярский край',          osm_name: 'Красноярский край',           bbox: [51.0, 85.0, 77.0, 115.0] },
+  { dataId: 35, regionCode: 47, iso: 'RU-LEN', name: 'Ленинградская область',      osm_name: 'Ленинградская область',       bbox: [58.0, 27.0, 61.0, 35.0] },
+  { dataId: 36, regionCode: 48, iso: 'RU-LIP', name: 'Липецкая область',           osm_name: 'Липецкая область',            bbox: [51.5, 36.0, 53.5, 41.5] },
+  { dataId: 37, regionCode: 49, iso: 'RU-MAG', name: 'Магаданская область',        osm_name: 'Магаданская область',         bbox: [58.5, 145.0, 66.0, 162.0] },
+  { dataId: 38, regionCode: 12, iso: 'RU-ME',  name: 'Республика Марий Эл',       osm_name: 'Марий Эл',                    bbox: [55.0, 45.5, 58.0, 50.0] },
+  { dataId: 39, regionCode: 50, iso: 'RU-MO',  name: 'Московская область',         osm_name: 'Московская область',          bbox: [54.0, 34.5, 57.0, 40.5] },
+  { dataId: 40, regionCode: 77, iso: 'RU-MOW', name: 'Москва',                     osm_name: 'Москва',                      bbox: [55.1, 36.5, 56.1, 38.5] },
+  { dataId: 41, regionCode: 51, iso: 'RU-MUR', name: 'Мурманская область',         osm_name: 'Мурманская область',          bbox: [66.0, 28.0, 70.0, 43.0] },
+  { dataId: 42, regionCode: 83, iso: 'RU-NEN', name: 'Ненецкий АО',                osm_name: 'Ненецкий автономный округ',     bbox: [66.0, 42.0, 70.0, 62.0] },
+  { dataId: 43, regionCode: 53, iso: 'RU-NGR', name: 'Новгородская область',       osm_name: 'Новгородская область',        bbox: [56.5, 29.0, 60.0, 36.0] },
+  { dataId: 44, regionCode: 52, iso: 'RU-NIZ', name: 'Нижегородская область',      osm_name: 'Нижегородская область',       bbox: [54.0, 41.0, 57.5, 48.0] },
+  { dataId: 45, regionCode: 54, iso: 'RU-NVS', name: 'Новосибирская область',      osm_name: 'Новосибирская область',       bbox: [53.0, 76.0, 56.5, 84.0] },
+  { dataId: 46, regionCode: 55, iso: 'RU-OMS', name: 'Омская область',             osm_name: 'Омская область',              bbox: [53.0, 70.0, 57.0, 78.0] },
+  { dataId: 47, regionCode: 56, iso: 'RU-ORE', name: 'Оренбургская область',       osm_name: 'Оренбургская область',        bbox: [49.0, 47.0, 54.5, 62.0] },
+  { dataId: 48, regionCode: 57, iso: 'RU-ORL', name: 'Орловская область',          osm_name: 'Орловская область',           bbox: [51.5, 34.0, 54.0, 39.0] },
+  { dataId: 49, regionCode: 59, iso: 'RU-PER', name: 'Пермский край',              osm_name: 'Пермский край',               bbox: [56.0, 50.0, 62.0, 60.0] },
+  { dataId: 50, regionCode: 58, iso: 'RU-PNZ', name: 'Пензенская область',         osm_name: 'Пензенская область',          bbox: [51.5, 41.5, 55.0, 47.5] },
+  { dataId: 51, regionCode: 25, iso: 'RU-PRI', name: 'Приморский край',            osm_name: 'Приморский край',             bbox: [42.0, 130.0, 48.5, 139.0] },
+  { dataId: 52, regionCode: 60, iso: 'RU-PSK', name: 'Псковская область',          osm_name: 'Псковская область',           bbox: [54.5, 27.0, 58.5, 34.0] },
+  { dataId: 53, regionCode: 61, iso: 'RU-ROS', name: 'Ростовская область',         osm_name: 'Ростовская область',          bbox: [45.5, 38.0, 50.5, 45.0] },
+  { dataId: 54, regionCode: 62, iso: 'RU-RYA', name: 'Рязанская область',          osm_name: 'Рязанская область',           bbox: [53.0, 38.0, 56.0, 43.5] },
+  { dataId: 55, regionCode: 14, iso: 'RU-SA',  name: 'Республика Саха (Якутия)',  osm_name: 'Саха (Якутия)',              bbox: [55.0, 105.0, 76.0, 170.0] },
+  { dataId: 56, regionCode: 65, iso: 'RU-SAK', name: 'Сахалинская область',        osm_name: 'Сахалинская область',         bbox: [46.0, 141.0, 55.0, 157.0] },
+  { dataId: 57, regionCode: 63, iso: 'RU-SAM', name: 'Самарская область',          osm_name: 'Самарская область',           bbox: [52.0, 47.0, 55.5, 53.0] },
+  { dataId: 58, regionCode: 64, iso: 'RU-SAR', name: 'Саратовская область',        osm_name: 'Саратовская область',         bbox: [50.0, 43.0, 54.5, 51.0] },
+  { dataId: 59, regionCode: 15, iso: 'RU-SE',  name: 'Республика Северная Осетия — Алания', osm_name: 'Северная Осетия — Алания', bbox: [42.0, 42.0, 44.5, 46.5] },
+  { dataId: 60, regionCode: 67, iso: 'RU-SMO', name: 'Смоленская область',         osm_name: 'Смоленская область',          bbox: [53.5, 30.0, 56.5, 36.0] },
+  { dataId: 61, regionCode: 78, iso: 'RU-SPE', name: 'Санкт-Петербург',            osm_name: 'Санкт-Петербург',             bbox: [59.5, 29.0, 60.5, 31.0] },
+  { dataId: 62, regionCode: 26, iso: 'RU-STA', name: 'Ставропольский край',        osm_name: 'Ставропольский край',         bbox: [43.0, 40.0, 47.0, 46.0] },
+  { dataId: 63, regionCode: 66, iso: 'RU-SVE', name: 'Свердловская область',       osm_name: 'Свердловская область',        bbox: [55.5, 56.0, 61.0, 67.0] },
+  { dataId: 64, regionCode: 16, iso: 'RU-TA',  name: 'Республика Татарстан',      osm_name: 'Татарстан',                   bbox: [54.0, 47.0, 56.5, 55.0] },
+  { dataId: 65, regionCode: 68, iso: 'RU-TAM', name: 'Тамбовская область',         osm_name: 'Тамбовская область',          bbox: [51.0, 39.0, 54.5, 44.5] },
+  { dataId: 66, regionCode: 70, iso: 'RU-TOM', name: 'Томская область',            osm_name: 'Томская область',             bbox: [54.0, 76.0, 61.0, 88.0] },
+  { dataId: 67, regionCode: 71, iso: 'RU-TUL', name: 'Тульская область',           osm_name: 'Тульская область',            bbox: [52.5, 35.0, 55.5, 40.0] },
+  { dataId: 68, regionCode: 69, iso: 'RU-TVE', name: 'Тверская область',           osm_name: 'Тверская область',            bbox: [55.0, 30.5, 58.5, 37.0] },
+  { dataId: 69, regionCode: 17, iso: 'RU-TY',  name: 'Республика Тыва',           osm_name: 'Тыва',                       bbox: [49.5, 88.0, 53.5, 99.0] },
+  { dataId: 70, regionCode: 72, iso: 'RU-TYU', name: 'Тюменская область',          osm_name: 'Тюменская область',           bbox: [55.0, 61.0, 60.0, 85.0] },
+  { dataId: 71, regionCode: 18, iso: 'RU-UD',  name: 'Удмуртская Республика',      osm_name: 'Удмуртия',                    bbox: [55.0, 49.0, 58.5, 57.0] },
+  { dataId: 72, regionCode: 73, iso: 'RU-ULY', name: 'Ульяновская область',        osm_name: 'Ульяновская область',         bbox: [52.5, 45.0, 55.5, 51.5] },
+  { dataId: 73, regionCode: 33, iso: 'RU-VLA', name: 'Владимирская область',       osm_name: 'Владимирская область',        bbox: [54.5, 38.5, 57.0, 43.0] },
+  { dataId: 95, regionCode: 34, iso: 'RU-VGG', name: 'Волгоградская область',     osm_name: 'Волгоградская область',      bbox: [47.5, 41.0, 51.0, 48.0] },
+  { dataId: 75, regionCode: 35, iso: 'RU-VLG', name: 'Вологодская область',       osm_name: 'Вологодская область',         bbox: [58.0, 35.0, 62.0, 44.0] },
+  { dataId: 76, regionCode: 36, iso: 'RU-VOR', name: 'Воронежская область',       osm_name: 'Воронежская область',         bbox: [49.0, 37.0, 53.0, 43.0] },
+  { dataId: 12, regionCode: 79, iso: 'RU-YEV', name: 'Еврейская АО',              osm_name: 'Еврейская автономная область',  bbox: [47.5, 130.0, 50.0, 136.0] },
+  { dataId: 77, regionCode: 76, iso: 'RU-YAR', name: 'Ярославская область',        osm_name: 'Ярославская область',           bbox: [56.5, 36.5, 59.5, 42.0] },
+  { dataId: 78, regionCode: 75, iso: 'RU-ZAB', name: 'Забайкальский край',        osm_name: 'Забайкальский край',          bbox: [48.0, 106.0, 57.0, 122.0] },
+  { dataId: 79, regionCode: 40, iso: 'RU-KLU', name: 'Калужская область',          osm_name: 'Калужская область',           bbox: [52.5, 33.5, 55.5, 38.5] },
+  { dataId: 80, regionCode: 91, iso: 'RU-CR',  name: 'Республика Крым',           osm_name: 'Крым',                        bbox: [44.0, 32.0, 46.5, 37.0] },
+  { dataId: 81, regionCode: 92, iso: 'RU-SEV', name: 'Севастополь',                osm_name: 'Севастополь',                 bbox: [44.0, 33.0, 45.0, 34.5] },
+  { dataId: 82, regionCode: 13, iso: 'RU-MOR', name: 'Республика Мордовия',       osm_name: 'Мордовия',                    bbox: [53.0, 41.5, 55.5, 47.0] },
+  { dataId: 83, regionCode: 87, iso: 'RU-CHU', name: 'Чукотский АО',              osm_name: 'Чукотский автономный округ',    bbox: [61.0, 162.0, 72.0, 180.0] },
+  { dataId: 84, regionCode: 89, iso: 'RU-YAN', name: 'Ямало-Ненецкий АО',          osm_name: 'Ямало-Ненецкий автономный округ', bbox: [62.0, 58.0, 71.0, 90.0] },
   // New territories (OSM coverage may be limited / disputed) — use name:ru tags for Russian names
-  { code: 85, iso: 'RU-DON', name: 'Донецкая Народная Республика', osm_name: 'Донецкая Народная Республика', bbox: [46.5, 36.5, 49.5, 40.5] },
-  { code: 86, iso: 'RU-LUG', name: 'Луганская Народная Республика', osm_name: 'Луганская Народная Республика', bbox: [47.0, 38.0, 50.0, 41.0] },
-  { code: 87, iso: 'RU-ZAP', name: 'Запорожская область',       osm_name: 'Запорожская область',         bbox: [46.0, 34.0, 48.5, 38.0] },
-  { code: 88, iso: 'RU-KHE', name: 'Херсонская область',        osm_name: 'Херсонская область',          bbox: [45.5, 32.5, 48.0, 36.5] },
+  // No official ФНС codes assigned yet; assigned unique regionCodes > 92 (documented in D25)
+  { dataId: 85, regionCode: 93, iso: 'RU-DON', name: 'Донецкая Народная Республика', osm_name: 'Донецкая Народная Республика', bbox: [46.5, 36.5, 49.5, 40.5] },
+  { dataId: 86, regionCode: 94, iso: 'RU-LUG', name: 'Луганская Народная Республика', osm_name: 'Луганская Народная Республика', bbox: [47.0, 38.0, 50.0, 41.0] },
+  { dataId: 87, regionCode: 95, iso: 'RU-ZAP', name: 'Запорожская область',       osm_name: 'Запорожская область',         bbox: [46.0, 34.0, 48.5, 38.0] },
+  { dataId: 88, regionCode: 96, iso: 'RU-KHE', name: 'Херсонская область',        osm_name: 'Херсонская область',          bbox: [45.5, 32.5, 48.0, 36.5] },
 ];
 
 // Validate uniqueness at load time
-const codeCounts = {};
+const dataIdCounts = {};
 const isoCounts = {};
 const nameCounts = {};
 for (const r of REGIONS) {
-  codeCounts[r.code] = (codeCounts[r.code] || 0) + 1;
+  dataIdCounts[r.dataId] = (dataIdCounts[r.dataId] || 0) + 1;
   isoCounts[r.iso] = (isoCounts[r.iso] || 0) + 1;
   nameCounts[r.name] = (nameCounts[r.name] || 0) + 1;
 }
-for (const [code, count] of Object.entries(codeCounts)) {
-  if (count > 1) console.error(`DUPLICATE CODE in REGIONS table: ${code} (${count} entries)`);
+for (const [dataId, count] of Object.entries(dataIdCounts)) {
+  if (count > 1) console.error(`DUPLICATE DATAID in REGIONS table: ${dataId} (${count} entries)`);
 }
 for (const [iso, count] of Object.entries(isoCounts)) {
   if (count > 1) console.error(`DUPLICATE ISO in REGIONS table: ${iso} (${count} entries)`);
@@ -144,10 +149,10 @@ for (let i = 0; i < args.length; i++) {
 }
 
 if (!runAll && !targetRegion) {
-  console.log('Usage: node scripts/build-settlements.mjs [--region <code>] [--all] [--force]');
-  console.log('  --region <code>  Build single region by official numeric code (e.g., 74)');
-  console.log('  --all            Build all regions');
-  console.log('  --force          Overwrite existing files');
+  console.log('Usage: node scripts/build-settlements.mjs [--region <dataId>] [--all] [--force]');
+  console.log('  --region <dataId>  Build single region by internal dataId (e.g., 12 for Челябинская)');
+  console.log('  --all              Build all regions');
+  console.log('  --force            Overwrite existing files');
   process.exit(1);
 }
 
@@ -496,18 +501,18 @@ function deduplicateSettlements(settlements) {
 }
 
 async function buildRegion(region, forceOverwrite = false) {
-  const outFile = path.join(OUT_DIR, `${region.code}.json`);
+  const outFile = path.join(OUT_DIR, `${region.dataId}.json`);
   if (fs.existsSync(outFile) && !forceOverwrite) {
-    console.log(`  Skipping ${region.code} (${region.name}) — file exists, use --force to overwrite`);
+    console.log(`  Skipping ${region.dataId} (${region.name}) — file exists, use --force to overwrite`);
     const existing = JSON.parse(fs.readFileSync(outFile, 'utf8'));
-    return { success: true, skipped: true, code: region.code, count: existing.length, bytes: fs.statSync(outFile).size };
+    return { success: true, skipped: true, dataId: region.dataId, count: existing.length, bytes: fs.statSync(outFile).size };
   }
 
-  console.log(`\n=== Building region ${region.code}: ${region.name} (${region.iso}) ===`);
+  console.log(`\n=== Building region ${region.dataId}: ${region.name} (${region.iso}) ===`);
   const bbox = region.bbox;
 
-  // Federal cities / regions with no admin_level=6: Moscow (40), Saint Petersburg (61), Sevastopol (81), Crimea (80)
-  const isFederalCity = region.code === 40 || region.code === 61 || region.code === 80 || region.code === 81;
+  // Federal cities / regions with no admin_level=6: Moscow (dataId 40), Saint Petersburg (dataId 61), Sevastopol (dataId 82), Crimea (dataId 81)
+  const isFederalCity = region.dataId === 40 || region.dataId === 61 || region.dataId === 81 || region.dataId === 82;
 
   try {
     let allSettlements = [];
@@ -598,10 +603,10 @@ out skel qt;
     return {
       success: true,
       skipped: false,
-      code: region.code,
+      dataId: region.dataId,
       iso: region.iso,
       name: region.name,
-      file: `settlements/${region.code}.json`,
+      file: `settlements/${region.dataId}.json`,
       count: settlements.length,
       bytes: size,
       municipalities: municipalities.length,
@@ -609,28 +614,29 @@ out skel qt;
     };
   } catch (err) {
     console.error(`  FAILED: ${err.message}`);
-    return { success: false, code: region.code, error: err.message };
+    return { success: false, dataId: region.dataId, error: err.message };
   }
 }
 
 async function writeRegionsIndex() {
   // Include all regions that have files on disk (newly built or existing)
   const existingFiles = fs.existsSync(OUT_DIR) ? fs.readdirSync(OUT_DIR).filter(f => f.endsWith('.json')) : [];
-  const existingCodes = new Set(existingFiles.map(f => parseInt(f)));
+  const existingDataIds = new Set(existingFiles.map(f => parseInt(f)));
 
   // Build region info from REGIONS table for all existing files
   const allRegions = [];
-  for (const code of existingCodes) {
-    const regionDef = REGIONS.find(r => r.code === code);
+  for (const dataId of existingDataIds) {
+    const regionDef = REGIONS.find(r => r.dataId === dataId);
     if (!regionDef) continue; // skip unknown codes
-    const file = path.join(OUT_DIR, `${code}.json`);
+    const file = path.join(OUT_DIR, `${dataId}.json`);
     if (!fs.existsSync(file)) continue;
     const data = JSON.parse(fs.readFileSync(file, 'utf8'));
     allRegions.push({
-      code: code,
+      dataId: dataId,
+      regionCode: regionDef.regionCode,
       iso: regionDef.iso,
       name: regionDef.name,
-      file: `settlements/${code}.json`,
+      file: `settlements/${dataId}.json`,
       count: data.length,
       bytes: fs.statSync(file).size
     });
@@ -644,14 +650,14 @@ async function writeRegionsIndex() {
 }
 
 async function main() {
-  const targets = runAll ? REGIONS : REGIONS.filter(r => r.code === parseInt(targetRegion));
+  const targets = runAll ? REGIONS : REGIONS.filter(r => r.dataId === parseInt(targetRegion));
 
   if (targets.length === 0) {
-    console.error(`Unknown region code: ${targetRegion}`);
+    console.error(`Unknown region dataId: ${targetRegion}`);
     process.exit(1);
   }
 
-  console.log(`Target regions: ${targets.map(r => r.code).join(', ')}`);
+  console.log(`Target regions: ${targets.map(r => r.dataId).join(', ')}`);
   console.log(`Force overwrite: ${force}`);
 
   const results = [];
@@ -683,14 +689,14 @@ async function main() {
   if (failures.length > 0) {
     console.log('\nFailed regions:');
     for (const f of failures) {
-      console.log(`  ${f.code}: ${f.error}`);
+      console.log(`  ${f.dataId}: ${f.error}`);
     }
   }
 
   const totalBytes = allSuccessful.reduce((sum, r) => sum + (r.bytes || 0), 0);
   const largest = allSuccessful.reduce((max, r) => (r.bytes > (max.bytes || 0) ? r : max), { bytes: 0 });
   console.log(`\nTotal data size: ${(totalBytes / 1024 / 1024).toFixed(2)} MB raw`);
-  console.log(`Largest region: ${largest.name} (${largest.code}) — ${(largest.bytes / 1024 / 1024).toFixed(2)} MB`);
+  console.log(`Largest region: ${largest.name} (${largest.dataId}) — ${(largest.bytes / 1024 / 1024).toFixed(2)} MB`);
 
   if (failures.length > 0) {
     console.log('\nSome regions failed but rest committed. Re-run with --force to retry.');
