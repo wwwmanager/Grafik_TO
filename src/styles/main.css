@@ -54,32 +54,49 @@ body {
   padding: var(--space-4) var(--space-5);
 }
 
-/* GRAFIK-20/25: the left settings panel is the only scrolling column on the
-   left; the primary action is pinned to its bottom. */
+/* GRAFIK-20/25/42: the left panel is a flex column — a single scrollable
+   area plus a non-scrolling action footer pinned to its bottom. */
 .settings-panel {
+  display: flex;
+  flex-direction: column;
   height: 100%;
   min-height: 0;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 .settings-form {
   display: flex;
   flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+}
+
+.settings-scroll {
+  display: flex;
+  flex-direction: column;
   gap: var(--space-4);
-  min-height: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 2px 2px var(--space-2) 0;
 }
 
 .settings-section {
   display: grid;
   gap: var(--space-3);
+  min-width: 0;
 }
 
-/* GRAFIK-25: compact numeric settings in a two-column grid. */
-.field-grid {
+/* GRAFIK-42: one shared two-column grid for short numeric fields. */
+.grid-2 {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-3);
   align-items: end;
+  min-width: 0;
 }
 
 .field-hint {
@@ -88,12 +105,13 @@ body {
   color: var(--color-text-muted);
 }
 
-/* GRAFIK-31: settings blocks with live summary in <summary> */
+/* GRAFIK-31/42: settings blocks with live summary in <summary> */
 .settings-block {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface);
   overflow: hidden;
+  min-width: 0;
 }
 
 .settings-block[open] {
@@ -103,13 +121,24 @@ body {
 .settings-block > summary {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
+  justify-content: flex-start;
+  gap: var(--space-2);
   padding: var(--space-3) var(--space-4);
   font-weight: 600;
+  text-align: left;
   cursor: pointer;
   list-style: none;
   user-select: none;
+}
+
+.settings-block > summary:focus {
+  outline: none;
+}
+
+.settings-block > summary:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
 }
 
 .settings-block > summary::-webkit-details-marker {
@@ -133,27 +162,36 @@ body {
   transform: rotate(45deg);
 }
 
-.settings-block-hint {
-  font-weight: 400;
-  font-size: var(--text-sm);
-  color: var(--color-text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  flex-shrink: 1;
+.settings-block-title {
+  flex: 1 1 auto;
   min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* GRAFIK-42: short right-side badges that wrap instead of ellipsizing. */
+.settings-block-hint {
+  flex: 0 0 auto;
+  max-width: 45%;
+  font-weight: 400;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  text-align: right;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .settings-block-content {
   display: grid;
   gap: var(--space-3);
   padding: 0 var(--space-4) var(--space-4);
+  min-width: 0;
 }
 
 .settings-always {
   border: none;
   padding: 0;
   background: transparent;
+  min-width: 0;
 }
 
 .settings-always > .panel-title {
@@ -161,10 +199,9 @@ body {
 }
 
 .settings-actions {
-  position: sticky;
-  bottom: 0;
-  margin-top: auto;
-  padding: var(--space-3) 0;
+  flex: 0 0 auto;
+  margin-top: 0;
+  padding: var(--space-3) 0 var(--space-2);
   background: var(--color-surface);
   border-top: 1px solid var(--color-border);
 }
@@ -323,6 +360,7 @@ body {
   gap: var(--space-1);
   margin: 0;
   font-size: var(--text-sm);
+  min-width: 0;
 }
 
 .field > span,
@@ -331,16 +369,58 @@ body {
   color: var(--color-text);
 }
 
-.field-inline {
+/* GRAFIK-42: fieldset is layout-neutral; subheadings + gap provide rhythm. */
+fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+
+fieldset > legend {
+  padding: 0;
+  margin-bottom: var(--space-1);
+}
+
+/* GRAFIK-42: weekday checkboxes wrap instead of clipping Сб / the border. */
+.weekday-grid {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
-  border: 0;
-  padding: 0;
+  min-width: 0;
 }
 
-.field-inline legend {
-  flex-basis: 100%;
+.weekday-grid label,
+.radio-group label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.settings-subhead {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+/* GRAFIK-42: routing fields dim + disable while physical visits are off. */
+.settings-subgroup {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  transition: opacity 0.15s ease;
+}
+
+.settings-subgroup[data-disabled='true'] {
+  opacity: 0.5;
 }
 
 .field-row {
@@ -348,11 +428,13 @@ body {
   align-items: center;
   gap: var(--space-2);
   flex-wrap: wrap;
+  min-width: 0;
 }
 
 .field-label {
   font-weight: 600;
   color: var(--color-text);
+  overflow-wrap: anywhere;
 }
 
 /* GRAFIK-19: dynamic vacation periods — one from/to row per period. */
@@ -374,6 +456,9 @@ body {
 
 .vacation-remove {
   flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 2rem;
   height: 2rem;
   padding: 0;
@@ -409,10 +494,18 @@ body {
   font-size: var(--text-sm);
 }
 
+/* GRAFIK-42: everything inside a settings card is width-constrained, so a
+   360px panel never scrolls horizontally and long text wraps. */
+.settings-form select,
 .settings-form input[type='number'],
 .settings-form input[type='text'],
+.settings-form input[type='search'],
 .settings-form input[type='time'],
 .settings-form input[type='date'] {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   padding: var(--space-1) var(--space-2);
   font: inherit;
   font-size: var(--text-sm);
@@ -422,23 +515,33 @@ body {
   border-radius: var(--radius-sm);
 }
 
-/* GRAFIK-20: uniform numeric width, full-width text inputs. */
-.settings-form input[type='number'] {
-  width: 80px;
-}
-
-.settings-form input[type='text'] {
-  width: 100%;
-}
-
-.settings-form input:disabled {
+.settings-form input:disabled,
+.settings-form select:disabled {
   background: var(--color-bg);
   color: var(--color-text-muted);
 }
 
-.settings-form input:focus-visible {
+.settings-form input:focus-visible,
+.settings-form select:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
+}
+
+.settings-block-content p,
+.settings-block-content label,
+.field-hint {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.region-search {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.region-checkboxes label {
+  overflow-wrap: anywhere;
 }
 
 .button {
@@ -563,6 +666,11 @@ body {
   .settings-panel {
     height: auto;
     overflow: visible;
+  }
+
+  .settings-scroll {
+    overflow: visible;
+    padding-right: 0;
   }
 
   .workspace {
