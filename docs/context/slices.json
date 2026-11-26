@@ -833,7 +833,7 @@
     {
       "id": "GRAFIK-43-LAZY-SETTLEMENTS",
       "title": "Lazy-load settlement dictionaries per selected region (LRU, fetch-count tests)",
-      "status": "dispatched",
+      "status": "accepted",
       "approved": true,
       "dependsOn": [
         "GRAFIK-42-SETTINGS-PANEL-UX"
@@ -844,13 +844,13 @@
         "npm run verify"
       ],
       "owner": "orch1",
-      "commit": null,
-      "evidence": null,
+      "commit": "d2bf12d",
+      "evidence": "npm run verify PASS (lint+296 tests+build green). Settlement loader: loadSettlementsWithStatus(dataIds) -> { settlements, failed:[{dataId,reason}] }; loadSettlements() still returns array, never throws. One in-flight promise per dataId (2 concurrent calls -> 1 fetch); LRU cap 6 (insertion-order Map, hit refreshes, overflow evicts oldest; re-tick of evicted region refetches); failures not cached (later selection retries); console.warn kept. loadSelectedRegionSettlements('') -> 0 fetches. UI: failed selected region shows 'Гео-справочник для региона не загружен — используется текстовая группировка по адресам' (#region-no-data-hint), textual grouping unaffected; neighbouring regions load only when ticked, unticking keeps cache; hint clears on success/deselect. Tests: 11 new with stubbed fetch (0 before selection, 1 per region + hit, concurrent dedupe incl. failures, 404 -> failed[] no throw, repeated ids, LRU evict+refetch, refresh-on-hit not FIFO, failures not cached, hint wording/wiring). git diff --stat HEAD~1 -- public/data = empty (no data regeneration/renaming). Repro: npm run verify; npx vitest run tests/settlement-loader.test.js. Note: docs/context/evidence/GRAFIK-47-*.json is untracked verifier output, not staged.",
       "rejections": 0,
-      "retro": null,
+      "retro": "Loader hardened: loadSettlementsWithStatus returns failed[] (no silent swallow), one in-flight promise per dataId, LRU cap 6 with refresh-on-hit, failures not cached, 0 fetches before selection, neighbours on demand, no-data hint wired; 296 tests, no data touched.",
       "dispatchedBy": "architect",
       "dispatchedAt": "2026-11-27T00:13:46+05:00",
-      "updatedAt": "2026-11-27T00:13:46+05:00"
+      "updatedAt": "2026-11-27T00:17:57+05:00"
     },
     {
       "id": "GRAFIK-44-AUTO-BASE-SETTLEMENT",
@@ -939,5 +939,5 @@
       "updatedAt": "2026-11-27T00:12:48+05:00"
     }
   ],
-  "updatedAt": "2026-11-27T00:13:46+05:00"
+  "updatedAt": "2026-11-27T00:17:57+05:00"
 }
