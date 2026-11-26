@@ -833,7 +833,7 @@
     {
       "id": "GRAFIK-43-LAZY-SETTLEMENTS",
       "title": "Lazy-load settlement dictionaries per selected region (LRU, fetch-count tests)",
-      "status": "planned",
+      "status": "dispatched",
       "approved": true,
       "dependsOn": [
         "GRAFIK-42-SETTINGS-PANEL-UX"
@@ -848,9 +848,9 @@
       "evidence": null,
       "rejections": 0,
       "retro": null,
-      "dispatchedBy": null,
-      "dispatchedAt": null,
-      "updatedAt": "2026-11-27T00:13:05+05:00"
+      "dispatchedBy": "architect",
+      "dispatchedAt": "2026-11-27T00:13:46+05:00",
+      "updatedAt": "2026-11-27T00:13:46+05:00"
     },
     {
       "id": "GRAFIK-44-AUTO-BASE-SETTLEMENT",
@@ -939,5 +939,5 @@
       "updatedAt": "2026-11-27T00:12:48+05:00"
     }
   ],
-  "updatedAt": "2026-11-27T00:13:06+05:00"
+  "updatedAt": "2026-11-27T00:13:46+05:00"
 }
