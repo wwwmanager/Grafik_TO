@@ -6,7 +6,7 @@ import { loadSettlements, detectRegion } from './address.js';
 import { isWorkingDay } from './calendarService.js';
 
 // Haversine distance in km
-function haversineKm(lat1, lon1, lat2, lon2) {
+export function haversineKm(lat1, lon1, lat2, lon2) {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
@@ -16,7 +16,7 @@ function haversineKm(lat1, lon1, lat2, lon2) {
 }
 
 // Travel minutes between points
-function travelMinutes(lat1, lon1, lat2, lon2, avgSpeedKmh) {
+export function travelMinutes(lat1, lon1, lat2, lon2, avgSpeedKmh) {
   const km = haversineKm(lat1, lon1, lat2, lon2);
   const minutes = Math.ceil((km * 1.3 / avgSpeedKmh) * 60 / 5) * 5; // rounded up to 5 min
   return Math.max(5, minutes);
@@ -63,21 +63,52 @@ export function loadPersistedPhysicalSettings() {
   }
 }
 
-// Get available regions for UI (regions with settlement data)
+// Cache for regions index (fetched once from regions.json)
+let _regionsIndexCache = null;
+let _regionsIndexPromise = null;
+
+// Get available regions for UI - fetches regions.json ONCE, cached, called lazily only when needed
 export async function getAvailableRegions() {
-  const regions = REGIONS_TABLE.map(r => ({ code: r.code, name: r.name, iso: r.iso }));
-  // Check which regions have data files
-  const available = [];
-  for (const region of regions) {
+  if (_regionsIndexCache) return _regionsIndexCache;
+  if (_regionsIndexPromise) return _regionsIndexPromise;
+
+  _regionsIndexPromise = (async () => {
     try {
-      const url = `${import.meta.env.BASE_URL}data/settlements/${region.code}.json`;
-      const resp = await fetch(url, { method: 'HEAD' });
-      available.push({ ...region, hasData: resp.ok });
-    } catch {
-      available.push({ ...region, hasData: false });
+      const url = `${import.meta.env.BASE_URL}data/regions.json`;
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const index = await resp.json();
+      // index is array of { code, name, iso } - regions that HAVE settlement files
+      const hasDataSet = new Set(index.map(r => r.code));
+      const available = REGIONS_TABLE.map(r => ({
+        code: r.code,
+        name: r.name,
+        iso: r.iso,
+        hasData: hasDataSet.has(r.code),
+      }));
+      _regionsIndexCache = available;
+      return available;
+    } catch (e) {
+      console.warn('Failed to load regions index:', e);
+      // Fallback: all regions marked as no data
+      const available = REGIONS_TABLE.map(r => ({
+        code: r.code,
+        name: r.name,
+        iso: r.iso,
+        hasData: false,
+      }));
+      _regionsIndexCache = available;
+      return available;
     }
-  }
-  return available;
+  })();
+
+  return _regionsIndexPromise;
+}
+
+// Clear cache (for testing or when export changes)
+export function clearRegionsIndexCache() {
+  _regionsIndexCache = null;
+  _regionsIndexPromise = null;
 }
 
 // Detect region from export records
@@ -314,11 +345,12 @@ function parseTime(str) {
 function placeRoutesOnCalendar(routes, settings, calendar, targetYear, month) {
   const { onsiteDays, onsiteAsAcceptingDays, onsiteLocation, onsiteAddress, workStart, workEnd, lunch, perHour } = settings;
   
-  const workStartMin = parseTime(workStart);
-  const workEndMin = parseTime(workEnd);
-  const lunchOn = lunch.enabled !== false;
-  const lunchStart = parseTime(lunch.start);
-  const lunchEnd = parseTime(lunch.end);
+  const workStartMin = parseTime(workStart || '09:00');
+  const workEndMin = parseTime(workEnd || '18:00');
+  const lunchObj = lunch || { enabled: true, start: '12:00', end: '13:00' };
+  const lunchOn = lunchObj.enabled !== false;
+  const lunchStart = parseTime(lunchObj.start || '12:00');
+  const lunchEnd = parseTime(lunchObj.end || '13:00');
   const availablePerDay = workEndMin - workStartMin - (lunchOn ? lunchEnd - lunchStart : 0);
   
   const daysInMonth = new Date(targetYear, month + 1, 0).getDate();

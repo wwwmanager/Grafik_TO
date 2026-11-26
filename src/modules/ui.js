@@ -9,6 +9,15 @@ import {
   formatVehicleList,
 } from './format.js';
 import { buildSchedule } from './scheduler.js';
+import {
+  renderPhysicalTab,
+  buildPhysicalTree,
+  rebuildScheduleWithDecisions,
+  computeFingerprint,
+  loadPhysicalDecisions,
+  savePhysicalDecisions,
+  clearPhysicalDecisions,
+} from './physicalTab.js';
 
 const MONTHS = [
   'Январь',
@@ -579,11 +588,23 @@ async function analyze(state, els, root) {
   }
   let result = buildSchedule(state.records, settings, calendar);
   
-  // GRAFIK-34: Build physical schedule if enabled
+  // GRAFIK-34/35: Build physical schedule if enabled
+  const physicalTab = root.getElementById('physicalTab');
+  const physicalTabPanel = root.getElementById('physicalTabPanel');
+  
   if (settings.includePhysical) {
     setStatus(root, 'Построение маршрутов физлиц…');
-    const { buildPhysicalSchedule } = await import('./physical.js');
-    const physical = await buildPhysicalSchedule(state.records, settings, calendar, settings.targetYear);
+    
+    // Compute fingerprint for this export
+    const fingerprint = computeFingerprint(state.fileName, state.exportDate, state.records.length);
+    state.fingerprint = fingerprint;
+    
+    // Load saved decisions for this fingerprint
+    const decisions = loadPhysicalDecisions(fingerprint) || {};
+    state.physicalDecisions = decisions;
+    
+    // Build physical schedule with decisions applied
+    const physical = await rebuildScheduleWithDecisions(state.records, settings, calendar, settings.targetYear, decisions);
     
     const physicalVisits = [
       ...physical.outboundVisits.map(v => ({
@@ -636,6 +657,36 @@ async function analyze(state, els, root) {
         months,
       },
     };
+    
+    // Show physical tab
+    if (physicalTab) physicalTab.hidden = false;
+    if (physicalTabPanel) physicalTabPanel.hidden = false;
+    
+    // Render physical tab
+    const tree = buildPhysicalTree(physical.outboundVisits, physical.onsiteVisits, decisions);
+    const selectedSettlements = new Set();
+    
+    const updateActionButtons = renderPhysicalTab(root, tree, () => {
+      // Selection changed - update buttons
+      updateActionButtons?.();
+    }, (action, payload) => {
+      handlePhysicalAction(action, payload, state, els, root);
+    }, selectedSettlements);
+    
+    state.physicalTabUpdateButtons = updateActionButtons;
+    state.selectedPhysicalSettlements = selectedSettlements;
+    state.physicalTree = tree;
+    
+  } else {
+    // Hide physical tab when disabled
+    if (physicalTab) physicalTab.hidden = true;
+    if (physicalTabPanel) physicalTabPanel.hidden = true;
+    // Clear any stored decisions for this fingerprint since physical is disabled
+    if (state.fingerprint) {
+      clearPhysicalDecisions(state.fingerprint);
+      state.fingerprint = null;
+      state.physicalDecisions = {};
+    }
   }
   
   state.result = result;
@@ -647,6 +698,61 @@ async function analyze(state, els, root) {
     root,
     `Готово: визитов ${result.summary.visits}, машин ${result.summary.machines}, исключено ${result.excluded.length}.`,
   );
+}
+
+async function handlePhysicalAction(action, payload, state, els, root) {
+  const { settlementKeys, settlementKey, newMode } = payload;
+  
+  switch (action) {
+    case 'merge': {
+      if (settlementKeys.length < 2) return;
+      const mergeGroup = `merge_${Date.now()}`;
+      for (const key of settlementKeys) {
+        state.physicalDecisions[key] = {
+          ...state.physicalDecisions[key],
+          mergeGroup,
+          mode: 'выезд',
+        };
+      }
+      break;
+    }
+    case 'split': {
+      for (const key of settlementKeys) {
+        if (state.physicalDecisions[key]?.mergeGroup) {
+          delete state.physicalDecisions[key].mergeGroup;
+        }
+      }
+      break;
+    }
+    case 'forceOnsite': {
+      for (const key of settlementKeys) {
+        state.physicalDecisions[key] = {
+          ...state.physicalDecisions[key],
+          mode: 'площадка',
+        };
+      }
+      break;
+    }
+    case 'toggleMode': {
+      state.physicalDecisions[settlementKey] = {
+        ...state.physicalDecisions[settlementKey],
+        mode: newMode,
+      };
+      break;
+    }
+    case 'reset': {
+      state.physicalDecisions = {};
+      break;
+    }
+  }
+  
+  // Save decisions
+  if (state.fingerprint) {
+    savePhysicalDecisions(state.fingerprint, state.physicalDecisions);
+  }
+  
+  // Re-analyze with new decisions
+  await analyze(state, els, root);
 }
 
 async function download(state, els, root) {
@@ -742,9 +848,11 @@ export function initUi(root = document) {
   const inspectionRegionSelect = root.getElementById('inspectionRegion');
   const neighboringRegionsContainer = root.getElementById('neighboringRegions');
   const baseSettlementSelect = root.getElementById('baseSettlement');
+  let _regionsLoaded = false;
   
-  // Load regions and populate selects
+  // Load regions and populate selects - called lazily when block-region or block-physical-schedule is opened
   async function loadRegionsForUI() {
+    if (_regionsLoaded) return;
     try {
       const { getAvailableRegions } = await import('./physical.js');
       
@@ -809,11 +917,25 @@ export function initUi(root = document) {
         inspectionRegionSelect.addEventListener('change', updateBaseSettlements);
         await updateBaseSettlements();
       }
+      _regionsLoaded = true;
     } catch (e) {
       console.warn('Failed to load regions for UI:', e);
     }
   }
-  loadRegionsForUI();
+  
+  // Lazy-load regions when block-region or block-physical-schedule is opened
+  const regionBlock = root.getElementById('block-region');
+  const physicalScheduleBlock = root.getElementById('block-physical-schedule');
+  if (regionBlock) {
+    regionBlock.addEventListener('toggle', () => {
+      if (regionBlock.open) loadRegionsForUI();
+    });
+  }
+  if (physicalScheduleBlock) {
+    physicalScheduleBlock.addEventListener('toggle', () => {
+      if (physicalScheduleBlock.open) loadRegionsForUI();
+    });
+  }
 
   // Physical schedule settings (GRAFIK-34)
   const includePhysicalCheckbox = root.getElementById('includePhysical');

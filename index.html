@@ -302,6 +302,7 @@
             <button type="button" role="tab" class="tab" data-tab="details">Детализация</button>
             <button type="button" role="tab" class="tab" data-tab="excluded">Исключенные записи</button>
             <button type="button" role="tab" class="tab" data-tab="summary">Сводка по месяцам</button>
+            <button type="button" role="tab" class="tab" data-tab="physical" id="physicalTab" hidden>Физлица</button>
           </nav>
           <div class="tab-panel" data-panel="schedule" role="tabpanel">
             <p class="placeholder">Здесь появится график ТО.</p>
@@ -314,6 +315,9 @@
           </div>
           <div class="tab-panel" data-panel="summary" role="tabpanel" hidden>
             <p class="placeholder">Здесь появится сводка по месяцам.</p>
+          </div>
+          <div class="tab-panel" data-panel="physical" role="tabpanel" hidden id="physicalTabPanel">
+            <div id="physical-tab-content" class="physical-tab-content"></div>
           </div>
         </section>
 
