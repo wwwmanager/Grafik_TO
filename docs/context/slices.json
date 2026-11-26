@@ -855,7 +855,7 @@
     {
       "id": "GRAFIK-44-AUTO-BASE-SETTLEMENT",
       "title": "Auto-pick base settlement from resolved addresses with deterministic tie-break",
-      "status": "dispatched",
+      "status": "accepted",
       "approved": true,
       "dependsOn": [
         "GRAFIK-43-LAZY-SETTLEMENTS"
@@ -866,13 +866,13 @@
         "npm run verify"
       ],
       "owner": "orch1",
-      "commit": null,
-      "evidence": null,
+      "commit": "c6d207a",
+      "evidence": "npm run verify PASS (lint+311 tests+build green). pickBaseSettlement(resolved, regionDataId, {manualSettlement, regionSettlements, total}): only exact/fuzzy resolutions of selected region (other dataIds dropped), grouped by name|municipality, mode wins, tie-break: count -> distance to region's resolved-address centroid (per-group centroid, haversine) -> name (ru); manual override wins while settlement exists (also after re-import), else auto; nothing resolved -> 'first in region' fallback with source='fallback'; pure, no mutation, never throws. UI label: '— автоматически (Тайнак, 42 адреса из 118) —' (RU plurals), fallback label says 'первый в регионе'; recomputed on region select and new export; manual option restored by name+municipality; readSettings parses select JSON to object (engine previously got string and ignored manual base). Engine uses same rule when no manual base. Tests: 15 in tests/base-settlement.test.js (single, clear mode, exact 3v3 centroid tie, full tie by name, neighbour exclusion, fallback, empty reference, manual exists/missing/survives re-import, determinism/no mutation, label wording/plurals, resolver tagging). Docs: recorded as D30 (task said D27 but D27 is Pages cache guard GRAFIK-46; noted in D30 text). git diff --stat HEAD~1 -- public/data = empty (no data regeneration). Repro: npm run verify; npx vitest run tests/base-settlement.test.js.",
       "rejections": 0,
-      "retro": null,
+      "retro": "Base settlement = mode of resolved addresses within the selected region; tie-break count->centroid distance->name; manual override wins and survives re-import; fallback to first-in-region when nothing resolves; engine and UI share the rule; readSettings JSON bug fixed; D30 recorded; 311 tests.",
       "dispatchedBy": "architect",
       "dispatchedAt": "2026-11-27T00:18:39+05:00",
-      "updatedAt": "2026-11-27T00:18:39+05:00"
+      "updatedAt": "2026-11-27T00:22:41+05:00"
     },
     {
       "id": "GRAFIK-45-UNRESOLVED-REPORT",
@@ -939,5 +939,5 @@
       "updatedAt": "2026-11-27T00:12:48+05:00"
     }
   ],
-  "updatedAt": "2026-11-27T00:18:39+05:00"
+  "updatedAt": "2026-11-27T00:22:41+05:00"
 }
