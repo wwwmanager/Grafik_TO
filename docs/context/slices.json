@@ -877,8 +877,8 @@
     {
       "id": "GRAFIK-45-UNRESOLVED-REPORT",
       "title": "Unresolved-address report before schedule build (non-blocking, private)",
-      "status": "planned",
-      "approved": false,
+      "status": "dispatched",
+      "approved": true,
       "dependsOn": [
         "GRAFIK-44-AUTO-BASE-SETTLEMENT"
       ],
@@ -892,9 +892,9 @@
       "evidence": null,
       "rejections": 0,
       "retro": null,
-      "dispatchedBy": null,
-      "dispatchedAt": null,
-      "updatedAt": "2026-11-26T22:27:51+05:00"
+      "dispatchedBy": "architect",
+      "dispatchedAt": "2026-11-27T00:23:25+05:00",
+      "updatedAt": "2026-11-27T00:23:25+05:00"
     },
     {
       "id": "GRAFIK-46-DEPLOY-CACHE-GUARD",
@@ -939,5 +939,5 @@
       "updatedAt": "2026-11-27T00:12:48+05:00"
     }
   ],
-  "updatedAt": "2026-11-27T00:22:41+05:00"
+  "updatedAt": "2026-11-27T00:23:25+05:00"
 }
