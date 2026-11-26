@@ -2,7 +2,12 @@
 // Schedules physical persons as efficient day routes over nearby settlements
 
 import { REGIONS_TABLE } from './regions-table.js';
-import { loadSettlements, detectRegion } from './address.js';
+import {
+  loadSettlements,
+  detectRegion,
+  pickBaseSettlement,
+  resolveAddressesForBase,
+} from './address.js';
 import { isWorkingDay } from './calendarService.js';
 
 // Haversine distance in km
@@ -717,21 +722,35 @@ export async function buildPhysicalSchedule(
   );
   // const _regionsWithData = regions.filter(r => r.hasData).map(r => r.dataId); // unused
   
-  // Detect region from export if no base settlement
+  // GRAFIK-44: derive the base settlement from the export (mode of resolved
+  // addresses); a manual value from settings still wins. Falls back to the
+  // previous "first settlement of the region" rule when nothing resolves.
   let baseSettlement = physicalSettings.baseSettlement;
-  if (!baseSettlement) {
-    const detectedDataId = detectRegionFromExport(records);
+  if (typeof baseSettlement === 'string') {
+    try {
+      baseSettlement = JSON.parse(baseSettlement);
+    } catch {
+      baseSettlement = null;
+    }
+  }
+  if (!baseSettlement || !Number.isFinite(baseSettlement.lat) || !Number.isFinite(baseSettlement.lon)) {
+    const detectedDataId = selectRegionDataIds(physicalSettings, records, regions)[0] ||
+      detectRegionFromExport(records);
     if (detectedDataId) {
       const region = regions.find(r => r.dataId === detectedDataId);
       if (region && region.hasData) {
-        // Load first settlement as base
         const settlements = await withDeadline(
           loadSettlements([detectedDataId]),
           runtime.deadlineMs,
           runtime,
         );
         if (settlements.length > 0) {
-          baseSettlement = settlements[0];
+          const { resolved, total } = resolveAddressesForBase(records, settlements, detectedDataId);
+          const picked = pickBaseSettlement(resolved, detectedDataId, {
+            regionSettlements: settlements,
+            total,
+          });
+          baseSettlement = picked.settlement || settlements[0];
         }
       }
     }

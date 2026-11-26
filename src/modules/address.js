@@ -221,6 +221,182 @@ export function clearSettlementCache() {
   settlementInflight.clear();
 }
 
+// GRAFIK-44: resolve the export's addresses against one region's reference so
+// the base settlement can be derived from the actual data.
+export function resolveAddressesForBase(records, settlements, dataId = null) {
+  const index = getSettlementIndex(settlements);
+  const resolved = [];
+  let total = 0;
+  for (const record of records || []) {
+    if (!record?.address) continue;
+    total += 1;
+    const match = resolveSettlement(parseAddress(record.address), index);
+    if (match.match === 'exact' || match.match === 'fuzzy') {
+      resolved.push({ ...match, dataId });
+    }
+  }
+  return { resolved, total };
+}
+
+function geoDistanceKm(lat1, lon1, lat2, lon2) {
+  const radius = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) ** 2;
+  return 2 * radius * Math.asin(Math.sqrt(a));
+}
+
+function settlementOf(entry) {
+  if (!entry) return null;
+  return {
+    name: entry.name,
+    municipality: entry.municipality,
+    lat: entry.lat,
+    lon: entry.lon,
+  };
+}
+
+function matchesName(candidate, settlement) {
+  return (
+    candidate?.name === settlement?.name &&
+    (candidate?.municipality || '') === (settlement?.municipality || '')
+  );
+}
+
+function addressWord(count) {
+  const abs = Math.abs(Number(count) || 0);
+  const mod100 = abs % 100;
+  const mod10 = abs % 10;
+  if (mod100 >= 11 && mod100 <= 14) return 'адресов';
+  if (mod10 === 1) return 'адрес';
+  if (mod10 >= 2 && mod10 <= 4) return 'адреса';
+  return 'адресов';
+}
+
+export function formatBaseSettlementLabel(result) {
+  if (!result || !result.settlement) return '— автоматически (нет данных) —';
+  const name = result.settlement.name || '—';
+  if (result.source === 'manual') return `— ${name} (выбрано вручную) —`;
+  if (result.source === 'fallback') return `— автоматически (первый в регионе: ${name}) —`;
+  const count = Number(result.count) || 0;
+  const total = Number(result.total) || 0;
+  return `— автоматически (${name}, ${count} ${addressWord(count)} из ${total}) —`;
+}
+
+// Pure rule for the base settlement (GRAFIK-44). Deterministic tie-break:
+// 1) most resolved addresses; 2) nearest to the region's address centroid;
+// 3) settlement name (Russian collation). A manual override wins while the
+// settlement still exists in the region reference; otherwise fall back to the
+// first settlement of the region (the previous behaviour).
+export function pickBaseSettlement(resolved = [], regionDataId = null, overrides = {}) {
+  const { manualSettlement = null, regionSettlements = [], total = null } = overrides;
+  const entries = (resolved || []).filter((entry) => {
+    if (regionDataId == null) return true;
+    return entry?.dataId == null || Number(entry.dataId) === Number(regionDataId);
+  });
+  const totalCount = total == null ? entries.length : Number(total);
+
+  if (manualSettlement) {
+    const existing = (regionSettlements || []).find((candidate) =>
+      matchesName(manualSettlement, candidate),
+    );
+    if (existing || (regionSettlements || []).length === 0) {
+      const key = `${manualSettlement.name}|${manualSettlement.municipality || ''}`;
+      const count = entries.filter(
+        (entry) => (entry.key || `${entry.name}|${entry.municipality || ''}`) === key,
+      ).length;
+      return {
+        settlement: settlementOf(manualSettlement),
+        source: 'manual',
+        count,
+        total: totalCount,
+        key,
+      };
+    }
+  }
+
+  if (entries.length === 0) {
+    const first = (regionSettlements || [])[0] || null;
+    return {
+      settlement: settlementOf(first),
+      source: 'fallback',
+      count: 0,
+      total: totalCount,
+      key: first ? `${first.name}|${first.municipality || ''}` : null,
+    };
+  }
+
+  const groups = new Map();
+  let centroidLat = 0;
+  let centroidLon = 0;
+  let centroidCount = 0;
+  for (const entry of entries) {
+    const key = entry.key || `${entry.name}|${entry.municipality || ''}`;
+    if (!groups.has(key)) groups.set(key, { key, entries: [] });
+    groups.get(key).entries.push(entry);
+    if (Number.isFinite(entry.lat) && Number.isFinite(entry.lon)) {
+      centroidLat += entry.lat;
+      centroidLon += entry.lon;
+      centroidCount += 1;
+    }
+  }
+  const centroid =
+    centroidCount > 0
+      ? { lat: centroidLat / centroidCount, lon: centroidLon / centroidCount }
+      : null;
+
+  const ranked = [...groups.values()].map((group) => {
+    let groupLat = 0;
+    let groupLon = 0;
+    let groupCount = 0;
+    for (const entry of group.entries) {
+      if (Number.isFinite(entry.lat) && Number.isFinite(entry.lon)) {
+        groupLat += entry.lat;
+        groupLon += entry.lon;
+        groupCount += 1;
+      }
+    }
+    const representative =
+      group.entries.find(
+        (entry) => Number.isFinite(entry.lat) && Number.isFinite(entry.lon),
+      ) || group.entries[0];
+    const distance =
+      centroid && groupCount > 0
+        ? geoDistanceKm(
+            centroid.lat,
+            centroid.lon,
+            groupLat / groupCount,
+            groupLon / groupCount,
+          )
+        : Infinity;
+    return { ...group, representative, distance, count: group.entries.length };
+  });
+
+  ranked.sort(
+    (a, b) =>
+      b.count - a.count ||
+      a.distance - b.distance ||
+      String(a.representative.name || '').localeCompare(
+        String(b.representative.name || ''),
+        'ru',
+      ) ||
+      String(a.key).localeCompare(String(b.key), 'ru'),
+  );
+
+  const winner = ranked[0];
+  return {
+    settlement: settlementOf(winner.representative),
+    source: 'auto',
+    count: winner.count,
+    total: totalCount,
+    key: winner.key,
+  };
+}
+
 // GRAFIK-47: the normalized lookup is built once per settlement list, never
 // once per address (that was 150 x 1267 x 2 normalizations on the real export).
 const settlementIndexCache = new WeakMap();

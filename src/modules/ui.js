@@ -25,6 +25,10 @@ import {
   renderImportError,
 } from './resilience.js';
 
+// GRAFIK-44: set while the region UI is live; refreshes the auto base label
+// when a new export is parsed (records -> resolved addresses -> mode).
+let refreshBaseSettlementForUi = null;
+
 const MONTHS = [
   'Январь',
   'Февраль',
@@ -398,6 +402,18 @@ function clearRegionNoDataHint(root) {
 
 // GRAFIK-47: the build reports processed/total so a long Челябинская export
 // shows progress instead of looking frozen.
+function asBaseSettlement(value) {
+  if (!value) return null;
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return null;
+    }
+  }
+  return typeof value === 'object' ? value : null;
+}
+
 function physicalProgressText(progress) {
   if (!progress) return 'Построение маршрутов физлиц…';
   const { phase, processed, total } = progress;
@@ -553,7 +569,11 @@ function readSettings(root, base) {
   const physicalScope = physicalScopeSelect ? physicalScopeSelect.value : base.physicalScope;
   const minUnitsRaw = Number(value('minUnitsForVisit'));
   const baseSettlementInput = root.getElementById('baseSettlement');
-  const baseSettlement = baseSettlementInput ? baseSettlementInput.value : base.baseSettlement;
+  // GRAFIK-44: the select stores JSON; the engine needs an object (or null).
+  let baseSettlement = asBaseSettlement(base.baseSettlement);
+  if (baseSettlementInput) {
+    baseSettlement = asBaseSettlement(baseSettlementInput.value);
+  }
   const maxRadiusRaw = Number(value('maxRadiusKm'));
   const avgSpeedRaw = Number(value('avgSpeedKmh'));
   const onsiteDays = [...root.querySelectorAll('input[name="onsiteDay"]:checked')].map(
@@ -659,6 +679,8 @@ async function handleFile(file, state, els, root) {
       root,
       `Загружено ${parsed.records.length} строк. Нажмите «Сформировать график».`,
     );
+    // GRAFIK-44: recompute the auto base settlement for the new export.
+    refreshBaseSettlementForUi?.();
   } catch (error) {
     state.records = [];
     if (els.dropZone) els.dropZone.hidden = false;
@@ -1072,7 +1094,7 @@ export function initUi(root = document) {
         async function updateBaseSettlements() {
           const dataId = Number(inspectionRegionSelect.value);
           if (!dataId) {
-            baseSettlementSelect.innerHTML = '<option value="">— автоматически (первый из региона) —</option>';
+            baseSettlementSelect.innerHTML = '<option value="">— автоматически (регион не выбран) —</option>';
             clearImportError(messagesContainer(root));
             clearRegionNoDataHint(root);
             return;
@@ -1087,18 +1109,46 @@ export function initUi(root = document) {
           const { settlements, failed } = await addressModule.loadSelectedRegionSettlements(dataId);
           if (failed.length > 0) showRegionNoDataHint(root);
           else clearRegionNoDataHint(root);
-          baseSettlementSelect.innerHTML = '<option value="">— автоматически (первый из региона) —</option>';
+          // GRAFIK-44: the auto value comes from the export (mode of resolved
+          // addresses) and is explained right in the option label.
+          const { resolved, total } = addressModule.resolveAddressesForBase(
+            state.records || [],
+            settlements,
+            dataId,
+          );
+          const manual = asBaseSettlement(state.settings.baseSettlement);
+          const auto = addressModule.pickBaseSettlement(resolved, dataId, {
+            manualSettlement: manual,
+            regionSettlements: settlements,
+            total,
+          });
+          baseSettlementSelect.innerHTML = '';
+          const autoOption = document.createElement('option');
+          autoOption.value = '';
+          autoOption.textContent = addressModule.formatBaseSettlementLabel(auto);
+          baseSettlementSelect.appendChild(autoOption);
           for (const s of settlements) {
             const option = document.createElement('option');
             option.value = JSON.stringify({ name: s.name, lat: s.lat, lon: s.lon, municipality: s.municipality });
             option.textContent = `${s.name} (${s.municipality})`;
             baseSettlementSelect.appendChild(option);
           }
-          if (state.settings.baseSettlement) {
-            baseSettlementSelect.value = JSON.stringify(state.settings.baseSettlement);
+          if (auto.source === 'manual' && manual) {
+            const manualOption = [...baseSettlementSelect.options].find((option) => {
+              if (!option.value) return false;
+              const parsed = asBaseSettlement(option.value);
+              return (
+                parsed?.name === manual.name &&
+                (parsed?.municipality || '') === (manual.municipality || '')
+              );
+            });
+            if (manualOption) baseSettlementSelect.value = manualOption.value;
           }
           clearImportError(messagesContainer(root));
         }
+        refreshBaseSettlementForUi = () => {
+          if (Number(inspectionRegionSelect.value)) updateBaseSettlements().catch(() => {});
+        };
         inspectionRegionSelect.addEventListener('change', () => {
           updateBaseSettlements().catch((error) => {
             console.warn('Failed to update base settlements:', error);
