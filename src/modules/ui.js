@@ -128,13 +128,32 @@ export function loadPersistedSettings() {
   }
 }
 
+// GRAFIK-42: the two physical accordions were merged into one section.
+// Migrate the old per-accordion open-state keys without losing state:
+// if either old block was open, the merged block opens.
+const LEGACY_BLOCK_KEYS = {
+  'open-physical-schedule': 'open-physical',
+};
+
+export function migrateBlockState(blocks) {
+  if (!blocks || typeof blocks !== 'object' || Array.isArray(blocks)) return {};
+  const result = { ...blocks };
+  for (const [legacy, canonical] of Object.entries(LEGACY_BLOCK_KEYS)) {
+    if (!(legacy in result)) continue;
+    const legacyOpen = result[legacy] === true;
+    delete result[legacy];
+    if (legacyOpen) result[canonical] = true;
+  }
+  return result;
+}
+
 function loadPersistedBlocks() {
   try {
     const storage = globalThis.localStorage;
     if (!storage) return {};
     const raw = storage.getItem(BLOCKS_STORAGE_KEY);
     if (!raw) return {};
-    return JSON.parse(raw) || {};
+    return migrateBlockState(JSON.parse(raw) || {});
   } catch {
     return {};
   }
@@ -235,13 +254,10 @@ function setStatus(root, text) {
 
 function updateBlockHints(root, settings) {
   const hints = {
-    filter: `${settings.toDepthYears} г., окно ${settings.groupWindowDays} дн.`,
+    filter: `${settings.toDepthYears} г. / окно ${settings.groupWindowDays} дн.`,
     workday: `${settings.workStart}–${settings.workEnd}, ${settings.perHour} маш/ч`,
     winter: `${winterMonthsLabel(settings.winterMonths)}, ${settings.winterLoadPercent} %`,
-    physical: `порог ${settings.physicalThreshold}, режим ${settings.smallPhysicalMode}`,
-    physicalSchedule: settings.includePhysical
-      ? `физлица: ${settings.physicalScope === 'threshold' ? 'до порога' : 'все'}, радиус ${settings.maxRadiusKm} км, мин. ${settings.minUnitsForVisit} ед.`
-      : 'выкл.',
+    physical: `порог ${settings.physicalThreshold} · ${settings.includePhysical ? 'вкл' : 'выкл'}`,
   };
   for (const [key, text] of Object.entries(hints)) {
     const hintEl = root.getElementById(`hint-${key}`);
@@ -283,16 +299,25 @@ function setupBlockListeners(root) {
   const blocks = root.querySelectorAll('.settings-block');
   const persisted = loadPersistedBlocks();
 
-  // Restore open state
   for (const block of blocks) {
     const key = block.dataset.storageKey;
+    const summary = block.querySelector('summary');
+    const content = block.querySelector('.settings-block-content');
+    if (content && !content.id) content.id = `${block.id}-content`;
+    if (summary && content) summary.setAttribute('aria-controls', content.id);
+
+    // Restore open state (old two-section physical keys are already migrated).
     if (key && persisted[key] === true) {
       block.open = true;
     }
+    if (summary) summary.setAttribute('aria-expanded', String(block.open));
+
     block.addEventListener('toggle', () => {
+      if (summary) summary.setAttribute('aria-expanded', String(block.open));
       const k = block.dataset.storageKey;
       if (k) {
-        const updated = { ...persisted, [k]: block.open };
+        // Re-read so toggling one block never drops another block's state.
+        const updated = { ...loadPersistedBlocks(), [k]: block.open };
         persistBlocks(updated);
       }
     });
@@ -302,7 +327,7 @@ function setupBlockListeners(root) {
   const inputs = root.querySelectorAll(
     '#toDepthYears, #groupWindowDays, #workStart, #workEnd, #perHour, #travelMinutes, ' +
     'input[name="winterMonth"], #winterLoadPercent, #physicalThreshold, input[name="smallPhysical"], #groupSmallOwners, ' +
-    '#includePhysical, input[name="physicalScope"], #minUnitsForVisit, #maxRadiusKm, #avgSpeedKmh, ' +
+    '#includePhysical, #physicalScope, #minUnitsForVisit, #maxRadiusKm, #avgSpeedKmh, ' +
     'input[name="onsiteDay"], #onsiteAsAcceptingDays, input[name="onsiteLocation"], #onsiteAddress, ' +
     '#inspectionRegion, input[name="neighboringRegion"], #neighboringRegionsSearch'
   );
@@ -468,7 +493,8 @@ function readSettings(root, base) {
   
   // Physical settings (GRAFIK-34)
   const includePhysical = checked('includePhysical');
-  const physicalScope = root.querySelector('input[name="physicalScope"]:checked')?.value || base.physicalScope;
+  const physicalScopeSelect = root.getElementById('physicalScope');
+  const physicalScope = physicalScopeSelect ? physicalScopeSelect.value : base.physicalScope;
   const minUnitsRaw = Number(value('minUnitsForVisit'));
   const baseSettlementInput = root.getElementById('baseSettlement');
   const baseSettlement = baseSettlementInput ? baseSettlementInput.value : base.baseSettlement;
@@ -803,6 +829,38 @@ function addVacationRow(container, period = {}) {
   container.append(row);
 }
 
+// GRAFIK-42: routing internals are dimmed and disabled while
+// «Включать физлиц в график выездов» is unchecked. Values are untouched.
+export function syncRoutingDisabledState(root) {
+  const include = root.getElementById('includePhysical');
+  const routing = root.getElementById('physicalRoutingFields');
+  if (!routing) return;
+  const enabled = Boolean(include?.checked);
+  routing.dataset.disabled = enabled ? 'false' : 'true';
+  for (const control of routing.querySelectorAll('input, select, textarea')) {
+    control.disabled = !enabled;
+  }
+}
+
+// GRAFIK-42: one label source for region options/checkboxes (incl. no-data hint).
+// GRAFIK-41: new territories have no official regionCode (null) — show the name only.
+function regionLabelBase(region) {
+  return region.regionCode == null ? region.name : `${region.name} (${region.regionCode})`;
+}
+
+export function regionOptionLabel(region) {
+  const base = regionLabelBase(region);
+  if (!region.hasData) return `${base} — гео-справочник не загружен`;
+  return region.count > 0 ? `${base} · НП: ${region.count}` : base;
+}
+
+export function neighboringRegionLabel(region) {
+  const base = regionLabelBase(region);
+  return region.hasData
+    ? base
+    : `${base} — гео-справочник не загружен, используется текстовая группировка по адресам`;
+}
+
 export function initUi(root = document) {
   const state = {
     records: [],
@@ -852,7 +910,7 @@ export function initUi(root = document) {
   let _regionsLoaded = false;
   let _availableRegions = [];
   
-  // Load regions and populate selects - called lazily when block-region or block-physical-schedule is opened
+  // Load regions and populate selects - called lazily when block-region or block-physical is opened
   async function loadRegionsForUI() {
     if (_regionsLoaded) return;
     try {
@@ -868,7 +926,7 @@ export function initUi(root = document) {
         for (const region of sortedRegions) {
           const option = document.createElement('option');
           option.value = String(region.dataId); // persist dataId
-          option.textContent = `${region.name} (${region.regionCode})${region.hasData ? '' : ' — гео-справочник не загружен'}`;
+          option.textContent = regionOptionLabel(region);
           // Never disable - all regions selectable
           inspectionRegionSelect.appendChild(option);
         }
@@ -941,29 +999,32 @@ export function initUi(root = document) {
         checkbox.checked = true;
       }
       label.appendChild(checkbox);
-      const hint = region.hasData ? '' : ' — гео-справочник не загружен, используется текстовая группировка по адресам';
-      label.appendChild(document.createTextNode(` ${region.name} (${region.regionCode})${hint}`));
+      label.appendChild(document.createTextNode(` ${neighboringRegionLabel(region)}`));
       neighboringRegionsContainer.appendChild(label);
     }
   }
   
-  // Lazy-load regions when block-region or block-physical-schedule is opened
+  // Lazy-load regions when block-region or the merged physical block is opened
   const regionBlock = root.getElementById('block-region');
-  const physicalScheduleBlock = root.getElementById('block-physical-schedule');
+  const physicalBlock = root.getElementById('block-physical');
   if (regionBlock) {
     regionBlock.addEventListener('toggle', () => {
       if (regionBlock.open) loadRegionsForUI();
     });
   }
-  if (physicalScheduleBlock) {
-    physicalScheduleBlock.addEventListener('toggle', () => {
-      if (physicalScheduleBlock.open) loadRegionsForUI();
+  if (physicalBlock) {
+    physicalBlock.addEventListener('toggle', () => {
+      if (physicalBlock.open) loadRegionsForUI();
     });
   }
 
-  // Physical schedule settings (GRAFIK-34)
+  // Physical schedule settings (GRAFIK-34/42)
   const includePhysicalCheckbox = root.getElementById('includePhysical');
   if (includePhysicalCheckbox) includePhysicalCheckbox.checked = state.settings.includePhysical;
+  syncRoutingDisabledState(root);
+  if (includePhysicalCheckbox) {
+    includePhysicalCheckbox.addEventListener('change', () => syncRoutingDisabledState(root));
+  }
   
   const physicalScopeSelect = root.getElementById('physicalScope');
   if (physicalScopeSelect) physicalScopeSelect.value = state.settings.physicalScope;

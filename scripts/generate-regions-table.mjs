@@ -18,15 +18,16 @@ function extractRegionsTable() {
   
   const arrayContent = match[1];
   
-  // Parse each region entry
+  // Parse each region entry. regionCode may be null (new territories without
+  // an official ФНС code — see D25).
   const regions = [];
-  const entryRegex = /\{\s*dataId:\s*(\d+),\s*regionCode:\s*(\d+),\s*iso:\s*'([^']+)',\s*name:\s*'([^']+)',\s*osm_name:\s*'([^']+)',\s*bbox:\s*\[([\d.\-\s,]+)\]\s*\}/g;
+  const entryRegex = /\{\s*dataId:\s*(\d+),\s*regionCode:\s*(null|\d+),\s*iso:\s*'([^']+)',\s*name:\s*'([^']+)',\s*osm_name:\s*'([^']+)',\s*bbox:\s*\[([\d.\-\s,]+)\]\s*\}/g;
   
   let entryMatch;
   while ((entryMatch = entryRegex.exec(arrayContent)) !== null) {
     regions.push({
       dataId: parseInt(entryMatch[1]),
-      regionCode: parseInt(entryMatch[2]),
+      regionCode: entryMatch[2] === 'null' ? null : parseInt(entryMatch[2]),
       iso: entryMatch[3],
       name: entryMatch[4],
       osm_name: entryMatch[5],
@@ -54,7 +55,8 @@ function generateRegionsTable(regions) {
   ];
   
   for (const r of regions) {
-    lines.push(`  { dataId: ${r.dataId}, regionCode: ${r.regionCode}, name: '${r.name}', iso: '${r.iso}' },`);
+    const code = r.regionCode === null ? 'null' : r.regionCode;
+    lines.push(`  { dataId: ${r.dataId}, regionCode: ${code}, name: '${r.name}', iso: '${r.iso}' },`);
   }
   
   lines.push('];');
@@ -75,9 +77,10 @@ function main() {
     throw new Error('Duplicate dataId values found');
   }
   
-  // Check regionCode uniqueness (excluding new territories with duplicate codes)
+  // Check regionCode uniqueness; null = no official code (new territories), not a duplicate.
   const regionCodeCounts = {};
   for (const r of regions) {
+    if (r.regionCode === null) continue;
     regionCodeCounts[r.regionCode] = (regionCodeCounts[r.regionCode] || 0) + 1;
   }
   for (const [code, count] of Object.entries(regionCodeCounts)) {

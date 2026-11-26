@@ -1,4 +1,5 @@
 import { describe, expect, it, beforeEach, afterEach } from 'vitest';
+import ExcelJS from 'exceljs';
 import {
   isPhysicalOwner,
   physicalThreshold,
@@ -354,6 +355,27 @@ describe('physical schedule (GRAFIK-34)', () => {
       expect(dataId).toBe(74); // Челябинская область dataId
     });
 
+    it('hasData=false fallback executes textual grouping without throwing', async () => {
+      // In the test environment the geo index is unavailable, so every region is
+      // hasData=false; the physical builder must fall back instead of throwing.
+      const records = [
+        physRecord({ plate: 'A100AA74', address: 'ЧЕЛЯБИНСКАЯ ОБЛ, , , КУСИНСКИЙ Р-Н, ЗЛАТОУСТ Г, , , ТАЙНАК П' }),
+      ];
+      const settings = {
+        ...defaultPhysicalSettings(),
+        includePhysical: true,
+        physicalScope: 'all',
+        workStart: '09:00',
+        workEnd: '18:00',
+        perHour: 12,
+        onsiteDays: [1, 2, 3],
+      };
+      const result = await buildPhysicalSchedule(records, settings, CALENDAR, 2026);
+      expect(result).toBeTruthy();
+      expect(Array.isArray(result.outboundVisits)).toBe(true);
+      expect(Array.isArray(result.onsiteVisits)).toBe(true);
+    });
+
     it('ambiguous candidates surfaced per D24', async () => {
       // Test that same settlement name in different municipalities is handled
       const settlements = await loadSettlements([74]); // Chelyabinsk dataId
@@ -436,7 +458,7 @@ describe('golden-file: includePhysical=false byte-identical output (GRAFIK-35)',
     expect(scheduleOff.summary).toEqual(scheduleOn.summary);
   });
   
-  it('produces byte-identical Excel output when includePhysical=false', async () => {
+  it('produces identical workbook content when includePhysical=false', async () => {
     const settingsOff = { ...baseSettings, includePhysical: false };
     const settingsOn = { ...baseSettings, includePhysical: true, physicalScope: 'threshold', minUnitsForVisit: 5 };
     
@@ -446,8 +468,19 @@ describe('golden-file: includePhysical=false byte-identical output (GRAFIK-35)',
     const excelOff = await exportScheduleToXlsx(resultOff, { ...settingsOff, exportDate: new Date('2025-11-26') });
     const excelOn = await exportScheduleToXlsx(resultOn, { ...settingsOn, exportDate: new Date('2025-11-26') });
     
-    // Excel buffers should be byte-identical when physical produces no visits
-    expect(excelOff).toEqual(excelOn);
+    // Raw .xlsx buffers embed export timestamps (workbook.created), so compare the
+    // workbook content itself: identical sheets and cell values.
+    const snapshot = async (buffer) => {
+      const wb = new ExcelJS.Workbook();
+      await wb.xlsx.load(buffer);
+      return wb.worksheets.map((ws) => ({
+        name: ws.name,
+        values: ws.getSheetValues().map((row) =>
+          Array.isArray(row) ? row.map((cell) => (cell === undefined ? null : cell)) : row,
+        ),
+      }));
+    };
+    expect(await snapshot(excelOff)).toEqual(await snapshot(excelOn));
   });
 });
 
@@ -679,51 +712,62 @@ describe('region codes (GRAFIK-41)', () => {
     expect(REGIONS_TABLE.length).toBe(89);
   });
   
-  it('all regionCode values are unique (excluding documented new territories)', () => {
-    const regionCodes = REGIONS_TABLE.map(r => r.regionCode);
+  it('all regionCode values are unique where defined', () => {
+    const regionCodes = REGIONS_TABLE.map(r => r.regionCode).filter((code) => code !== null);
     const uniqueCodes = [...new Set(regionCodes)];
-    // New territories (93, 94, 95, 96) are unique by design
     expect(uniqueCodes.length).toBe(regionCodes.length);
   });
   
-  it('all regionCode values are 2-digit numbers (1-99)', () => {
+  it('all defined regionCode values are 2-digit numbers (1-99)', () => {
     for (const r of REGIONS_TABLE) {
+      if (r.regionCode === null) continue;
       expect(r.regionCode).toBeGreaterThanOrEqual(1);
       expect(r.regionCode).toBeLessThanOrEqual(99);
       expect(Number.isInteger(r.regionCode)).toBe(true);
     }
   });
   
+  it('new territories export regionCode=null (no official ФНС code)', () => {
+    const newTerritories = REGIONS_TABLE.filter((r) => r.regionCode === null);
+    expect(newTerritories).toHaveLength(4);
+    expect(newTerritories.map((r) => r.iso).sort()).toEqual(['RU-DON', 'RU-KHE', 'RU-LUG', 'RU-ZAP']);
+    // Codes 93-96 must not be invented for them.
+    expect(REGIONS_TABLE.some((r) => [93, 94, 95, 96].includes(r.regionCode))).toBe(false);
+  });
+  
   it('spot-check official regionCode pairs match ФНС/ИНН numbering', () => {
     const spotChecks = [
       { name: 'Республика Адыгея', regionCode: 1 },
-      { name: 'Республика Алтай', regionCode: 4 },
-      { name: 'Еврейская АО', regionCode: 79 },
+      { name: 'Республика Башкортостан', regionCode: 2 },
+      { name: 'Республика Марий Эл', regionCode: 12 },
       { name: 'Республика Мордовия', regionCode: 13 },
       { name: 'Республика Татарстан', regionCode: 16 },
       { name: 'Удмуртская Республика', regionCode: 18 },
       { name: 'Чувашская Республика', regionCode: 21 },
       { name: 'Краснодарский край', regionCode: 23 },
       { name: 'Красноярский край', regionCode: 24 },
-      { name: 'Ставропольский край', regionCode: 26 },
-      { name: 'Ленинградская область', regionCode: 47 },
-      { name: 'Липецкая область', regionCode: 48 },
-      { name: 'Магаданская область', regionCode: 49 },
-      { name: 'Пензенская область', regionCode: 58 },
-      { name: 'Псковская область', regionCode: 60 },
-      { name: 'Рязанская область', regionCode: 62 },
+      { name: 'Белгородская область', regionCode: 31 },
+      { name: 'Волгоградская область', regionCode: 34 },
+      { name: 'Воронежская область', regionCode: 36 },
+      { name: 'Ивановская область', regionCode: 37 },
+      { name: 'Московская область', regionCode: 50 },
+      { name: 'Нижегородская область', regionCode: 52 },
+      { name: 'Новосибирская область', regionCode: 54 },
+      { name: 'Пермский край', regionCode: 59 },
+      { name: 'Ростовская область', regionCode: 61 },
+      { name: 'Самарская область', regionCode: 63 },
       { name: 'Свердловская область', regionCode: 66 },
-      { name: 'Тамбовская область', regionCode: 68 },
-      { name: 'Тверская область', regionCode: 69 },
-      { name: 'Томская область', regionCode: 70 },
       { name: 'Тюменская область', regionCode: 72 },
       { name: 'Челябинская область', regionCode: 74 },
-      { name: 'Волгоградская область', regionCode: 34 },
-      { name: 'Вологодская область', regionCode: 35 },
-      { name: 'Воронежская область', regionCode: 36 },
-      { name: 'Ярославская область', regionCode: 76 },
       { name: 'Забайкальский край', regionCode: 75 },
-      { name: 'Калужская область', regionCode: 40 },
+      { name: 'Ярославская область', regionCode: 76 },
+      { name: 'Москва', regionCode: 77 },
+      { name: 'Санкт-Петербург', regionCode: 78 },
+      { name: 'Еврейская АО', regionCode: 79 },
+      { name: 'Ненецкий АО', regionCode: 83 },
+      { name: 'Ханты-Мансийский АО — Югра', regionCode: 86 },
+      { name: 'Чукотский АО', regionCode: 87 },
+      { name: 'Ямало-Ненецкий АО', regionCode: 89 },
       { name: 'Республика Крым', regionCode: 91 },
       { name: 'Севастополь', regionCode: 92 },
     ];

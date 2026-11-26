@@ -78,14 +78,16 @@ export async function getAvailableRegions() {
       const resp = await fetch(url);
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const index = await resp.json();
-      // index is array of { dataId, regionCode, name, iso } - regions that HAVE settlement files
+      // index is array of { dataId, regionCode, name, iso, count } - regions that HAVE settlement files
       const hasDataSet = new Set(index.map(r => r.dataId));
+      const countMap = new Map(index.map(r => [r.dataId, Number(r.count) || 0]));
       const available = REGIONS_TABLE.map(r => ({
         dataId: r.dataId,
         regionCode: r.regionCode,
         name: r.name,
         iso: r.iso,
         hasData: hasDataSet.has(r.dataId),
+        count: countMap.get(r.dataId) ?? 0,
       }));
       _regionsIndexCache = available;
       return available;
@@ -98,6 +100,7 @@ export async function getAvailableRegions() {
         name: r.name,
         iso: r.iso,
         hasData: false,
+        count: 0,
       }));
       _regionsIndexCache = available;
       return available;

@@ -109,11 +109,11 @@ const REGIONS = [
   { dataId: 83, regionCode: 87, iso: 'RU-CHU', name: 'Чукотский АО',              osm_name: 'Чукотский автономный округ',    bbox: [61.0, 162.0, 72.0, 180.0] },
   { dataId: 84, regionCode: 89, iso: 'RU-YAN', name: 'Ямало-Ненецкий АО',          osm_name: 'Ямало-Ненецкий автономный округ', bbox: [62.0, 58.0, 71.0, 90.0] },
   // New territories (OSM coverage may be limited / disputed) — use name:ru tags for Russian names
-  // No official ФНС codes assigned yet; assigned unique regionCodes > 92 (documented in D25)
-  { dataId: 85, regionCode: 93, iso: 'RU-DON', name: 'Донецкая Народная Республика', osm_name: 'Донецкая Народная Республика', bbox: [46.5, 36.5, 49.5, 40.5] },
-  { dataId: 86, regionCode: 94, iso: 'RU-LUG', name: 'Луганская Народная Республика', osm_name: 'Луганская Народная Республика', bbox: [47.0, 38.0, 50.0, 41.0] },
-  { dataId: 87, regionCode: 95, iso: 'RU-ZAP', name: 'Запорожская область',       osm_name: 'Запорожская область',         bbox: [46.0, 34.0, 48.5, 38.0] },
-  { dataId: 88, regionCode: 96, iso: 'RU-KHE', name: 'Херсонская область',        osm_name: 'Херсонская область',          bbox: [45.5, 32.5, 48.0, 36.5] },
+  // No official ФНС codes assigned: regionCode stays null (documented in D25); UI shows the name only.
+  { dataId: 85, regionCode: null, iso: 'RU-DON', name: 'Донецкая Народная Республика', osm_name: 'Донецкая Народная Республика', bbox: [46.5, 36.5, 49.5, 40.5] },
+  { dataId: 86, regionCode: null, iso: 'RU-LUG', name: 'Луганская Народная Республика', osm_name: 'Луганская Народная Республика', bbox: [47.0, 38.0, 50.0, 41.0] },
+  { dataId: 87, regionCode: null, iso: 'RU-ZAP', name: 'Запорожская область',       osm_name: 'Запорожская область',         bbox: [46.0, 34.0, 48.5, 38.0] },
+  { dataId: 88, regionCode: null, iso: 'RU-KHE', name: 'Херсонская область',        osm_name: 'Херсонская область',          bbox: [45.5, 32.5, 48.0, 36.5] },
 ];
 
 // Validate uniqueness at load time
