@@ -645,8 +645,8 @@
     {
       "id": "GRAFIK-34-PHYSICAL-SCHEDULE",
       "title": "Physical persons day routes over nearby settlements + onsite + Excel",
-      "status": "planned",
-      "approved": false,
+      "status": "dispatched",
+      "approved": true,
       "dependsOn": [
         "GRAFIK-33-ADDR-RESOLVER"
       ],
@@ -660,9 +660,9 @@
       "evidence": null,
       "rejections": 0,
       "retro": null,
-      "dispatchedBy": null,
-      "dispatchedAt": null,
-      "updatedAt": "2026-11-25T19:28:59+05:00"
+      "dispatchedBy": "architect",
+      "dispatchedAt": "2026-11-26T18:45:59+05:00",
+      "updatedAt": "2026-11-26T18:45:59+05:00"
     },
     {
       "id": "GRAFIK-35-PHYSICAL-TAB",
@@ -789,5 +789,5 @@
       "updatedAt": "2026-11-26T18:13:51+05:00"
     }
   ],
-  "updatedAt": "2026-11-26T18:45:41+05:00"
+  "updatedAt": "2026-11-26T18:45:59+05:00"
 }
