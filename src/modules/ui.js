@@ -372,6 +372,30 @@ function messagesContainer(root) {
   return root.getElementById('messages');
 }
 
+// GRAFIK-43: shown when a region's settlement reference is unavailable; the
+// textual address grouping keeps working, so this is a hint, not an error.
+export const REGION_NO_DATA_HINT =
+  'Гео-справочник для региона не загружен — используется текстовая группировка по адресам';
+const REGION_HINT_ID = 'region-no-data-hint';
+
+function showRegionNoDataHint(root) {
+  const host = messagesContainer(root);
+  if (!host) return;
+  if (typeof host.querySelector === 'function' && host.querySelector(`#${REGION_HINT_ID}`)) return;
+  const hint = element('div', 'message message-warning', REGION_NO_DATA_HINT);
+  hint.id = REGION_HINT_ID;
+  hint.setAttribute('role', 'status');
+  if (typeof host.prepend === 'function') host.prepend(hint);
+  else host.appendChild(hint);
+}
+
+function clearRegionNoDataHint(root) {
+  const host = messagesContainer(root);
+  if (!host || typeof host.querySelector !== 'function') return;
+  const hint = host.querySelector(`#${REGION_HINT_ID}`);
+  if (hint && typeof hint.remove === 'function') hint.remove();
+}
+
 // GRAFIK-47: the build reports processed/total so a long Челябинская export
 // shows progress instead of looking frozen.
 function physicalProgressText(progress) {
@@ -1050,15 +1074,19 @@ export function initUi(root = document) {
           if (!dataId) {
             baseSettlementSelect.innerHTML = '<option value="">— автоматически (первый из региона) —</option>';
             clearImportError(messagesContainer(root));
+            clearRegionNoDataHint(root);
             return;
           }
-          const { loadSettlements } = await loadModule(() => import('./address.js'), {
+          const addressModule = await loadModule(() => import('./address.js'), {
             container: messagesContainer(root),
             doc: root,
             message: 'Не удалось загрузить справочник населённых пунктов.',
             onRetry: () => updateBaseSettlements().catch(() => {}),
           });
-          const settlements = await loadSettlements([dataId]);
+          // GRAFIK-43: structured result keeps the hint path explicit.
+          const { settlements, failed } = await addressModule.loadSelectedRegionSettlements(dataId);
+          if (failed.length > 0) showRegionNoDataHint(root);
+          else clearRegionNoDataHint(root);
           baseSettlementSelect.innerHTML = '<option value="">— автоматически (первый из региона) —</option>';
           for (const s of settlements) {
             const option = document.createElement('option');
@@ -1115,9 +1143,36 @@ export function initUi(root = document) {
       if (state.settings.neighboringRegions?.includes(region.dataId)) {
         checkbox.checked = true;
       }
+      // GRAFIK-43: neighbours load only when ticked; unticking keeps the cache.
+      checkbox.addEventListener('change', () => {
+        if (!checkbox.checked) return;
+        loadNeighborRegion(region);
+      });
       label.appendChild(checkbox);
       label.appendChild(document.createTextNode(` ${neighboringRegionLabel(region)}`));
       neighboringRegionsContainer.appendChild(label);
+    }
+  }
+
+  async function loadNeighborRegion(region) {
+    try {
+      const addressModule = await loadModule(() => import('./address.js'), {
+        container: messagesContainer(root),
+        doc: root,
+        message: 'Не удалось загрузить справочник населённых пунктов.',
+        onRetry: () => loadNeighborRegion(region),
+      });
+      const { failed } = await addressModule.loadSettlementsWithStatus([region.dataId]);
+      if (failed.length > 0) showRegionNoDataHint(root);
+      else clearRegionNoDataHint(root);
+    } catch (error) {
+      console.warn('Failed to load neighboring region settlements:', error);
+      if (error?.guarded) return;
+      showRetryableError(
+        root,
+        'Не удалось загрузить соседний регион.',
+        () => loadNeighborRegion(region),
+      );
     }
   }
   

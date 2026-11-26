@@ -114,28 +114,111 @@ function levenshtein(a, b) {
   return matrix[a.length][b.length];
 }
 
-// Settlement cache
-const settlementCache = new Map();
+// GRAFIK-43: settlement cache is an LRU (insertion-order Map, refreshed on hit)
+// and concurrent callers share one in-flight request per dataId.
+export const SETTLEMENT_CACHE_LIMIT = 6;
 
-export async function loadSettlements(dataIds) {
-  const results = [];
-  for (const dataId of dataIds) {
-    if (settlementCache.has(dataId)) {
-      results.push(...settlementCache.get(dataId));
-      continue;
-    }
-    try {
-      const url = `${import.meta.env.BASE_URL}data/settlements/${dataId}.json`;
-      const resp = await fetch(url);
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const data = await resp.json();
-      settlementCache.set(dataId, data);
-      results.push(...data);
-    } catch (e) {
-      console.warn(`Failed to load settlements for region dataId ${dataId}:`, e);
-    }
+const settlementCache = new Map();
+const settlementInflight = new Map();
+
+function normalizeDataIds(dataIds) {
+  const unique = [];
+  const seen = new Set();
+  for (const value of dataIds || []) {
+    const dataId = Number(value);
+    if (!Number.isInteger(dataId) || dataId <= 0 || seen.has(dataId)) continue;
+    seen.add(dataId);
+    unique.push(dataId);
   }
-  return results;
+  return unique;
+}
+
+function touchCache(dataId) {
+  const value = settlementCache.get(dataId);
+  settlementCache.delete(dataId);
+  settlementCache.set(dataId, value);
+  return value;
+}
+
+function storeInCache(dataId, data) {
+  settlementCache.set(dataId, data);
+  while (settlementCache.size > SETTLEMENT_CACHE_LIMIT) {
+    const oldest = settlementCache.keys().next().value;
+    settlementCache.delete(oldest);
+  }
+}
+
+function startFetch(dataId) {
+  const request = (async () => {
+    const url = `${import.meta.env.BASE_URL}data/settlements/${dataId}.json`;
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+    storeInCache(dataId, data);
+    return data;
+  })();
+  const tracked = request.then(
+    (data) => {
+      settlementInflight.delete(dataId);
+      return data;
+    },
+    (error) => {
+      settlementInflight.delete(dataId);
+      throw error;
+    },
+  );
+  settlementInflight.set(dataId, tracked);
+  return tracked;
+}
+
+// Returns { settlements, failed: [{ dataId, reason }] }. Failures never throw
+// and are not cached, so a later selection can retry a region that was down.
+export async function loadSettlementsWithStatus(dataIds) {
+  const unique = normalizeDataIds(dataIds);
+  const failed = [];
+  const batches = await Promise.all(
+    unique.map(async (dataId) => {
+      if (settlementCache.has(dataId)) return touchCache(dataId);
+      const inflight = settlementInflight.get(dataId);
+      try {
+        return await (inflight || startFetch(dataId));
+      } catch (error) {
+        const reason = String(error?.message || error);
+        console.warn(`Failed to load settlements for region dataId ${dataId}:`, error);
+        failed.push({ dataId, reason });
+        return null;
+      }
+    }),
+  );
+  const settlements = [];
+  for (const batch of batches) {
+    if (batch) settlements.push(...batch);
+  }
+  return { settlements, failed };
+}
+
+// Backward-compatible array return for existing callers.
+export async function loadSettlements(dataIds) {
+  const { settlements } = await loadSettlementsWithStatus(dataIds);
+  return settlements;
+}
+
+// UI helper: an empty selection must not trigger a single settlement fetch.
+export async function loadSelectedRegionSettlements(
+  selection,
+  { loader = loadSettlementsWithStatus } = {},
+) {
+  const dataId = Number(selection);
+  if (!Number.isInteger(dataId) || dataId <= 0) {
+    return { settlements: [], failed: [] };
+  }
+  return loader([dataId]);
+}
+
+// Test/perf seam: drop cached and in-flight entries.
+export function clearSettlementCache() {
+  settlementCache.clear();
+  settlementInflight.clear();
 }
 
 // GRAFIK-47: the normalized lookup is built once per settlement list, never
