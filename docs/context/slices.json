@@ -623,7 +623,7 @@
     {
       "id": "GRAFIK-33-ADDR-RESOLVER",
       "title": "Address parse/normalize, region select, resolve to OSM settlement",
-      "status": "dispatched",
+      "status": "accepted",
       "approved": true,
       "dependsOn": [
         "GRAFIK-40-REGION-COVERAGE"
@@ -634,13 +634,13 @@
         "npm --prefix G:\\_Grafik_TO run verify"
       ],
       "owner": "orch1",
-      "commit": null,
-      "evidence": null,
+      "commit": "c3feeb3",
+      "evidence": "G:\\_Grafik_TO\\docs\\context\\evidence\\GRAFIK-33-ADDR-RESOLVER.json",
       "rejections": 0,
-      "retro": null,
+      "retro": "L0 verify: 206 tests green (13 files), resolver logic checked (parse idx 3/4/7, D24 ambiguity, graceful 404 catch), tests use synthetic addresses (privacy ok). Block-4 region UI deferred to 34 (functions only in 33).",
       "dispatchedBy": "architect",
       "dispatchedAt": "2026-11-26T18:25:27+05:00",
-      "updatedAt": "2026-11-26T18:25:27+05:00"
+      "updatedAt": "2026-11-26T18:45:41+05:00"
     },
     {
       "id": "GRAFIK-34-PHYSICAL-SCHEDULE",
@@ -789,5 +789,5 @@
       "updatedAt": "2026-11-26T18:13:51+05:00"
     }
   ],
-  "updatedAt": "2026-11-26T18:25:27+05:00"
+  "updatedAt": "2026-11-26T18:45:41+05:00"
 }
