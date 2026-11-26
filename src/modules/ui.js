@@ -402,6 +402,77 @@ function clearRegionNoDataHint(root) {
 
 // GRAFIK-47: the build reports processed/total so a long Челябинская export
 // shows progress instead of looking frozen.
+// GRAFIK-45: informational, non-blocking report about addresses that did not
+// resolve. Rendered from memory only — never persisted, logged or exported.
+export function renderUnresolvedReport(container, report, doc = globalThis.document) {
+  if (!container || !doc || typeof doc.createElement !== 'function') return null;
+  if (typeof container.replaceChildren === 'function') container.replaceChildren();
+  else container.textContent = '';
+
+  const total = Number(report?.total) || 0;
+  container.hidden = total === 0;
+  if (total === 0) return null;
+
+  const resolvedCount = Number(report.resolvedCount) || 0;
+  const unresolvedCount = Number(report.unresolvedCount) || 0;
+
+  const summary = doc.createElement('p');
+  summary.className = 'unresolved-summary';
+  summary.textContent = `Распознано ${resolvedCount} из ${total} адресов · не разобрано ${unresolvedCount}`;
+  container.appendChild(summary);
+
+  if (resolvedCount === 0) {
+    const warning = doc.createElement('div');
+    warning.className = 'message message-warning unresolved-warning';
+    warning.setAttribute('role', 'alert');
+    warning.textContent =
+      'Ни один адрес не распознан. Проверьте регион инспекции или загрузите ' +
+      'гео-справочник региона — пока используется текстовая группировка по адресам.';
+    container.appendChild(warning);
+  }
+
+  const unresolved = Array.isArray(report.unresolved) ? report.unresolved : [];
+  if (unresolved.length === 0) return summary;
+
+  const details = doc.createElement('details');
+  details.className = 'unresolved-details';
+  const detailsSummary = doc.createElement('summary');
+  detailsSummary.textContent = `Неразобранные адреса (${unresolved.length})`;
+  details.appendChild(detailsSummary);
+
+  const list = doc.createElement('ol');
+  list.className = 'unresolved-list';
+  for (const row of unresolved) {
+    const item = doc.createElement('li');
+    item.className = 'unresolved-row';
+    item.textContent = `${row.index}: ${row.address}`;
+    list.appendChild(item);
+  }
+  details.appendChild(list);
+
+  const copy = doc.createElement('button');
+  copy.type = 'button';
+  copy.className = 'button button-small unresolved-copy';
+  copy.textContent = 'Скопировать неразобранные';
+  copy.addEventListener('click', async () => {
+    const payload = report.clipboardText || '';
+    try {
+      const clipboard =
+        doc.defaultView?.navigator?.clipboard || globalThis.navigator?.clipboard;
+      if (!clipboard || typeof clipboard.writeText !== 'function') {
+        throw new Error('clipboard unavailable');
+      }
+      await clipboard.writeText(payload);
+      copy.textContent = 'Скопировано';
+    } catch {
+      copy.textContent = 'Не удалось скопировать';
+    }
+  });
+  details.appendChild(copy);
+  container.appendChild(details);
+  return details;
+}
+
 function asBaseSettlement(value) {
   if (!value) return null;
   if (typeof value === 'string') {
@@ -1097,6 +1168,11 @@ export function initUi(root = document) {
             baseSettlementSelect.innerHTML = '<option value="">— автоматически (регион не выбран) —</option>';
             clearImportError(messagesContainer(root));
             clearRegionNoDataHint(root);
+            renderUnresolvedReport(
+              root.getElementById('unresolved-report'),
+              { total: 0 },
+              root,
+            );
             return;
           }
           const addressModule = await loadModule(() => import('./address.js'), {
@@ -1109,18 +1185,19 @@ export function initUi(root = document) {
           const { settlements, failed } = await addressModule.loadSelectedRegionSettlements(dataId);
           if (failed.length > 0) showRegionNoDataHint(root);
           else clearRegionNoDataHint(root);
-          // GRAFIK-44: the auto value comes from the export (mode of resolved
-          // addresses) and is explained right in the option label.
-          const { resolved, total } = addressModule.resolveAddressesForBase(
+          // GRAFIK-44/45: one resolution pass feeds both the auto base and the
+          // informational unresolved report (before any schedule is built).
+          const report = addressModule.buildUnresolvedReport(
             state.records || [],
             settlements,
             dataId,
           );
+          renderUnresolvedReport(root.getElementById('unresolved-report'), report, root);
           const manual = asBaseSettlement(state.settings.baseSettlement);
-          const auto = addressModule.pickBaseSettlement(resolved, dataId, {
+          const auto = addressModule.pickBaseSettlement(report.resolved, dataId, {
             manualSettlement: manual,
             regionSettlements: settlements,
-            total,
+            total: report.total,
           });
           baseSettlementSelect.innerHTML = '';
           const autoOption = document.createElement('option');

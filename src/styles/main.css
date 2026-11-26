@@ -638,6 +638,42 @@ fieldset > legend {
   overflow-wrap: anywhere;
 }
 
+/* GRAFIK-45: informational unresolved-address report (in-memory only). */
+.unresolved-report {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.unresolved-summary {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.unresolved-details summary {
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.unresolved-list {
+  max-height: 180px;
+  margin: var(--space-1) 0;
+  padding-left: var(--space-4);
+  overflow-y: auto;
+}
+
+.unresolved-row {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: var(--text-xs);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.unresolved-copy {
+  margin-top: var(--space-1);
+}
+
 .drop-zone.is-dragover {
   border-color: var(--color-accent);
   background: var(--color-accent-weak);

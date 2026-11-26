@@ -221,21 +221,44 @@ export function clearSettlementCache() {
   settlementInflight.clear();
 }
 
+// GRAFIK-45: one resolution pass that also records what could not be matched.
+// Pure: no persistence, no logging of addresses (privacy), no mutation.
+export function buildUnresolvedReport(records, settlements, dataId = null) {
+  const index = getSettlementIndex(settlements);
+  const resolved = [];
+  const unresolved = [];
+  let total = 0;
+  (records || []).forEach((record, position) => {
+    const address = record?.address;
+    if (!address) return;
+    total += 1;
+    const match = resolveSettlement(parseAddress(address), index);
+    if (match.match === 'exact' || match.match === 'fuzzy') {
+      resolved.push({ ...match, dataId, rowIndex: position + 1 });
+    } else {
+      // 1-based position in import order (records keep the file's row order).
+      unresolved.push({ index: position + 1, address: String(address), match: match.match });
+    }
+  });
+  return {
+    resolved,
+    unresolved,
+    total,
+    resolvedCount: resolved.length,
+    unresolvedCount: unresolved.length,
+    clipboardText: formatUnresolvedClipboard(unresolved),
+  };
+}
+
 // GRAFIK-44: resolve the export's addresses against one region's reference so
 // the base settlement can be derived from the actual data.
 export function resolveAddressesForBase(records, settlements, dataId = null) {
-  const index = getSettlementIndex(settlements);
-  const resolved = [];
-  let total = 0;
-  for (const record of records || []) {
-    if (!record?.address) continue;
-    total += 1;
-    const match = resolveSettlement(parseAddress(record.address), index);
-    if (match.match === 'exact' || match.match === 'fuzzy') {
-      resolved.push({ ...match, dataId });
-    }
-  }
+  const { resolved, total } = buildUnresolvedReport(records, settlements, dataId);
   return { resolved, total };
+}
+
+export function formatUnresolvedClipboard(unresolved = []) {
+  return (unresolved || []).map((row) => `${row.index}: ${row.address}`).join('\n');
 }
 
 function geoDistanceKm(lat1, lon1, lat2, lon2) {
