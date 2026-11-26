@@ -787,7 +787,49 @@
       "dispatchedBy": "architect",
       "dispatchedAt": "2026-11-26T03:47:03+05:00",
       "updatedAt": "2026-11-26T18:13:51+05:00"
+    },
+    {
+      "id": "GRAFIK-41-REGION-CODES",
+      "title": "Region identity: official regionCode, dataId separation, always-selectable regions",
+      "status": "dispatched",
+      "approved": true,
+      "dependsOn": [],
+      "dispatchText": "SLICE GRAFIK-41-REGION-CODES (project grafik_to, repo G:\\_Grafik_TO)\n\nDEFECT (owner-verified, critical): `code` in scripts/build-settlements.mjs REGIONS and in\nsrc/modules/regions-table.js is an INTERNAL sequential index (1..89) that also names\npublic/data/settlements/<code>.json. The UI prints it as the official subject code, so it is wrong:\nЧелябинская (72 shown, official 74), Тюменская 66/72, Чувашия 74/21, Ярославская 77/76, ХМАО 71/86,\nЯНАО 76/89, Удмуртия 67/18, Мордовия 82/13. Second defect: the select option and neighbouring\ncheckboxes are `disabled` for every region without a local file, so most regions cannot be chosen.\n\nDO:\n1. Separate the two identities. Keep the internal key as `dataId` (rename from `code` everywhere:\n   tables, getAvailableRegions, ui.js, address.js, tests, settings persistence) and add `regionCode`\n   = official 2-digit region code (ФНС/ИНН numbering, same as the ОКТМО prefix and the codes the owner\n   listed) for ALL 89 entries. scripts/build-settlements.mjs stays the source; regenerate\n   src/modules/regions-table.js from it, never hand-drift. Crimea = 91, Sevastopol = 92 (ГИБДД uses 82\n   for Crimea - document that difference, do not silently pick one).\n2. Do NOT rename or regenerate public/data/settlements/*.json (81 files, 14.66 MB). dataId stays the\n   filename; no rebundling in this slice.\n3. Display `Челябинская область (74)` sorted alphabetically by name. Persisted settings keep the\n   dataId value, so no localStorage migration and no data loss. Record this in docs/spec/decisions.md\n   as D25 (internal dataId vs official regionCode) including the full 89-row map.\n4. Never disable a region. Any subject must be selectable. When it has no local geo-reference show an\n   inline hint: «Гео-справочник для региона не загружен — используется текстовая группировка по\n   адресам» - and make sure the textual grouping fallback really executes (physical.js must not throw\n   with hasData=false); cover it with a test.\n5. Option label when data exists: `Челябинская область (74) · НП: 1267`.\n6. Neighbouring regions: vertical list, one region per row, inside a scrollable box\n   (max-height 180px; overflow-y auto; 1px solid var(--color-border); var(--radius-sm); padding 6px)\n   plus a compact search input filtering by name or code. Do not touch general panel layout/CSS -\n   slice GRAFIK-42 owns that.\n7. Tests: all 89 regionCode values unique and 2-digit; spot-check pairs 01 02 12 13 16 18 21 23 24 31\n   34 36 37 50 52 54 59 61 63 66 72 74 75 76 77 78 79 83 86 87 89 91 92; assert no code path sets\n   option.disabled = true; assert the no-data hint renders. Suite currently 237 tests / 14 files - keep\n   it green.\n8. Update docs/context/resume-grafik.md.\n\nRULES: stage only owned files; no push; no personal data in repo or tests; run `npm run verify`\n(lint+test+build) and report commit, exact files, raw results. Hand off to orch2 only.\n",
+      "acceptance": null,
+      "verifyCommands": [
+        "npm run verify"
+      ],
+      "owner": "orch1",
+      "commit": null,
+      "evidence": null,
+      "rejections": 0,
+      "retro": null,
+      "dispatchedBy": "architect",
+      "dispatchedAt": "2026-11-26T22:16:59+05:00",
+      "updatedAt": "2026-11-26T22:16:59+05:00"
+    },
+    {
+      "id": "GRAFIK-42-SETTINGS-PANEL-UX",
+      "title": "Settings panel: overflow, merged physical section, sticky action bar, summary a11y",
+      "status": "planned",
+      "approved": false,
+      "dispatchText": "SLICE GRAFIK-42-SETTINGS-PANEL-UX (project grafik_to, repo G:\\_Grafik_TO; depends on GRAFIK-41)\n\nOwner-reported UI defects in the left settings panel. Goal: at a 360px-wide panel there is no\nhorizontal scroll and no clipped text/checkbox/select; content never shows under the sticky button.\n\nDO (all from the owner's TZ):\n1. Overflow. Ban horizontal overflow inside every card/accordion: all <select>, <input type=\"text\">,\n   .settings-* containers get width:100%; max-width:100%; min-width:0; box-sizing:border-box.\n   The two-column grid in «Физлица: маршрутизация выездов» is the main offender - convert wide fields\n   to one field per row. Weekday checkboxes (Пн-Вс) become display:flex; flex-wrap:wrap; gap:8px so Сб\n   and the fieldset border are not cut. Long footnote text: overflow-wrap:anywhere / white-space:normal.\n2. Sticky button. Make .settings-panel a flex column: scroll area overflow-y:auto; flex:1, and\n   .settings-actions a separate non-scrolling footer with opaque background and border-top so nothing\n   bleeds under «Сформировать график».\n3. Structure. (a) «Соседние регионы» is handled by GRAFIK-41 - do not regress it.\n   (b) Merge the two physical-person accordions («Физлица и малые владельцы» and «Физлица:\n   маршрутизация выездов») into ONE section; remove duplicated threshold/admission-days/platform-address\n   fields without losing persisted values (migrate old keys, add a test). (c) Hide/dim\n   (opacity .5 + disabled) routing internals while «Включать физлиц в график выездов» is unchecked.\n   (d) Reset <fieldset> to border:0; padding:0; margin:0 and use subheadings + gap instead.\n   (e) In «Рабочий день» put the two short numeric fields («Машин в час», «Переезд, мин») in a\n   deliberate 2-column grid, same rhythm as «Отбор и группировка». Introduce one shared .grid-2 utility\n   instead of ad-hoc layouts.\n4. Visuals. Remove the placeholder text «Место для будущих настроек поселений.». Accordion <summary>:\n   text-align:left; flex:1 for the title; kill the black focus outline, keep a subtle :focus-visible\n   ring; short right-side badges that do not ellipsis (выкл/вкл, порог 4, 3 г. / 30 дн.). The × in the\n   vacation-delete button: display:inline-flex; align-items:center; justify-content:center; padding:0.\n5. A11y floor (my addition, cheap): summary carries aria-expanded/aria-controls, every input has a\n   <label for> or aria-label, the search box in the region list has a placeholder + aria-label.\n6. Tests: settings-key migration test (old two-section keys -> merged keys, no value loss), no-data\n   path still renders, plus a static guard test that scans the settings CSS for fixed widths > 320px.\n   Visual 360px check stays an owner gate - state it explicitly in the report; do not claim it passed.\n7. Keep `npm run verify` green (237+ tests). Update docs/spec/decisions.md (D26: merged physical\n   section + key migration) and docs/context/resume-grafik.md.\n\nRULES: stage only owned files; no push; no personal data; no changes to data files. Handoff to orch2.\n",
+      "acceptance": null,
+      "verifyCommands": [
+        "npm run verify"
+      ],
+      "owner": "orch1",
+      "commit": null,
+      "evidence": null,
+      "rejections": 0,
+      "retro": null,
+      "dispatchedBy": null,
+      "dispatchedAt": null,
+      "updatedAt": "2026-11-26T22:17:03+05:00",
+      "dependsOn": [
+        "GRAFIK-41-REGION-CODES"
+      ]
     }
   ],
-  "updatedAt": "2026-11-26T20:18:45+05:00"
+  "updatedAt": "2026-11-26T22:17:03+05:00"
 }
