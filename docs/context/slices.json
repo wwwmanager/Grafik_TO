@@ -834,11 +834,11 @@
       "id": "GRAFIK-43-LAZY-SETTLEMENTS",
       "title": "Lazy-load settlement dictionaries per selected region (LRU, fetch-count tests)",
       "status": "planned",
-      "approved": false,
+      "approved": true,
       "dependsOn": [
         "GRAFIK-42-SETTINGS-PANEL-UX"
       ],
-      "dispatchText": "SLICE GRAFIK-43-LAZY-SETTLEMENTS (project grafik_to, repo G:\\_Grafik_TO; depends on GRAFIK-42)\n\nOwner-approved improvement: the app must not load all settlement dictionaries up front (81 files,\n14.66 MB). Today public/data/regions.json is one cached fetch, but per-region settlement data should be\npulled only when that region is actually used.\n\nDO:\n1. Keep public/data/regions.json as the only eager fetch (index: dataId, regionCode, name, count, bytes).\n2. Load public/data/settlements/<dataId>.json on demand: when a region is selected as inspection region\n   or ticked as a neighbouring region; cache per dataId in memory (Map) and de-duplicate concurrent\n   requests (single in-flight promise per region).\n3. Never load a region twice per session; expose a small loader module (e.g. src/modules/settlements-\n   loader.js) with loadRegion(dataId) and getCachedRegion(dataId) so tests can assert fetch counts.\n4. Failure path: a 404/parse error must NOT break the UI - keep the textual grouping fallback and the\n   existing hint «Гео-справочник для региона не загружен...»; retry is manual (no infinite retry loop).\n5. Unchecking a neighbouring region must not drop the cache (re-ticking is free), but the cache must not\n   grow unbounded - cap it (e.g. 6 regions) with LRU eviction.\n6. Tests: fetch-call counting with a stubbed fetch (assert 0 settlement fetches before selection, exactly\n   1 per region afterwards, 1 for concurrent duplicates), 404 -> fallback hint, LRU eviction. Keep\n   `npm run verify` green.\n7. Note the change in docs/context/resume-grafik.md.\n\nRULES: no data regeneration/renaming; stage owned files only; no push; no personal data. Handoff to orch2.\n",
+      "dispatchText": "SLICE GRAFIK-43-LAZY-SETTLEMENTS (project grafik_to, repo G:\\_Grafik_TO; depends on GRAFIK-47)\n\nScope note: GRAFIK-47 already made the app load only the export's region (selectRegionDataIds) and\nsrc/modules/address.js has a plain Map cache. Do NOT redo that work. This slice hardens the loader.\n\nDO:\n1. src/modules/address.js loadSettlements(dataIds):\n   a. de-duplicate concurrent requests - one in-flight promise per dataId, second caller awaits the same\n      promise (no double fetch);\n   b. LRU cap of 6 regions (insertion-order Map, refresh on hit, evict oldest, delete its entry);\n   c. do not swallow failures silently: return a structured result { settlements, failed: [{dataId,\n      reason}] } (or an equivalent that keeps the current array return for existing callers) so the UI can\n      show the no-data hint. Keep a console.warn for diagnostics but never let a failure throw.\n2. UI: when a selected region failed to load, show the existing hint «Гео-справочник для региона не\n   загружен — используется текстовая группировка по адресам» and keep the textual grouping path working.\n3. Neighbouring regions are loaded on demand (only when ticked) and stay cached when unticked.\n4. Tests with a stubbed fetch: 0 settlement fetches before any selection; exactly 1 per region; 2\n   concurrent calls -> 1 fetch; 404 -> failed[] populated, no throw, hint path; LRU evicts the 7th and a\n   re-tick of an evicted region refetches; cache hit does not refetch.\n5. Keep `npm run verify` green (285 tests now). Update docs/context/resume-grafik.md.\n\nRULES: no data regeneration/renaming; stage owned files only; no push; no personal data. Handoff to orch2.\n",
       "acceptance": null,
       "verifyCommands": [
         "npm run verify"
@@ -850,7 +850,7 @@
       "retro": null,
       "dispatchedBy": null,
       "dispatchedAt": null,
-      "updatedAt": "2026-11-26T22:27:49+05:00"
+      "updatedAt": "2026-11-27T00:13:05+05:00"
     },
     {
       "id": "GRAFIK-44-AUTO-BASE-SETTLEMENT",
@@ -919,7 +919,7 @@
     {
       "id": "GRAFIK-47-CHELYABINSK-ROUTE-PERF",
       "title": "Chelyabinsk route-build performance + no-freeze guard (74 only)",
-      "status": "dispatched",
+      "status": "accepted",
       "approved": true,
       "dependsOn": [
         "GRAFIK-46-DEPLOY-CACHE-GUARD"
@@ -930,14 +930,14 @@
         "npm run verify"
       ],
       "owner": "orch1",
-      "commit": null,
-      "evidence": null,
+      "commit": "483befb",
+      "evidence": "npm run verify PASS (lint+285 tests+build green). Benchmark: resolve=108.6ms, group=0.2ms, stops=101.4ms, schedule=116.2ms, total=326.4ms (baseline 12608.6ms -> 38.7x faster, well under 1500ms deadline). 74.json integrity: 1267 unique settlements, 17 real name+muni collisions with distinct coords. E2E: КУСИНСКИЙ Р-Н/ЗЛАТОУСТ Г/ТАЙНАК П resolves to Тайнак (Златоуст). Fixes: per-array WeakMap settlement index (no re-normalization); selectRegionDataIds loads only export region (not all 89 files ~14.7MB); grid radius queries with exact haversine + original-index tie-break (equivalence test vs reference full scan passes); base distances once per month. Guard: 15s deadline (PHYSICAL_BUILD_TIMEOUT) with withDeadline, throttled progress (+UI 'поселения X/Y'/'месяцы X/12'), event-loop yields; timeout path covered (stalled fetch). Tests: 9 new (integrity, e2e, perf <1500ms, selectRegionDataIds, progress, timeout, equivalence). git diff --stat HEAD~1 -- public/data = empty (no settlement JSON regenerated). Repro: npm run verify; npx vitest run tests/route-perf.test.js --reporter=verbose. Owner gate: live run on real 1267-settlement export (visual timing).",
       "rejections": 0,
-      "retro": null,
+      "retro": "12.6s -> 326ms (38.7x) on real 74.json/1267 settlements via WeakMap index, grid radius with exact haversine, per-month distances, only-export-region loading; 15s deadline + progress; 74.json integrity (1267, 17 real name collisions kept per D24), e2e ТАЙНАК resolves; 285 tests; no settlement JSON regenerated.",
       "dispatchedBy": "architect",
       "dispatchedAt": "2026-11-27T00:03:45+05:00",
-      "updatedAt": "2026-11-27T00:03:45+05:00"
+      "updatedAt": "2026-11-27T00:12:48+05:00"
     }
   ],
-  "updatedAt": "2026-11-27T00:03:45+05:00"
+  "updatedAt": "2026-11-27T00:13:06+05:00"
 }
