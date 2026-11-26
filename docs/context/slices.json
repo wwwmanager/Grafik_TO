@@ -895,7 +895,49 @@
       "dispatchedBy": null,
       "dispatchedAt": null,
       "updatedAt": "2026-11-26T22:27:51+05:00"
+    },
+    {
+      "id": "GRAFIK-46-DEPLOY-CACHE-GUARD",
+      "title": "P0: stale-cache chunk 404 guard, no silent loading hang, post-deploy check",
+      "status": "accepted",
+      "approved": true,
+      "dependsOn": [],
+      "dispatchText": "SLICE GRAFIK-46-DEPLOY-CACHE-GUARD (project grafik_to, repo G:\\_Grafik_TO). P0 - live site is broken.\n\nSYMPTOM (owner, production): browser still runs an old cached index (index-suite9qH.js) that requests\nassets/physical-DWxsB0Aw.js and assets/address-DkJMsCwK.js; those hashed chunks no longer exist -> 404\n-> dynamic import rejects -> the physical-routes UI sits in a loading state forever and the only trace is\na console error. Current live index.html (index-CIHY2VQ0.js) is fine, so this is a stale-HTML/cache\nmismatch on GitHub Pages, not a missing build artifact.\n\nDO:\n1. Entry-level guard: listen for `vite:preloadError`; on the first occurrence per tab session reload once\n   with a cache-buster (`?v=<timestamp>` using sessionStorage flag). If it happens again, stop reloading\n   and render a visible banner: «Загружена устаревшая версия приложения — обновите страницу (Ctrl+F5)».\n2. Wrap every dynamic import (physical.js, address.js and any other) in try/catch: on failure show an\n   inline error with a «Повторить» button. No code path may leave the UI in a permanent loading state.\n3. Add scripts/check-deploy.mjs (read-only): fetch the deployed index.html, extract every assets/* ref,\n   HEAD each, and additionally assert every chunk referenced from dist/index.html exists; exit 1 on any\n   non-200. Print a compact PASS/FAIL table.\n4. Tests: simulate a rejected dynamic import -> banner + retry button rendered, no infinite spinner; the\n   preloadError handler reloads exactly once per session (assert sessionStorage guard logic as a pure\n   function).\n5. Deploy: commit, push main (explicit one-time exception for this P0 - the fix is worthless until it is\n   live), wait for the Pages run, then run `node scripts/check-deploy.mjs` against\n   https://wwwmanager.github.io/Grafik_TO/ and paste its raw output in the report.\n6. Keep `npm run verify` green (262 tests currently).\n\nRULES: stage owned files only; no personal data; report commit + raw check-deploy output. Handoff to orch2.\n",
+      "acceptance": null,
+      "verifyCommands": [
+        "npm run verify"
+      ],
+      "owner": "orch1",
+      "commit": "6e5f9c4",
+      "evidence": "npm run verify PASS (lint+276 tests+build green). check-deploy exit 0: index 200; assets/index-DLbBQwKA.js 200; assets/index-Y4irnVsR.css 200; dist refs exist; deployed==dist. Live verified: cache-guard.js present in deployed index; dynamic chunks physical-VjLh0AOv, address-D0F4aRWy, parser-Qwl-AYPu, exporter-Bic07KCa all 200; old index-suite9qH/physical-DWxsB0Aw/address-DkJMsCwK => 404 (confirms stale-HTML diagnosis). Repro: npm run verify; npm run check:deploy. Owner gate: one Ctrl+F5 in tabs still holding pre-fix cached HTML (predates guard).",
+      "rejections": 0,
+      "retro": "vite:preloadError one-shot reload with cache-buster, visible banner on repeat, try/catch around dynamic imports with retry, resilience.js, scripts/check-deploy.mjs. L0 re-ran check-deploy: deployed index assets == dist, all 200. Visual/owner gate: hard refresh in browser.",
+      "dispatchedBy": "architect",
+      "dispatchedAt": "2026-11-26T23:51:49+05:00",
+      "updatedAt": "2026-11-27T00:03:04+05:00"
+    },
+    {
+      "id": "GRAFIK-47-CHELYABINSK-ROUTE-PERF",
+      "title": "Chelyabinsk route-build performance + no-freeze guard (74 only)",
+      "status": "dispatched",
+      "approved": true,
+      "dependsOn": [
+        "GRAFIK-46-DEPLOY-CACHE-GUARD"
+      ],
+      "dispatchText": "SLICE GRAFIK-47-CHELYABINSK-ROUTE-PERF (project grafik_to, repo G:\\_Grafik_TO). P0/P1, owner priority:\nЧелябинская область first, all other regions later - do not touch any other region's data.\n\nSYMPTOM: building physical-persons routes appears to hang with the real Челябинская export (1267\nsettlements). It may be a genuine hot path (O(n^2) nearest-neighbour scans, repeated normalization) or a\nknock-on effect of the GRAFIK-46 module-load failure - find out, do not guess.\n\nDO:\n1. Measure first: add a temporary benchmark (kept as a test) that runs the real\n   public/data/settlements/74.json (1267 records) with a synthetic 150-address export and reports ms for\n   resolve -> group -> buildPhysicalStops -> buildPhysicalSchedule. Record the baseline numbers in the\n   report before optimizing.\n2. Remove hot-path waste: build lookup structures once per run (Map by settlement key, normalized name\n   index, grid/bucket index for radius queries instead of full scans), and avoid re-normalizing the same\n   settlement list per address. Keep behaviour identical - the golden-file test from GRAFIK-35 must stay\n   byte-identical.\n3. Never block indefinitely: add a hard guard so route building either completes or fails with an\n   actionable message within 15s; if it runs long, show progress (processed/total settlements) and keep\n   the UI responsive. No infinite loop, no silent freeze.\n4. Tests: 1267-settlement benchmark under 1500ms in Node (assert a generous ceiling so CI is stable, and\n   print the measured value); 74.json integrity (file exists, 1267 records, no duplicate keys, expected\n   shape); one end-to-end resolve of a synthetic Челябинская address (e.g. КУСИНСКИЙ Р-Н / ЗЛАТОУСТ Г /\n   ТАЙНАК П) through the resolver; guard/timeout path covered.\n5. Confirm and report explicitly: no data file for any other region was modified (git diff --stat).\n6. Keep `npm run verify` green; update docs/context/resume-grafik.md.\n\nRULES: do not regenerate or edit public/data/settlements/*.json; stage owned files only; no push; no\npersonal data in tests (synthetic addresses only). Handoff to orch2.\n",
+      "acceptance": null,
+      "verifyCommands": [
+        "npm run verify"
+      ],
+      "owner": "orch1",
+      "commit": null,
+      "evidence": null,
+      "rejections": 0,
+      "retro": null,
+      "dispatchedBy": "architect",
+      "dispatchedAt": "2026-11-27T00:03:45+05:00",
+      "updatedAt": "2026-11-27T00:03:45+05:00"
     }
   ],
-  "updatedAt": "2026-11-26T23:51:06+05:00"
+  "updatedAt": "2026-11-27T00:03:45+05:00"
 }
