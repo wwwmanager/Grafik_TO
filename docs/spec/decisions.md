@@ -110,3 +110,23 @@ D26 Панель настроек (GRAFIK-42): два блока про физл
     и disabled, значения не теряются. Аккордеон: title flex:1, бейдж-подсказка без ellipsis,
     aria-expanded/aria-controls. Визуальная проверка на 360px — гейт владельца, не автоматика.
 
+D27 Защита от устаревшего кэша (GRAFIK-46): после деплоя GitHub Pages может отдать старый index.html,
+    который ссылается на удалённые хешированные чанки -> 404 -> dynamic import отклонён -> UI навсегда
+    в состоянии загрузки, единственный след — ошибка в консоли. Три уровня защиты:
+    1) public/cache-guard.js — стабильный (не хешируемый) classic-скрипт, подключён в <head> index.html
+       до module-entry. Ловит в capture-фазе error у <script type=module>/<link rel=stylesheet> и
+       unhandledrejection про dynamic import; при первом сбое за сессию (sessionStorage
+       grafik:preload-reloaded) делает один reload с ?v=<timestamp>, при повторе показывает баннер
+       «Загружена устаревшая версия приложения — обновите страницу (Ctrl+F5)» (role=alert).
+    2) src/modules/resilience.js — installPreloadGuard() слушает vite:preloadError (preventDefault),
+       тот же ключ и баннер; loadModule() оборачивает каждый dynamic import (parser, exporter,
+       physical, address, physicalTab) и при отклонении рендерит inline-ошибку с кнопкой «Повторить»
+       (ошибка помечается guarded, чтобы вызывающий код не затёр её общим сообщением). Ни один путь
+       не оставляет статус в вечной загрузке: сбой маршрутов физлиц показывает базовый график + retry,
+       сбой справочника регионов/НП — retry в #messages, экспорт/разбор файла — retry соответствующего
+       действия.
+    3) scripts/check-deploy.mjs — read-only проверка живого сайта: fetch index.html, HEAD каждого
+       assets/* из него, проверка что все ссылки dist/index.html существуют на диске; exit 1 при
+       любом не-200/отсутствии файла, WARN при расхождении живого HTML с локальной сборкой.
+    Перезагрузка не более одной на вкладку-сессию; при недоступном sessionStorage reload не делается
+    (только баннер), чтобы не получить цикл. Логика покрыта тестами на фейковом DOM (node-окружение).

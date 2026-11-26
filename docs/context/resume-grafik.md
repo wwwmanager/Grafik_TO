@@ -3,11 +3,12 @@
 Обновлено: 2026-11-26. Источник истины по задачам — `docs/context/slices.json`; по решениям — `docs/spec/decisions.md` (D15–D26).
 
 ## Сейчас в работе
-- **Цепочка:** приняты GRAFIK-39 (`c9945b6`), GRAFIK-33 (`c3feeb3`), GRAFIK-34 (`4bbc7d1`), GRAFIK-35 (`88fdcbd`), GRAFIK-40 (`7b14e39`), GRAFIK-41 (`6c59721`). GRAFIK-36 закрыт как rejected (2 раунда, заменён 40). **GRAFIK-42-SETTINGS-PANEL-UX — в работе (orch1).**
+- **Цепочка:** приняты GRAFIK-39 (`c9945b6`), GRAFIK-33 (`c3feeb3`), GRAFIK-34 (`4bbc7d1`), GRAFIK-35 (`88fdcbd`), GRAFIK-40 (`7b14e39`), GRAFIK-41 (`e2a6c38`), GRAFIK-42 (`598cf4c`). GRAFIK-36 закрыт как rejected (2 раунда, заменён 40). **GRAFIK-46-DEPLOY-CACHE-GUARD (P0) — в работе (orch1): защита от устаревшего кэша Pages, deploy-check, push разрешён владельцем (D27).**
 - **Данные:** 81/89 классических субъектов + 4 новых территории, `public/data/settlements/<dataId>.json` 1:1 с `regions.json`; dataId 74 = Челябинская (regionCode 74), 1267 записей. Нет: Московская обл. (dataId 39), Крым (80), Севастополь (81), Мордовия (82), ДНР/ЛНР/Запорожская/Херсонская (85–88) — пересобрать `npm run data:settlements -- --region <dataId>` при следующем квартальном прогоне.
-- **Код:** `address.js` (резолв НП, D24), `physical.js` (маршруты D20), `physicalTab.js` (вкладка «Физлица», localStorage только по ключам НП), объединённый блок «Физлица» в настройках. `scripts/build-settlements.mjs` — единственный источник (dataId, regionCode, iso, name, bbox); `src/modules/regions-table.js` регенерируется из него (`generate-regions-table.mjs`). Тесты 250+ (15 файлов).
+- **Код:** `address.js` (резолв НП, D24), `physical.js` (маршруты D20), `physicalTab.js` (вкладка «Физлица», localStorage только по ключам НП), объединённый блок «Физлица» в настройках. `scripts/build-settlements.mjs` — единственный источник (dataId, regionCode, iso, name, bbox); `src/modules/regions-table.js` регенерируется из него (`generate-regions-table.mjs`). Тесты 276 (16 файлов).
 - **UI:** настройки — flex-колонка, скроллится только `.settings-scroll`, кнопка в непрокручиваемом футере; без горизонтального скролла на 360px, длинные тексты переносятся; дни недели переносятся; короткие числа — `.grid-2`; fieldset обнулён; аккордеон с aria-expanded/aria-controls и бейджем без ellipsis; при снятом «Включать физлиц» маршрутизация dim+disabled. Регион инспекции и соседние — все 89 доступны, отображается regionCode, без гео-данных — инлайн-подсказка; соседние — вертикальный список в прокручиваемом блоке (max-height 180px) с поиском. Настройки сохраняют dataId.
-- **Осталось (ручное):** выборочная проверка НП владельцем; живая проверка вкладки «Физлица»; визуальная проверка панели настроек на 360px (гейт владельца); пересборка отсутствующих регионов при квартальном прогоне.
+- **Устойчивость к устаревшему кэшу (GRAFIK-46, D27):** `public/cache-guard.js` — стабильный classic-скрипт в `<head>`: один reload с `?v=` за сессию, затем баннер «Загружена устаревшая версия…»; `resilience.js` — `installPreloadGuard()` (vite:preloadError) и `loadModule()` для всех dynamic import с inline-ошибкой и кнопкой «Повторить». Проверка живого сайта: `npm run check:deploy` (fetch index, HEAD всех assets/*, сверка с dist).
+- **Осталось (ручное):** владельцу один раз обновить вкладку с Ctrl+F5 (старый закэшированный HTML не содержит guard); выборочная проверка НП; живая проверка вкладки «Физлица»; визуальная проверка панели настроек на 360px (гейт владельца); пересборка отсутствующих регионов при квартальном прогоне.
 
 ## Порядок задач (по одной, следующая после приёмки предыдущей)
 1. GRAFIK-39 — чистка данных Челябинской области.
@@ -17,6 +18,7 @@
 5. GRAFIK-35-PHYSICAL-TAB — вкладка «Физлица», ручные объединения, хранение в браузере.
 6. GRAFIK-41-REGION-CODES — разделение dataId / regionCode, регенерация regions-table.js, UI без disabled, поиск соседних.
 7. GRAFIK-42-SETTINGS-PANEL-UX — переполнение, объединённый блок «Физлица», непрокручиваемый футер, миграция ключей аккордеона, a11y (D26).
+8. GRAFIK-46-DEPLOY-CACHE-GUARD — guard от устаревшего HTML/404-чанков, retry для dynamic import, `scripts/check-deploy.mjs`, deploy (D27).
 
 Тексты заданий 33, 34, 35, 36, 41 уже лежат в леджере. Отправка:
 `pwsh C:\Users\User\AppData\Local\Temp\opencode\dispatch-planned.ps1 -Id <id>`

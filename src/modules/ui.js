@@ -18,6 +18,12 @@ import {
   savePhysicalDecisions,
   clearPhysicalDecisions,
 } from './physicalTab.js';
+import {
+  RETRY_LABEL,
+  clearImportError,
+  loadModule,
+  renderImportError,
+} from './resilience.js';
 
 const MONTHS = [
   'Январь',
@@ -362,6 +368,22 @@ function showError(root, text) {
   setStatus(root, text);
 }
 
+function messagesContainer(root) {
+  return root.getElementById('messages');
+}
+
+// GRAFIK-46: an inline message with «Повторить» instead of a spinner that
+// never ends. Used for chunk-load failures and other retryable work.
+function showRetryableError(root, message, retry) {
+  renderImportError(messagesContainer(root), {
+    doc: root,
+    message,
+    retryLabel: RETRY_LABEL,
+    onRetry: retry,
+  });
+  setStatus(root, `${message} Нажмите «${RETRY_LABEL}».`);
+}
+
 // Rows for the preview tables. The schedule tab shows only the owner name — all
 // extra state (overdue, «Без ТО», …) belongs to the details tab.
 export function schedulePreviewRows(result) {
@@ -570,9 +592,23 @@ function readSettings(root, base) {
 async function handleFile(file, state, els, root) {
   if (!file) return;
   setStatus(root, 'Чтение файла…');
+  let parseWorkbook;
   try {
+    ({ parseWorkbook } = await loadModule(() => import('./parser.js'), {
+      container: messagesContainer(root),
+      doc: root,
+      message: 'Не удалось загрузить модуль разбора файла.',
+      onRetry: () => handleFile(file, state, els, root),
+    }));
+  } catch {
+    // The inline error with «Повторить» is already rendered.
+    state.records = [];
+    els.analyzeButton.disabled = true;
+    return;
+  }
+  try {
+    clearImportError(messagesContainer(root));
     const buffer = await file.arrayBuffer();
-    const { parseWorkbook } = await import('./parser.js');
     const parsed = parseWorkbook(new Uint8Array(buffer));
     state.records = parsed.records;
     state.fileName = file.name;
@@ -620,7 +656,9 @@ async function analyze(state, els, root) {
   
   if (settings.includePhysical) {
     setStatus(root, 'Построение маршрутов физлиц…');
-    
+    // GRAFIK-46: a failed chunk load or physical build must end in a visible
+    // message with «Повторить», never in a permanent «Построение…» status.
+    try {
     // Compute fingerprint for this export
     const fingerprint = computeFingerprint(state.fileName, state.exportDate, state.records.length);
     state.fingerprint = fingerprint;
@@ -696,13 +734,29 @@ async function analyze(state, els, root) {
       // Selection changed - update buttons
       updateActionButtons?.();
     }, (action, payload) => {
-      handlePhysicalAction(action, payload, state, els, root);
+      handlePhysicalAction(action, payload, state, els, root).catch((error) => {
+        if (error?.guarded) return;
+        showError(root, error?.message || 'Не удалось перестроить маршруты.');
+      });
     }, selectedSettlements);
     
     state.physicalTabUpdateButtons = updateActionButtons;
     state.selectedPhysicalSettlements = selectedSettlements;
     state.physicalTree = tree;
-    
+    } catch (error) {
+      console.warn('Physical schedule failed:', error);
+      if (physicalTab) physicalTab.hidden = true;
+      if (physicalTabPanel) physicalTabPanel.hidden = true;
+      if (error?.guarded) {
+        setStatus(root, 'Маршруты физлиц не построены. График ТО сформирован без них.');
+      } else {
+        showRetryableError(
+          root,
+          error?.importMessage || 'Не удалось построить маршруты физлиц.',
+          () => analyze(state, els, root),
+        );
+      }
+    }
   } else {
     // Hide physical tab when disabled
     if (physicalTab) physicalTab.hidden = true;
@@ -785,8 +839,21 @@ async function download(state, els, root) {
   if (!state.result) return;
   els.downloadButton.disabled = true;
   setStatus(root, 'Формирование Excel…');
+  let exportScheduleToXlsx;
   try {
-    const { exportScheduleToXlsx } = await import('./exporter.js');
+    ({ exportScheduleToXlsx } = await loadModule(() => import('./exporter.js'), {
+      container: messagesContainer(root),
+      doc: root,
+      message: 'Не удалось загрузить модуль экспорта Excel.',
+      onRetry: () => download(state, els, root),
+    }));
+  } catch {
+    els.downloadButton.disabled = false;
+    setStatus(root, 'Модуль экспорта не загружен. Нажмите «Повторить».');
+    return;
+  }
+  try {
+    clearImportError(messagesContainer(root));
     const buffer = await exportScheduleToXlsx(state.result, state.settings);
     const blob = new Blob([buffer], {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -914,8 +981,13 @@ export function initUi(root = document) {
   async function loadRegionsForUI() {
     if (_regionsLoaded) return;
     try {
-      const { getAvailableRegions } = await import('./physical.js');
-      
+      const { getAvailableRegions } = await loadModule(() => import('./physical.js'), {
+        container: messagesContainer(root),
+        doc: root,
+        message: 'Не удалось загрузить справочник регионов.',
+        onRetry: () => loadRegionsForUI(),
+      });
+
       const availableRegions = await getAvailableRegions();
       _availableRegions = availableRegions;
       
@@ -957,9 +1029,15 @@ export function initUi(root = document) {
           const dataId = Number(inspectionRegionSelect.value);
           if (!dataId) {
             baseSettlementSelect.innerHTML = '<option value="">— автоматически (первый из региона) —</option>';
+            clearImportError(messagesContainer(root));
             return;
           }
-          const { loadSettlements } = await import('./address.js');
+          const { loadSettlements } = await loadModule(() => import('./address.js'), {
+            container: messagesContainer(root),
+            doc: root,
+            message: 'Не удалось загрузить справочник населённых пунктов.',
+            onRetry: () => updateBaseSettlements().catch(() => {}),
+          });
           const settlements = await loadSettlements([dataId]);
           baseSettlementSelect.innerHTML = '<option value="">— автоматически (первый из региона) —</option>';
           for (const s of settlements) {
@@ -971,13 +1049,32 @@ export function initUi(root = document) {
           if (state.settings.baseSettlement) {
             baseSettlementSelect.value = JSON.stringify(state.settings.baseSettlement);
           }
+          clearImportError(messagesContainer(root));
         }
-        inspectionRegionSelect.addEventListener('change', updateBaseSettlements);
+        inspectionRegionSelect.addEventListener('change', () => {
+          updateBaseSettlements().catch((error) => {
+            console.warn('Failed to update base settlements:', error);
+            if (error?.guarded) return;
+            showRetryableError(
+              root,
+              'Не удалось загрузить список населённых пунктов.',
+              () => updateBaseSettlements().catch(() => {}),
+            );
+          });
+        });
         await updateBaseSettlements();
       }
+      clearImportError(messagesContainer(root));
       _regionsLoaded = true;
     } catch (e) {
+      // GRAFIK-46: never swallow a chunk-load failure into a silent console line.
       console.warn('Failed to load regions for UI:', e);
+      if (e?.guarded) return;
+      showRetryableError(
+        root,
+        'Не удалось загрузить справочник регионов и поселений.',
+        () => loadRegionsForUI(),
+      );
     }
   }
   
@@ -1122,7 +1219,12 @@ export function initUi(root = document) {
     });
   }
 
-  els.analyzeButton?.addEventListener('click', () => analyze(state, els, root));
+  els.analyzeButton?.addEventListener('click', () => {
+    analyze(state, els, root).catch((error) => {
+      if (error?.guarded) return;
+      showError(root, error?.message || 'Не удалось сформировать график.');
+    });
+  });
   els.downloadButton?.addEventListener('click', () => download(state, els, root));
 
   const tabs = root.querySelectorAll('.tab');

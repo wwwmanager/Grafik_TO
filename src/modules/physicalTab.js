@@ -219,7 +219,17 @@ export async function rebuildScheduleWithDecisions(records, settings, calendar, 
   // For now, we rebuild the physical schedule and then apply post-processing
   // based on decisions (merge/onsite)
   
-  const { buildPhysicalSchedule } = await import('./physical.js');
+  // GRAFIK-46: a failed chunk load must reach the UI as a retryable message
+  // (ui.analyze renders the «Повторить» box), not as a silent rejection.
+  let buildPhysicalSchedule;
+  try {
+    ({ buildPhysicalSchedule } = await import('./physical.js'));
+  } catch (error) {
+    if (error && typeof error === 'object') {
+      error.importMessage = 'Не удалось загрузить модуль маршрутизации.';
+    }
+    throw error;
+  }
   const physical = await buildPhysicalSchedule(records, settings, calendar, targetYear);
   
   // Apply merge decisions: combine settlements marked for merge
