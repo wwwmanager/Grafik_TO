@@ -376,28 +376,54 @@ function messagesContainer(root) {
   return root.getElementById('messages');
 }
 
-// GRAFIK-43: shown when a region's settlement reference is unavailable; the
-// textual address grouping keeps working, so this is a hint, not an error.
+// GRAFIK-43/48: geo-reference status for the SELECTED region lives in one line
+// under the <select>. Missing -> the textual-grouping warning; ready -> a
+// neutral confirmation with the settlement count.
 export const REGION_NO_DATA_HINT =
   'Гео-справочник для региона не загружен — используется текстовая группировка по адресам';
 const REGION_HINT_ID = 'region-no-data-hint';
 
+export function formatRegionGeoHint({ missing = false, count = 0 } = {}) {
+  if (missing) return REGION_NO_DATA_HINT;
+  const n = Number(count);
+  if (Number.isFinite(n) && n > 0) {
+    return `Гео-справочник региона загружен — населённых пунктов: ${n}`;
+  }
+  return 'Гео-справочник региона загружен';
+}
+
+function regionHintElement(root) {
+  if (!root || typeof root.getElementById !== 'function') return null;
+  return root.getElementById(REGION_HINT_ID);
+}
+
+function renderRegionHint(root, state) {
+  const hint = regionHintElement(root);
+  if (!hint) return;
+  if (!state) {
+    hint.hidden = true;
+    hint.textContent = '';
+    hint.classList.remove('is-ready', 'is-warning');
+    hint.setAttribute('role', 'status');
+    return;
+  }
+  hint.textContent = formatRegionGeoHint(state);
+  hint.hidden = false;
+  hint.classList.toggle('is-warning', Boolean(state.missing));
+  hint.classList.toggle('is-ready', !state.missing);
+  hint.setAttribute('role', state.missing ? 'alert' : 'status');
+}
+
 function showRegionNoDataHint(root) {
-  const host = messagesContainer(root);
-  if (!host) return;
-  if (typeof host.querySelector === 'function' && host.querySelector(`#${REGION_HINT_ID}`)) return;
-  const hint = element('div', 'message message-warning', REGION_NO_DATA_HINT);
-  hint.id = REGION_HINT_ID;
-  hint.setAttribute('role', 'status');
-  if (typeof host.prepend === 'function') host.prepend(hint);
-  else host.appendChild(hint);
+  renderRegionHint(root, { missing: true });
+}
+
+function showRegionReadyHint(root, count) {
+  renderRegionHint(root, { missing: false, count });
 }
 
 function clearRegionNoDataHint(root) {
-  const host = messagesContainer(root);
-  if (!host || typeof host.querySelector !== 'function') return;
-  const hint = host.querySelector(`#${REGION_HINT_ID}`);
-  if (hint && typeof hint.remove === 'function') hint.remove();
+  renderRegionHint(root, null);
 }
 
 // GRAFIK-47: the build reports processed/total so a long Челябинская export
@@ -1046,23 +1072,37 @@ export function syncRoutingDisabledState(root) {
   }
 }
 
-// GRAFIK-42: one label source for region options/checkboxes (incl. no-data hint).
-// GRAFIK-41: new territories have no official regionCode (null) — show the name only.
-function regionLabelBase(region) {
-  return region.regionCode == null ? region.name : `${region.name} (${region.regionCode})`;
+// GRAFIK-48: one short label source for region options and the neighbour list —
+// «NN — Название» with a 2-digit regionCode. New territories without an
+// official regionCode (GRAFIK-41) keep their name and sort after coded ones.
+export function formatRegionLabel(region) {
+  if (!region) return '';
+  const code = region.regionCode;
+  const name = region.name || '';
+  if (code == null || !Number.isFinite(Number(code))) return name;
+  return `${String(Number(code)).padStart(2, '0')} — ${name}`;
+}
+
+export function compareRegionsByCode(a, b) {
+  const aCode = a?.regionCode;
+  const bCode = b?.regionCode;
+  const aHas = aCode != null && Number.isFinite(Number(aCode));
+  const bHas = bCode != null && Number.isFinite(Number(bCode));
+  if (aHas && bHas) {
+    const diff = Number(aCode) - Number(bCode);
+    if (diff !== 0) return diff;
+  } else if (aHas !== bHas) {
+    return aHas ? -1 : 1;
+  }
+  return String(a?.name || '').localeCompare(String(b?.name || ''), 'ru');
 }
 
 export function regionOptionLabel(region) {
-  const base = regionLabelBase(region);
-  if (!region.hasData) return `${base} — гео-справочник не загружен`;
-  return region.count > 0 ? `${base} · НП: ${region.count}` : base;
+  return formatRegionLabel(region);
 }
 
 export function neighboringRegionLabel(region) {
-  const base = regionLabelBase(region);
-  return region.hasData
-    ? base
-    : `${base} — гео-справочник не загружен, используется текстовая группировка по адресам`;
+  return formatRegionLabel(region);
 }
 
 export function initUi(root = document) {
@@ -1128,9 +1168,9 @@ export function initUi(root = document) {
       const availableRegions = await getAvailableRegions();
       _availableRegions = availableRegions;
       
-      // Populate inspection region select - sorted alphabetically by name
+      // Populate inspection region select — ascending by 2-digit regionCode
       if (inspectionRegionSelect) {
-        const sortedRegions = [...availableRegions].sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+        const sortedRegions = [...availableRegions].sort(compareRegionsByCode);
         inspectionRegionSelect.innerHTML = '<option value="">— не выбран —</option>';
         for (const region of sortedRegions) {
           const option = document.createElement('option');
@@ -1153,9 +1193,14 @@ export function initUi(root = document) {
       if (neighboringRegionsSearch) {
         neighboringRegionsSearch.addEventListener('input', () => {
           const query = neighboringRegionsSearch.value.toLowerCase().trim();
-          const filtered = _availableRegions.filter(r => 
-            r.name.toLowerCase().includes(query) || String(r.regionCode).includes(query)
-          );
+          const filtered = _availableRegions.filter((r) => {
+            const code = r.regionCode == null ? '' : String(Number(r.regionCode)).padStart(2, '0');
+            return (
+              r.name.toLowerCase().includes(query) ||
+              code.includes(query) ||
+              formatRegionLabel(r).toLowerCase().includes(query)
+            );
+          });
           renderNeighboringRegions(filtered);
         });
       }
@@ -1181,10 +1226,11 @@ export function initUi(root = document) {
             message: 'Не удалось загрузить справочник населённых пунктов.',
             onRetry: () => updateBaseSettlements().catch(() => {}),
           });
-          // GRAFIK-43: structured result keeps the hint path explicit.
+          // GRAFIK-43/48: structured result keeps the hint path explicit; the
+          // status line under the select reflects the selected region only.
           const { settlements, failed } = await addressModule.loadSelectedRegionSettlements(dataId);
           if (failed.length > 0) showRegionNoDataHint(root);
-          else clearRegionNoDataHint(root);
+          else showRegionReadyHint(root, settlements.length);
           // GRAFIK-44/45: one resolution pass feeds both the auto base and the
           // informational unresolved report (before any schedule is built).
           const report = addressModule.buildUnresolvedReport(
@@ -1255,7 +1301,7 @@ export function initUi(root = document) {
   
   function renderNeighboringRegions(regions) {
     if (!neighboringRegionsContainer) return;
-    const sortedRegions = [...regions].sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+    const sortedRegions = [...regions].sort(compareRegionsByCode);
     neighboringRegionsContainer.innerHTML = '';
     for (const region of sortedRegions) {
       const label = document.createElement('label');
@@ -1289,9 +1335,12 @@ export function initUi(root = document) {
         message: 'Не удалось загрузить справочник населённых пунктов.',
         onRetry: () => loadNeighborRegion(region),
       });
+      // GRAFIK-48: a neighbour failing must not overwrite the status line of
+      // the selected inspection region.
       const { failed } = await addressModule.loadSettlementsWithStatus([region.dataId]);
-      if (failed.length > 0) showRegionNoDataHint(root);
-      else clearRegionNoDataHint(root);
+      if (failed.length > 0) {
+        console.warn('Neighboring region settlements unavailable:', region.dataId);
+      }
     } catch (error) {
       console.warn('Failed to load neighboring region settlements:', error);
       if (error?.guarded) return;

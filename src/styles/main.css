@@ -54,7 +54,7 @@ body {
   padding: var(--space-4) var(--space-5);
 }
 
-/* GRAFIK-20/25/42: the left panel is a flex column — a single scrollable
+/* GRAFIK-20/25/42/48: the left panel is a flex column — a single scrollable
    area plus a non-scrolling action footer pinned to its bottom. */
 .settings-panel {
   display: flex;
@@ -67,21 +67,32 @@ body {
 .settings-form {
   display: flex;
   flex-direction: column;
+  height: 100%;
   flex: 1 1 auto;
   min-height: 0;
   min-width: 0;
+  margin: 0;
+  overflow: hidden;
 }
 
 .settings-scroll {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-3);
   flex: 1 1 auto;
   min-height: 0;
   min-width: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 2px 2px var(--space-2) 0;
+  padding: 0 4px 0 0;
+}
+
+/* GRAFIK-48: <details> must keep their natural height. As flex items they
+   default to flex-shrink:1 and, combined with .settings-block's overflow:hidden,
+   collapse to zero/thin strips. Pin every direct child to its content size and
+   let .settings-scroll provide the scrollbar. */
+.settings-scroll > * {
+  flex: 0 0 auto;
 }
 
 .settings-section {
@@ -103,6 +114,21 @@ body {
   margin: 0;
   font-size: var(--text-xs);
   color: var(--color-text-muted);
+}
+
+/* GRAFIK-48: one geo-reference status line under the region <select>. */
+.region-hint {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.region-hint.is-ready {
+  color: var(--color-text-muted);
+}
+
+.region-hint.is-warning {
+  color: #b45309;
 }
 
 /* GRAFIK-31/42: settings blocks with live summary in <summary> */

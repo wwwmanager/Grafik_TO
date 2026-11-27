@@ -268,6 +268,8 @@
                 </select>
               </label>
 
+              <p id="region-no-data-hint" class="field-hint region-hint" role="status" hidden></p>
+
               <div class="field">
                 <span class="field-label">Соседние регионы (для адресного справочника)</span>
                 <input type="search" id="neighboringRegionsSearch" class="region-search" placeholder="Поиск по названию или коду…" aria-label="Поиск соседних регионов" />
@@ -275,7 +277,7 @@
               </div>
 
               <p class="field-hint" style="margin-top: var(--space-3); color: var(--color-text-muted);">
-                Все регионы доступны для выбора. Регионы без данных поселений показывают подсказку — используется текстовая группировка по адресам.
+                Все регионы доступны для выбора. Статус гео-справочника выбранного региона показывается строкой под списком.
               </p>
             </div>
           </details>
