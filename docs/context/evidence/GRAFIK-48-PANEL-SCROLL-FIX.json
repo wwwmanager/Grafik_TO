@@ -1,0 +1,12 @@
+{
+  "slice": "GRAFIK-48-PANEL-SCROLL-FIX",
+  "commit": "1eedcea",
+  "ranAt": "2026-11-27T05:14:12+05:00",
+  "commands": [
+    {
+      "cmd": "npm run verify",
+      "exit": 0,
+      "tail": "\u001b[36mvite v8.3.8 \u001b[32mbuilding client environment for production...\u001b[36m\u001b[39m\ntransforming...\n<script src=\"./cache-guard.js\"> in \"/index.html\" can't be bundled without type=\"module\" attribute\n✓ 19 modules transformed.\nrendering chunks...\ncomputing gzip size...\ndist/index.html                    19.86 kB │ gzip:   4.51 kB\ndist/assets/index-8Re3OjHH.css     11.18 kB │ gzip:   2.63 kB\ndist/assets/physical-B2epzR1u.js   11.23 kB │ gzip:   4.68 kB\ndist/assets/address-C5ebcCsB.js    16.71 kB │ gzip:   5.57 kB\ndist/assets/index-cHHbEIuz.js      62.56 kB │ gzip:  19.67 kB\ndist/assets/parser-Qwl-AYPu.js    366.01 kB │ gzip: 124.17 kB\ndist/assets/exporter-BfVwLLFn.js  937.62 kB │ gzip: 259.89 kB\n\n\u001b[33m[plugin builtin:vite-reporter] \n(!) Some chunks are larger than 500 kB after minification. Consider:\n- Using dynamic import() to code-split the application\n- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting\n- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.\u001b[39m\n\u001b[32m✓ built in 1.20s\u001b[39m"
+    }
+  ]
+}
