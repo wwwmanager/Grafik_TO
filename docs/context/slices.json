@@ -961,8 +961,8 @@
     {
       "id": "GRAFIK-49-GIBDD-CODES",
       "title": "Displayed code = GIBDD numbering (Chechnya 95, Crimea 82), fnsCode retained",
-      "status": "planned",
-      "approved": false,
+      "status": "dispatched",
+      "approved": true,
       "dependsOn": [
         "GRAFIK-48-PANEL-SCROLL-FIX"
       ],
@@ -976,10 +976,10 @@
       "evidence": null,
       "rejections": 0,
       "retro": null,
-      "dispatchedBy": null,
-      "dispatchedAt": null,
-      "updatedAt": "2026-11-27T05:07:00+05:00"
+      "dispatchedBy": "architect",
+      "dispatchedAt": "2026-11-27T05:14:50+05:00",
+      "updatedAt": "2026-11-27T05:14:50+05:00"
     }
   ],
-  "updatedAt": "2026-11-27T05:14:13+05:00"
+  "updatedAt": "2026-11-27T05:14:50+05:00"
 }
