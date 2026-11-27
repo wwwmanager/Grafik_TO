@@ -203,12 +203,14 @@ export async function getAvailableRegions() {
       const resp = await fetch(url);
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const index = await resp.json();
-      // index is array of { dataId, regionCode, name, iso, count } - regions that HAVE settlement files
+      // index is array of { dataId, regionCode (legacy = fnsCode), fnsCode, gibddCode, name, iso, count }
+      // Only dataId/count are read here; codes come from REGIONS_TABLE.
       const hasDataSet = new Set(index.map(r => r.dataId));
       const countMap = new Map(index.map(r => [r.dataId, Number(r.count) || 0]));
       const available = REGIONS_TABLE.map(r => ({
         dataId: r.dataId,
-        regionCode: r.regionCode,
+        fnsCode: r.fnsCode,
+        gibddCode: r.gibddCode,
         name: r.name,
         iso: r.iso,
         hasData: hasDataSet.has(r.dataId),
@@ -221,7 +223,8 @@ export async function getAvailableRegions() {
       // Fallback: all regions marked as no data
       const available = REGIONS_TABLE.map(r => ({
         dataId: r.dataId,
-        regionCode: r.regionCode,
+        fnsCode: r.fnsCode,
+        gibddCode: r.gibddCode,
         name: r.name,
         iso: r.iso,
         hasData: false,
@@ -241,12 +244,11 @@ export function clearRegionsIndexCache() {
   _regionsIndexPromise = null;
 }
 
-// Detect region from export records - returns dataId for internal use
+// Detect region from export records — returns dataId for internal use
 export function detectRegionFromExport(records) {
-  const regionCode = detectRegion(records, REGIONS_TABLE);
-  if (!regionCode) return null;
-  const region = REGIONS_TABLE.find(r => r.regionCode === regionCode);
-  return region ? region.dataId : null;
+  const dataId = detectRegion(records, REGIONS_TABLE);
+  if (!dataId) return null;
+  return REGIONS_TABLE.some(r => r.dataId === dataId) ? dataId : null;
 }
 
 // Build physical stops from eligible records

@@ -69,8 +69,8 @@ export function buildGroupKey(parsed) {
   return { key, parent };
 }
 
-// Detect region from records by majority vote against regions.json
-// Returns regionCode (official 2-digit code) for display; caller converts to dataId if needed
+// Detect region from records by majority vote against the regions table.
+// Returns the internal dataId (stable identity); callers map it to a display code.
 export function detectRegion(records, regions) {
   if (!records || !records.length) return null;
   const counts = new Map();
@@ -81,17 +81,17 @@ export function detectRegion(records, regions) {
     for (const reg of regions) {
       const regNorm = normalizeName(reg.name, true);
       if (normRegion === regNorm || normRegion.includes(regNorm) || regNorm.includes(normRegion)) {
-        counts.set(reg.regionCode, (counts.get(reg.regionCode) || 0) + 1);
+        counts.set(reg.dataId, (counts.get(reg.dataId) || 0) + 1);
         break;
       }
     }
   }
   if (!counts.size) return null;
-  let bestCode = null, bestCount = 0;
-  for (const [code, count] of counts) {
-    if (count > bestCount) { bestCount = count; bestCode = code; }
+  let bestId = null, bestCount = 0;
+  for (const [id, count] of counts) {
+    if (count > bestCount) { bestCount = count; bestId = id; }
   }
-  return bestCode;
+  return bestId;
 }
 
 // Levenshtein distance for fuzzy matching
@@ -585,7 +585,13 @@ function inferTypeFromAddress(parsed) {
 
 // Settings block 4: Region selection UI helpers
 export function getRegionsForSelect() {
-  return REGIONS_TABLE.map(r => ({ dataId: r.dataId, regionCode: r.regionCode, name: r.name, iso: r.iso }));
+  return REGIONS_TABLE.map(r => ({
+    dataId: r.dataId,
+    fnsCode: r.fnsCode,
+    gibddCode: r.gibddCode,
+    name: r.name,
+    iso: r.iso,
+  }));
 }
 
 export function getDefaultRegionSettings(detectedDataId) {

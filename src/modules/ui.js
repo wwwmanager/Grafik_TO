@@ -1072,20 +1072,21 @@ export function syncRoutingDisabledState(root) {
   }
 }
 
-// GRAFIK-48: one short label source for region options and the neighbour list —
-// «NN — Название» with a 2-digit regionCode. New territories without an
-// official regionCode (GRAFIK-41) keep their name and sort after coded ones.
+// GRAFIK-48/49: one short label source for region options and the neighbour list —
+// «NN — Название» with the 2-digit ГИБДД plate code (приказ МВД № 766). Regions
+// without a verifiable plate code render «— — Название» and sort after coded ones.
 export function formatRegionLabel(region) {
   if (!region) return '';
-  const code = region.regionCode;
+  const code = region.gibddCode;
   const name = region.name || '';
-  if (code == null || !Number.isFinite(Number(code))) return name;
-  return `${String(Number(code)).padStart(2, '0')} — ${name}`;
+  const hasCode = code != null && Number.isFinite(Number(code));
+  const codeText = hasCode ? String(Number(code)).padStart(2, '0') : '—';
+  return `${codeText} — ${name}`;
 }
 
-export function compareRegionsByCode(a, b) {
-  const aCode = a?.regionCode;
-  const bCode = b?.regionCode;
+export function compareRegionsByGibddCode(a, b) {
+  const aCode = a?.gibddCode;
+  const bCode = b?.gibddCode;
   const aHas = aCode != null && Number.isFinite(Number(aCode));
   const bHas = bCode != null && Number.isFinite(Number(bCode));
   if (aHas && bHas) {
@@ -1168,9 +1169,9 @@ export function initUi(root = document) {
       const availableRegions = await getAvailableRegions();
       _availableRegions = availableRegions;
       
-      // Populate inspection region select — ascending by 2-digit regionCode
+      // Populate inspection region select — ascending by 2-digit ГИБДД plate code
       if (inspectionRegionSelect) {
-        const sortedRegions = [...availableRegions].sort(compareRegionsByCode);
+        const sortedRegions = [...availableRegions].sort(compareRegionsByGibddCode);
         inspectionRegionSelect.innerHTML = '<option value="">— не выбран —</option>';
         for (const region of sortedRegions) {
           const option = document.createElement('option');
@@ -1194,7 +1195,7 @@ export function initUi(root = document) {
         neighboringRegionsSearch.addEventListener('input', () => {
           const query = neighboringRegionsSearch.value.toLowerCase().trim();
           const filtered = _availableRegions.filter((r) => {
-            const code = r.regionCode == null ? '' : String(Number(r.regionCode)).padStart(2, '0');
+            const code = r.gibddCode == null ? '' : String(Number(r.gibddCode)).padStart(2, '0');
             return (
               r.name.toLowerCase().includes(query) ||
               code.includes(query) ||
@@ -1301,7 +1302,7 @@ export function initUi(root = document) {
   
   function renderNeighboringRegions(regions) {
     if (!neighboringRegionsContainer) return;
-    const sortedRegions = [...regions].sort(compareRegionsByCode);
+    const sortedRegions = [...regions].sort(compareRegionsByGibddCode);
     neighboringRegionsContainer.innerHTML = '';
     for (const region of sortedRegions) {
       const label = document.createElement('label');

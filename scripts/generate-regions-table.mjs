@@ -18,20 +18,21 @@ function extractRegionsTable() {
   
   const arrayContent = match[1];
   
-  // Parse each region entry. regionCode may be null (new territories without
-  // an official ФНС code — see D25).
+  // Parse each region entry. fnsCode/gibddCode may be null (new territories without an
+  // official ФНС code - see D25; plate codes are documented in D32).
   const regions = [];
-  const entryRegex = /\{\s*dataId:\s*(\d+),\s*regionCode:\s*(null|\d+),\s*iso:\s*'([^']+)',\s*name:\s*'([^']+)',\s*osm_name:\s*'([^']+)',\s*bbox:\s*\[([\d.\-\s,]+)\]\s*\}/g;
+  const entryRegex = /\{\s*dataId:\s*(\d+),\s*fnsCode:\s*(null|\d+),\s*gibddCode:\s*(null|\d+),\s*iso:\s*'([^']+)',\s*name:\s*'([^']+)',\s*osm_name:\s*'([^']+)',\s*bbox:\s*\[([\d.\-\s,]+)\]\s*\}/g;
   
   let entryMatch;
   while ((entryMatch = entryRegex.exec(arrayContent)) !== null) {
     regions.push({
       dataId: parseInt(entryMatch[1]),
-      regionCode: entryMatch[2] === 'null' ? null : parseInt(entryMatch[2]),
-      iso: entryMatch[3],
-      name: entryMatch[4],
-      osm_name: entryMatch[5],
-      bbox: entryMatch[6].split(',').map(s => parseFloat(s.trim()))
+      fnsCode: entryMatch[2] === 'null' ? null : parseInt(entryMatch[2]),
+      gibddCode: entryMatch[3] === 'null' ? null : parseInt(entryMatch[3]),
+      iso: entryMatch[4],
+      name: entryMatch[5],
+      osm_name: entryMatch[6],
+      bbox: entryMatch[7].split(',').map(s => parseFloat(s.trim()))
     });
   }
   
@@ -47,16 +48,18 @@ function extractRegionsTable() {
 
 function generateRegionsTable(regions) {
   const lines = [
-    '// Official regions table - single source of truth for region dataId and regionCode',
+    '// Regions table - single source of truth for region dataId, ФНС code and ГИБДД plate code',
     '// GENERATED from scripts/build-settlements.mjs - DO NOT EDIT MANUALLY',
     '// Run: node scripts/generate-regions-table.mjs',
+    '// gibddCode is DISPLAYED in the UI (GRAFIK-49); fnsCode is kept for tax/address work.',
     '',
     'export const REGIONS_TABLE = ['
   ];
   
   for (const r of regions) {
-    const code = r.regionCode === null ? 'null' : r.regionCode;
-    lines.push(`  { dataId: ${r.dataId}, regionCode: ${code}, name: '${r.name}', iso: '${r.iso}' },`);
+    const fns = r.fnsCode === null ? 'null' : r.fnsCode;
+    const gibdd = r.gibddCode === null ? 'null' : r.gibddCode;
+    lines.push(`  { dataId: ${r.dataId}, fnsCode: ${fns}, gibddCode: ${gibdd}, name: '${r.name}', iso: '${r.iso}' },`);
   }
   
   lines.push('];');
@@ -77,15 +80,17 @@ function main() {
     throw new Error('Duplicate dataId values found');
   }
   
-  // Check regionCode uniqueness; null = no official code (new territories), not a duplicate.
-  const regionCodeCounts = {};
-  for (const r of regions) {
-    if (r.regionCode === null) continue;
-    regionCodeCounts[r.regionCode] = (regionCodeCounts[r.regionCode] || 0) + 1;
-  }
-  for (const [code, count] of Object.entries(regionCodeCounts)) {
-    if (count > 1) {
-      console.warn(`WARNING: Duplicate regionCode ${code} (${count} entries)`);
+  // Null codes are allowed (new territories / no ФНС code) and excluded from uniqueness.
+  for (const field of ['fnsCode', 'gibddCode']) {
+    const counts = {};
+    for (const r of regions) {
+      if (r[field] === null) continue;
+      counts[r[field]] = (counts[r[field]] || 0) + 1;
+    }
+    for (const [code, count] of Object.entries(counts)) {
+      if (count > 1) {
+        throw new Error(`Duplicate ${field} ${code} (${count} entries)`);
+      }
     }
   }
     
@@ -96,7 +101,7 @@ function main() {
     // Print summary
     console.log('\nRegion summary:');
     for (const r of regions) {
-      console.log(`  dataId=${r.dataId}, regionCode=${r.regionCode}, name=${r.name}`);
+      console.log(`  dataId=${r.dataId}, fnsCode=${r.fnsCode}, gibddCode=${r.gibddCode}, name=${r.name}`);
     }
   } catch (err) {
     console.error('Error:', err.message);

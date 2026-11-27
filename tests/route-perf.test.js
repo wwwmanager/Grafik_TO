@@ -123,7 +123,7 @@ describe('route build performance on the real 1267-settlement reference (GRAFIK-
       if (target.includes('data/settlements/74.json')) return jsonResponse(settlements);
       if (target.includes('data/regions.json')) {
         return jsonResponse([
-          { dataId: 74, regionCode: 74, name: 'Челябинская область', iso: 'RU-CHE', count: 1267 },
+          { dataId: 74, fnsCode: 74, gibddCode: 74, name: 'Челябинская область', iso: 'RU-CHE', count: 1267 },
         ]);
       }
       return { ok: false, status: 404, json: async () => ({}) };

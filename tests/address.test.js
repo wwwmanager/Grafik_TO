@@ -147,15 +147,15 @@ describe('address resolver (GRAFIK-33)', () => {
   });
 
   describe('detectRegion', () => {
-    it('returns majority regionCode', () => {
+    it('returns majority dataId', () => {
       const records = [
         { address: 'ЧЕЛЯБИНСКАЯ ОБЛ, , , КУСИНСКИЙ Р-Н, ЗЛАТОУСТ Г, , , ' },
         { address: 'ЧЕЛЯБИНСКАЯ ОБЛ, , , КАСЛИНСКИЙ Р-Н, ТЮБУК С, , , ' },
         { address: 'ЧЕЛЯБИНСКАЯ ОБЛ, , , САТКИНСКИЙ Р-Н, БЕРДЯУШ С, , , ' },
         { address: 'СВЕРДЛОВСКАЯ ОБЛ, , , , ЕКАТЕРИНБУРГ Г, , , ' },
       ];
-      const regionCode = detectRegion(records, REGIONS_TABLE);
-      expect(regionCode).toBe(74); // Челябинская область regionCode
+      const dataId = detectRegion(records, REGIONS_TABLE);
+      expect(dataId).toBe(74); // Челябинская область dataId
     });
 
     it('returns null when no region part', () => {
@@ -264,7 +264,8 @@ describe('address resolver (GRAFIK-33)', () => {
       const regions = getRegionsForSelect();
       expect(regions.length).toBe(REGIONS_TABLE.length);
       expect(regions[0]).toHaveProperty('dataId');
-      expect(regions[0]).toHaveProperty('regionCode');
+      expect(regions[0]).toHaveProperty('fnsCode');
+      expect(regions[0]).toHaveProperty('gibddCode');
       expect(regions[0]).toHaveProperty('name');
       expect(regions[0]).toHaveProperty('iso');
     });

@@ -333,7 +333,8 @@ describe('physical schedule (GRAFIK-34)', () => {
       // All regions should have the expected structure
       for (const region of regions) {
         expect(region).toHaveProperty('dataId');
-        expect(region).toHaveProperty('regionCode');
+        expect(region).toHaveProperty('fnsCode');
+        expect(region).toHaveProperty('gibddCode');
         expect(region).toHaveProperty('name');
         expect(region).toHaveProperty('iso');
         expect(region).toHaveProperty('hasData');
@@ -707,85 +708,96 @@ describe('physicalTab: merge/split/onsite round-trip (GRAFIK-35)', () => {
   });
 });
 
-describe('region codes (GRAFIK-41)', () => {
+describe('region codes (GRAFIK-41/49)', () => {
   it('has exactly 89 entries', () => {
     expect(REGIONS_TABLE.length).toBe(89);
   });
-  
-  it('all regionCode values are unique where defined', () => {
-    const regionCodes = REGIONS_TABLE.map(r => r.regionCode).filter((code) => code !== null);
-    const uniqueCodes = [...new Set(regionCodes)];
-    expect(uniqueCodes.length).toBe(regionCodes.length);
-  });
-  
-  it('all defined regionCode values are 2-digit numbers (1-99)', () => {
+
+  it('every entry keeps both fnsCode and gibddCode', () => {
     for (const r of REGIONS_TABLE) {
-      if (r.regionCode === null) continue;
-      expect(r.regionCode).toBeGreaterThanOrEqual(1);
-      expect(r.regionCode).toBeLessThanOrEqual(99);
-      expect(Number.isInteger(r.regionCode)).toBe(true);
+      expect(r).toHaveProperty('fnsCode');
+      expect(r).toHaveProperty('gibddCode');
     }
   });
-  
-  it('new territories export regionCode=null (no official ФНС code)', () => {
-    const newTerritories = REGIONS_TABLE.filter((r) => r.regionCode === null);
+
+  it('all non-null gibddCode values are unique', () => {
+    const codes = REGIONS_TABLE.map(r => r.gibddCode).filter((code) => code !== null);
+    expect(new Set(codes).size).toBe(codes.length);
+  });
+
+  it('all non-null gibddCode values are 2-digit numbers (1-99)', () => {
+    for (const r of REGIONS_TABLE) {
+      if (r.gibddCode === null) continue;
+      expect(r.gibddCode).toBeGreaterThanOrEqual(1);
+      expect(r.gibddCode).toBeLessThanOrEqual(99);
+      expect(Number.isInteger(r.gibddCode)).toBe(true);
+      expect(String(r.gibddCode).padStart(2, '0')).toHaveLength(2);
+    }
+  });
+
+  it('all non-null fnsCode values are unique 2-digit numbers', () => {
+    const codes = REGIONS_TABLE.map(r => r.fnsCode).filter((code) => code !== null);
+    expect(new Set(codes).size).toBe(codes.length);
+    for (const code of codes) {
+      expect(code).toBeGreaterThanOrEqual(1);
+      expect(code).toBeLessThanOrEqual(99);
+      expect(Number.isInteger(code)).toBe(true);
+    }
+  });
+
+  it('new territories keep fnsCode=null but carry verified plate codes', () => {
+    const newTerritories = REGIONS_TABLE.filter((r) => r.fnsCode === null);
     expect(newTerritories).toHaveLength(4);
     expect(newTerritories.map((r) => r.iso).sort()).toEqual(['RU-DON', 'RU-KHE', 'RU-LUG', 'RU-ZAP']);
-    // Codes 93-96 must not be invented for them.
-    expect(REGIONS_TABLE.some((r) => [93, 94, 95, 96].includes(r.regionCode))).toBe(false);
+    const byIso = Object.fromEntries(newTerritories.map((r) => [r.iso, r.gibddCode]));
+    expect(byIso).toEqual({ 'RU-DON': 80, 'RU-LUG': 81, 'RU-ZAP': 85, 'RU-KHE': 84 });
   });
-  
-  it('spot-check official regionCode pairs match ФНС/ИНН numbering', () => {
+
+  it('never uses the invented 93/94/96 codes in either namespace', () => {
+    for (const r of REGIONS_TABLE) {
+      expect([93, 94, 96]).not.toContain(r.fnsCode);
+      expect([93, 94, 96]).not.toContain(r.gibddCode);
+    }
+  });
+
+  it('spot-check ГИБДД plate-code pairs (приказ МВД № 766)', () => {
     const spotChecks = [
-      { name: 'Республика Адыгея', regionCode: 1 },
-      { name: 'Республика Башкортостан', regionCode: 2 },
-      { name: 'Республика Марий Эл', regionCode: 12 },
-      { name: 'Республика Мордовия', regionCode: 13 },
-      { name: 'Республика Татарстан', regionCode: 16 },
-      { name: 'Удмуртская Республика', regionCode: 18 },
-      { name: 'Чувашская Республика', regionCode: 21 },
-      { name: 'Краснодарский край', regionCode: 23 },
-      { name: 'Красноярский край', regionCode: 24 },
-      { name: 'Белгородская область', regionCode: 31 },
-      { name: 'Волгоградская область', regionCode: 34 },
-      { name: 'Воронежская область', regionCode: 36 },
-      { name: 'Ивановская область', regionCode: 37 },
-      { name: 'Московская область', regionCode: 50 },
-      { name: 'Нижегородская область', regionCode: 52 },
-      { name: 'Новосибирская область', regionCode: 54 },
-      { name: 'Пермский край', regionCode: 59 },
-      { name: 'Ростовская область', regionCode: 61 },
-      { name: 'Самарская область', regionCode: 63 },
-      { name: 'Свердловская область', regionCode: 66 },
-      { name: 'Тюменская область', regionCode: 72 },
-      { name: 'Челябинская область', regionCode: 74 },
-      { name: 'Забайкальский край', regionCode: 75 },
-      { name: 'Ярославская область', regionCode: 76 },
-      { name: 'Москва', regionCode: 77 },
-      { name: 'Санкт-Петербург', regionCode: 78 },
-      { name: 'Еврейская АО', regionCode: 79 },
-      { name: 'Ненецкий АО', regionCode: 83 },
-      { name: 'Ханты-Мансийский АО — Югра', regionCode: 86 },
-      { name: 'Чукотский АО', regionCode: 87 },
-      { name: 'Ямало-Ненецкий АО', regionCode: 89 },
-      { name: 'Республика Крым', regionCode: 91 },
-      { name: 'Севастополь', regionCode: 92 },
+      { name: 'Республика Адыгея', gibddCode: 1 },
+      { name: 'Республика Башкортостан', gibddCode: 2 },
+      { name: 'Республика Марий Эл', gibddCode: 12 },
+      { name: 'Республика Мордовия', gibddCode: 13 },
+      { name: 'Республика Татарстан', gibddCode: 16 },
+      { name: 'Удмуртская Республика', gibddCode: 18 },
+      { name: 'Чеченская Республика', gibddCode: 95 },
+      { name: 'Чувашская Республика', gibddCode: 21 },
+      { name: 'Краснодарский край', gibddCode: 23 },
+      { name: 'Челябинская область', gibddCode: 74 },
+      { name: 'Тюменская область', gibddCode: 72 },
+      { name: 'Ярославская область', gibddCode: 76 },
+      { name: 'Москва', gibddCode: 77 },
+      { name: 'Санкт-Петербург', gibddCode: 78 },
+      { name: 'Ханты-Мансийский АО — Югра', gibddCode: 86 },
+      { name: 'Ямало-Ненецкий АО', gibddCode: 89 },
     ];
-    
+
     for (const check of spotChecks) {
       const region = REGIONS_TABLE.find(r => r.name === check.name);
       expect(region).toBeDefined();
-      expect(region.regionCode).toBe(check.regionCode);
+      expect(region.gibddCode).toBe(check.gibddCode);
     }
   });
-  
-  it('Crimea regionCode=91, Sevastopol regionCode=92 (ГИБДД uses 82 for Crimea - documented)', () => {
-    const crimea = REGIONS_TABLE.find(r => r.name === 'Республика Крым');
-    const sevastopol = REGIONS_TABLE.find(r => r.name === 'Севастополь');
-    expect(crimea.regionCode).toBe(91);
-    expect(sevastopol.regionCode).toBe(92);
+
+  it('documents the ФНС -> ГИБДД divergences', () => {
+    const find = (name) => REGIONS_TABLE.find((r) => r.name === name);
+    expect(find('Чеченская Республика')).toMatchObject({ fnsCode: 20, gibddCode: 95 });
+    expect(find('Республика Крым')).toMatchObject({ fnsCode: 91, gibddCode: 82 });
+    expect(find('Севастополь')).toMatchObject({ fnsCode: 92, gibddCode: 92 });
+    expect(find('Донецкая Народная Республика')).toMatchObject({ fnsCode: null, gibddCode: 80 });
+    expect(find('Луганская Народная Республика')).toMatchObject({ fnsCode: null, gibddCode: 81 });
+    expect(find('Запорожская область')).toMatchObject({ fnsCode: null, gibddCode: 85 });
+    expect(find('Херсонская область')).toMatchObject({ fnsCode: null, gibddCode: 84 });
   });
-  
+
   it('dataId values match existing settlement filenames (not sequential)', () => {
     const dataIds = REGIONS_TABLE.map(r => r.dataId).sort((a, b) => a - b);
     expect(dataIds.length).toBe(89);
@@ -798,13 +810,14 @@ describe('region codes (GRAFIK-41)', () => {
   });
 });
 
-describe('UI region selection (GRAFIK-41)', () => {
-  it('getAvailableRegions returns all 89 regions with dataId, regionCode, name, hasData', async () => {
+describe('UI region selection (GRAFIK-41/49)', () => {
+  it('getAvailableRegions returns all 89 regions with dataId, fnsCode, gibddCode, name, hasData', async () => {
     const regions = await getAvailableRegions();
     expect(regions.length).toBe(89);
     for (const r of regions) {
       expect(r).toHaveProperty('dataId');
-      expect(r).toHaveProperty('regionCode');
+      expect(r).toHaveProperty('fnsCode');
+      expect(r).toHaveProperty('gibddCode');
       expect(r).toHaveProperty('name');
       expect(r).toHaveProperty('hasData');
       expect(typeof r.hasData).toBe('boolean');

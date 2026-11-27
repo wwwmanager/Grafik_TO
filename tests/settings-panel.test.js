@@ -5,13 +5,14 @@ import { describe, expect, it } from 'vitest';
 
 import {
   REGION_NO_DATA_HINT,
-  compareRegionsByCode,
+  compareRegionsByGibddCode,
   formatRegionGeoHint,
   formatRegionLabel,
   migrateBlockState,
   neighboringRegionLabel,
   regionOptionLabel,
 } from '../src/modules/ui.js';
+import { REGIONS_TABLE } from '../src/modules/regions-table.js';
 import { getAvailableRegions } from '../src/modules/physical.js';
 
 const CSS_PATH = fileURLToPath(new URL('../src/styles/main.css', import.meta.url));
@@ -56,49 +57,71 @@ describe('settings-panel: block-key migration (GRAFIK-42)', () => {
   });
 });
 
-describe('settings-panel: region labels «NN — Название» (GRAFIK-48)', () => {
-  it('formats an option as a 2-digit code, an en dash and the name', () => {
+describe('settings-panel: region labels «NN — Название» (GRAFIK-48/49)', () => {
+  it('formats an option with the 2-digit ГИБДД plate code', () => {
     expect(
-      regionOptionLabel({ name: 'Челябинская область', regionCode: 74, hasData: true, count: 1267 }),
+      regionOptionLabel({ name: 'Челябинская область', gibddCode: 74, fnsCode: 74, hasData: true }),
     ).toBe('74 — Челябинская область');
-    expect(regionOptionLabel({ name: 'Республика Адыгея', regionCode: 1, hasData: false })).toBe(
+    expect(regionOptionLabel({ name: 'Республика Адыгея', gibddCode: 1, fnsCode: 1 })).toBe(
       '01 — Республика Адыгея',
     );
   });
 
+  it('shows the ГИБДД code for Чечня (95), not the ФНС code 20', () => {
+    expect(
+      regionOptionLabel({ name: 'Чеченская Республика', fnsCode: 20, gibddCode: 95 }),
+    ).toBe('95 — Чеченская Республика');
+  });
+
   it('drops the geo-reference and settlement-count suffixes from the option text', () => {
-    const label = regionOptionLabel({ name: 'Тестовая область', regionCode: 74, hasData: false });
+    const label = regionOptionLabel({ name: 'Тестовая область', gibddCode: 74 });
     expect(label).toBe('74 — Тестовая область');
     expect(label).not.toMatch(/гео-справочник|нет данных|НП:/);
-    expect(neighboringRegionLabel({ name: 'Тестовая область', regionCode: 74, hasData: false })).toBe(
+    expect(neighboringRegionLabel({ name: 'Тестовая область', gibddCode: 74 })).toBe(
       '74 — Тестовая область',
     );
   });
 
-  it('keeps the bare name for new territories without an official regionCode', () => {
+  it('renders «— — Название» when no verifiable plate code exists', () => {
+    expect(regionOptionLabel({ name: 'Донецкая Народная Республика', gibddCode: null })).toBe(
+      '— — Донецкая Народная Республика',
+    );
     expect(
-      regionOptionLabel({ name: 'Донецкая Народная Республика', regionCode: null, hasData: true }),
-    ).toBe('Донецкая Народная Республика');
-    expect(
-      neighboringRegionLabel({ name: 'Донецкая Народная Республика', regionCode: null, hasData: true }),
-    ).toBe('Донецкая Народная Республика');
+      neighboringRegionLabel({ name: 'Донецкая Народная Республика', gibddCode: null }),
+    ).toBe('— — Донецкая Народная Республика');
   });
 
-  it('sorts ascending by the numeric code, territories without a code last', () => {
+  it('sorts ascending by the ГИБДД code, territories without a code last', () => {
     const ordered = [
-      { name: 'Челябинская область', regionCode: 74 },
-      { name: 'Донецкая Народная Республика', regionCode: null },
-      { name: 'Республика Адыгея', regionCode: 1 },
-      { name: 'Кабардино-Балкарская Республика', regionCode: 7 },
+      { name: 'Челябинская область', gibddCode: 74 },
+      { name: 'Донецкая Народная Республика', gibddCode: null },
+      { name: 'Республика Адыгея', gibddCode: 1 },
+      { name: 'Кабардино-Балкарская Республика', gibddCode: 7 },
     ]
-      .sort(compareRegionsByCode)
+      .sort(compareRegionsByGibddCode)
       .map(formatRegionLabel);
     expect(ordered).toEqual([
       '01 — Республика Адыгея',
       '07 — Кабардино-Балкарская Республика',
       '74 — Челябинская область',
-      'Донецкая Народная Республика',
+      '— — Донецкая Народная Республика',
     ]);
+  });
+
+  it('orders the real 89-region option list by gibddCode ascending', () => {
+    const labels = [...REGIONS_TABLE].sort(compareRegionsByGibddCode).map(formatRegionLabel);
+    const codes = labels.map((label) => {
+      const [code] = label.split(' — ');
+      return code === '—' ? null : Number(code);
+    });
+    const coded = codes.filter((code) => code !== null);
+    expect(coded).toEqual([...coded].sort((a, b) => a - b));
+    const firstNull = codes.indexOf(null);
+    if (firstNull !== -1) {
+      expect(codes.slice(firstNull)).toEqual(codes.slice(firstNull).map(() => null));
+    }
+    expect(labels).toContain('95 — Чеченская Республика');
+    expect(labels.join('\n')).not.toMatch(/(^|\s)(20|93|94|96) — /);
   });
 
   it('renders a non-empty label for every region', async () => {
