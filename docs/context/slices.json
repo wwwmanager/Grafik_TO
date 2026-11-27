@@ -937,7 +937,49 @@
       "dispatchedBy": "architect",
       "dispatchedAt": "2026-11-27T00:03:45+05:00",
       "updatedAt": "2026-11-27T00:12:48+05:00"
+    },
+    {
+      "id": "GRAFIK-48-PANEL-SCROLL-FIX",
+      "title": "P0 regression: settings panel scroll + details flex-shrink; region option format/sort",
+      "status": "dispatched",
+      "approved": true,
+      "dependsOn": [],
+      "dispatchText": "SLICE GRAFIK-48-PANEL-SCROLL-FIX (project grafik_to, repo G:\\_Grafik_TO). P0 REGRESSION from GRAFIK-42.\n\nSYMPTOM (owner): after the 42 changes the left settings panel has no vertical scroll, and flexbox\nshrinks <details> by height: collapsed accordions become thin empty strips with no text, expanded ones do\nnot reach their natural height and clip their fields. The sticky «Сформировать график» button must stay\npinned at the bottom.\n\nDO (exact, from the owner's spec):\n1. .settings-panel and .settings-form: display:flex; flex-direction:column; height:100%; min-height:0;\n   overflow:hidden.\n2. One scroll container inside .settings-form, e.g. .settings-scroll:\n   flex:1 1 auto; min-height:0; overflow-y:auto; display:flex; flex-direction:column;\n   gap:var(--space-3); padding-right:4px. All fields and ALL <details> live inside it.\n3. .settings-actions stays OUTSIDE .settings-scroll with flex:0 0 auto (opaque background, border-top,\n   no bleed under it).\n4. .settings-scroll > * { flex: 0 0 auto; } - every direct child, including <details> and <summary>.\n   Remove any fixed height/max-height on <details> (or on a wrapper) that prevents expansion; a <details>\n   must open to 100% of its natural height and the scrollbar must appear on .settings-scroll.\n5. Region <option> text: short format `NN — Название` (2-digit code with a leading zero, e.g.\n   `01 — Республика Адыгея`, `74 — Челябинская область`). Remove the `— гео-справочник...`/«нет данных»\n   suffix from the option text entirely. Sort options ascending by that 2-digit code, not alphabetically.\n   The neighbouring-regions list uses the same `NN — Название` format and the same code order.\n6. Geo-reference status for the selected region goes in ONE hint line under the <select>\n   (reuse/extend #region-no-data-hint): present -> neutral confirmation, absent -> the existing\n   «Гео-справочник для региона не загружен — используется текстовая группировка по адресам».\n7. Regression proof: with all 5 accordions open at once nothing is compressed or clipped, the panel\n   scrolls smoothly and the button stays fixed. Add a static CSS guard test asserting the required\n   properties on .settings-panel/.settings-form/.settings-scroll/.settings-actions and that no rule sets a\n   fixed height/max-height on details.\n8. Do NOT change region code values in this slice (a follow-up slice switches the numbering to ГИБДД).\n9. Keep `npm run verify` green (323 tests now).\n\nRULES: stage owned files only; no push; no personal data. Report commit, files, raw verify output, and\nstate explicitly that the 5-accordion visual check remains the owner gate. Handoff to orch2.\n",
+      "acceptance": null,
+      "verifyCommands": [
+        "npm run verify"
+      ],
+      "owner": "orch1",
+      "commit": null,
+      "evidence": null,
+      "rejections": 0,
+      "retro": null,
+      "dispatchedBy": "architect",
+      "dispatchedAt": "2026-11-27T05:06:55+05:00",
+      "updatedAt": "2026-11-27T05:06:55+05:00"
+    },
+    {
+      "id": "GRAFIK-49-GIBDD-CODES",
+      "title": "Displayed code = GIBDD numbering (Chechnya 95, Crimea 82), fnsCode retained",
+      "status": "planned",
+      "approved": false,
+      "dispatchText": "SLICE GRAFIK-49-GIBDD-CODES (project grafik_to, repo G:\\_Grafik_TO; depends on GRAFIK-48)\n\nOwner decision: the displayed subject code must be the ГИБДД/registration numbering (his explicit\nexamples: Чеченская Республика = 95, not 20). This differs from the ФНС/ОКТМО numbering currently in\n`regionCode` for a few subjects.\n\nDO:\n1. Keep BOTH numbers in the table (scripts/build-settlements.mjs is the source, regenerate\n   src/modules/regions-table.js): `gibddCode` (displayed, 2-digit) and `fnsCode` (kept for reference and\n   future address/tax work). Do not delete data.\n2. Set the diverging values from a cited, verifiable source (Росстандарт/ГИБДД/МВД registry codes; cite it\n   in D32): Чеченская Республика 95 (ФНС 20), Республика Крым 82 (ФНС 91), Севастополь 92, and the four\n   new subjects - ДНР, ЛНР, Запорожская, Херсонская - only if the ГИБДД code is verifiable; otherwise\n   gibddCode stays null and the UI shows the name without a code (never invent, never reuse the invented\n   93-96). If any of these cannot be sourced, say so in the report instead of guessing.\n3. UI: display and sort by gibddCode (2-digit, leading zero), null codes sort last by name and render as\n   `— — Название`; add a test that the option label for Чечня is `95 — Чеченская Республика` and that the\n   list is ascending by gibddCode.\n4. Update D25/D32 in docs/spec/decisions.md: why the displayed code is ГИБДД, the mapping table for the\n   diverging subjects, and the fnsCode retention. Update docs/context/resume-grafik.md.\n5. Tests: all non-null gibddCode unique and 2-digit; spot pairs 01 02 12 13 16 18 20->95 21 23 74 72 76 77\n   78 82 86 89 91->82; null group matches the subjects without a verifiable code.\n6. Keep `npm run verify` green.\n\nRULES: no settlement JSON regeneration/renaming; stage owned files only; no push; no personal data.\nHandoff to orch2.\n",
+      "acceptance": null,
+      "verifyCommands": [
+        "npm run verify"
+      ],
+      "owner": "orch1",
+      "commit": null,
+      "evidence": null,
+      "rejections": 0,
+      "retro": null,
+      "dispatchedBy": null,
+      "dispatchedAt": null,
+      "updatedAt": "2026-11-27T05:07:00+05:00",
+      "dependsOn": [
+        "GRAFIK-48-PANEL-SCROLL-FIX"
+      ]
     }
   ],
-  "updatedAt": "2026-11-27T00:28:26+05:00"
+  "updatedAt": "2026-11-27T05:07:00+05:00"
 }
